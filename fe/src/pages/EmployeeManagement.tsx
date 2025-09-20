@@ -13,6 +13,7 @@ interface Employee {
   subordinates: string[]
   projects: string[]
   avatar: string
+  employmentType?: 'full-time' | 'part-time' | 'intern'
 }
 
 interface Project {
@@ -28,6 +29,23 @@ function EmployeeManagement() {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [showSubordinatesDropdown, setShowSubordinatesDropdown] = useState<string | null>(null)
   const [showProjectsDropdown, setShowProjectsDropdown] = useState<string | null>(null)
+  const [showAddEmployeeForm, setShowAddEmployeeForm] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showManageSubordinatesForm, setShowManageSubordinatesForm] = useState(false)
+  const [isSubordinateFormAnimating, setIsSubordinateFormAnimating] = useState(false)
+  const [selectedEmployeeForSubordinates, setSelectedEmployeeForSubordinates] = useState<Employee | null>(null)
+  const [subordinateSearchTerm, setSubordinateSearchTerm] = useState('')
+  const [newEmployee, setNewEmployee] = useState({
+    employeeId: '',
+    fullName: '',
+    emailAddress: '',
+    division: '',
+    title: '',
+    position: '',
+    subordinates: '',
+    skillLevel: '',
+    employmentType: 'full-time' as 'full-time' | 'part-time' | 'intern'
+  })
 
   const employees: Employee[] = mockData.employees
   const projects: Project[] = mockData.projects
@@ -112,6 +130,53 @@ function EmployeeManagement() {
     return colors[index]
   }
 
+  // Helper function to get available employees for subordinate assignment
+  const getAvailableEmployeesForSubordinate = (currentEmployeeId: string) => {
+    return employees.filter(emp => 
+      emp.id !== currentEmployeeId && 
+      !selectedEmployeeForSubordinates?.subordinates.includes(emp.id)
+    ).filter(emp =>
+      subordinateSearchTerm === '' ||
+      emp.name.toLowerCase().includes(subordinateSearchTerm.toLowerCase()) ||
+      emp.id.toLowerCase().includes(subordinateSearchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(subordinateSearchTerm.toLowerCase())
+    )
+  }
+
+  // Handle manage subordinates click
+  const handleManageSubordinates = (employee: Employee) => {
+    setSelectedEmployeeForSubordinates(employee)
+    setShowManageSubordinatesForm(true)
+    setShowSubordinatesDropdown(null)
+  }
+
+  // Handle adding subordinate
+  const handleAddSubordinate = (subordinateId: string) => {
+    if (selectedEmployeeForSubordinates) {
+      // In a real app, you would update the backend here
+      const updatedEmployee = {
+        ...selectedEmployeeForSubordinates,
+        subordinates: [...selectedEmployeeForSubordinates.subordinates, subordinateId]
+      }
+      setSelectedEmployeeForSubordinates(updatedEmployee)
+      setSubordinateSearchTerm('')
+      console.log('Adding subordinate:', subordinateId, 'to employee:', selectedEmployeeForSubordinates.id)
+    }
+  }
+
+  // Handle removing subordinate
+  const handleRemoveSubordinate = (subordinateId: string) => {
+    if (selectedEmployeeForSubordinates) {
+      // In a real app, you would update the backend here
+      const updatedEmployee = {
+        ...selectedEmployeeForSubordinates,
+        subordinates: selectedEmployeeForSubordinates.subordinates.filter(id => id !== subordinateId)
+      }
+      setSelectedEmployeeForSubordinates(updatedEmployee)
+      console.log('Removing subordinate:', subordinateId, 'from employee:', selectedEmployeeForSubordinates.id)
+    }
+  }
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -123,6 +188,83 @@ function EmployeeManagement() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
+  // Trigger animation when form opens
+  useEffect(() => {
+    if (showAddEmployeeForm) {
+      // Small delay to ensure the form is rendered before animating
+      setTimeout(() => setIsAnimating(true), 10)
+    }
+  }, [showAddEmployeeForm])
+
+  // Trigger animation when subordinate form opens
+  useEffect(() => {
+    if (showManageSubordinatesForm) {
+      // Small delay to ensure the form is rendered before animating
+      setTimeout(() => setIsSubordinateFormAnimating(true), 10)
+    }
+  }, [showManageSubordinatesForm])
+
+  // Handle form input changes
+  const handleInputChange = (field: string, value: string) => {
+    setNewEmployee(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // Handle form submission
+  const handleSubmitEmployee = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Here you would typically send the data to your backend
+    console.log('New employee data:', newEmployee)
+
+    // Close with animation
+    handleCloseForm()
+  }
+
+  // Close form
+  const handleCloseForm = () => {
+    setIsAnimating(false)
+    setTimeout(() => {
+      setShowAddEmployeeForm(false)
+      setNewEmployee({
+        employeeId: '',
+        fullName: '',
+        emailAddress: '',
+        division: '',
+        title: '',
+        position: '',
+        subordinates: '',
+        skillLevel: '',
+        employmentType: 'full-time'
+      })
+    }, 300)
+  }
+
+  // Close form when clicking on overlay
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleCloseForm()
+    }
+  }
+
+  // Close subordinate form
+  const handleCloseSubordinateForm = () => {
+    setIsSubordinateFormAnimating(false)
+    setTimeout(() => {
+      setShowManageSubordinatesForm(false)
+      setSelectedEmployeeForSubordinates(null)
+      setSubordinateSearchTerm('')
+    }, 300)
+  }
+
+  // Close subordinate form when clicking on overlay
+  const handleSubordinateOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleCloseSubordinateForm()
+    }
+  }
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -132,7 +274,10 @@ function EmployeeManagement() {
             <h1 className="text-3xl font-bold text-gray-900">Employee Management</h1>
             <p className="text-gray-600 mt-1">Centralized system to manage employee profiles, roles, and lifecycle.</p>
           </div>
-          <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => setShowAddEmployeeForm(true)}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             <span>Add New Employee</span>
           </button>
@@ -255,49 +400,50 @@ function EmployeeManagement() {
                           <span className="text-sm text-gray-900">{sub.name}</span>
                         </div>
                       ))}
-                      {subordinates.length > 2 && (
-                        <div className="relative">
-                          <span
-                            className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 px-3"
-                            onClick={(e) => handleShowSubordinates(employee.id, e)}
-                          >
-                            {subordinates.length - 2} more
-                          </span>
-                          {showSubordinatesDropdown === employee.id && (
-                            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                              <div className="p-2 border-b border-gray-100">
-                                <div className="text-sm font-medium text-gray-900">{employee.name}'s Subordinates</div>
-                              </div>
-                              <div className="p-2 max-h-48 overflow-y-auto">
-                                <div className="space-y-2">
-                                  {subordinates.map((subordinate) => (
-                                    <div key={subordinate.id} className="flex items-center space-x-2 px-2 py-0.5 hover:bg-gray-50 rounded">
-                                      <div
-                                        className={`w-6 h-6 rounded-full bg-cover bg-center flex items-center justify-center text-white text-xs font-medium ${getAvatarColor(subordinate.name)}`}
-                                        style={{
-                                          backgroundImage: `url(${subordinate.avatar})`,
-                                          backgroundColor: subordinate.avatar ? 'transparent' : undefined
-                                        }}
-                                      >
-                                        {!subordinate.avatar && getInitials(subordinate.name)}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-medium text-gray-900 truncate">{subordinate.name}</p>
-                                      </div>
+                      <div className="relative">
+                        <span
+                          className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 px-3"
+                          onClick={(e) => handleShowSubordinates(employee.id, e)}
+                        >
+                          {subordinates.length > 2 ? `${subordinates.length - 2} more` : 'Manage'}
+                        </span>
+                        {showSubordinatesDropdown === employee.id && (
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                            <div className="p-2 border-b border-gray-100">
+                              <div className="text-sm font-medium text-gray-900">{employee.name}'s Subordinates</div>
+                            </div>
+                            <div className="p-2 max-h-48 overflow-y-auto">
+                              <div className="space-y-2">
+                                {subordinates.map((subordinate) => (
+                                  <div key={subordinate.id} className="flex items-center space-x-2 px-2 py-0.5 hover:bg-gray-50 rounded">
+                                    <div
+                                      className={`w-6 h-6 rounded-full bg-cover bg-center flex items-center justify-center text-white text-xs font-medium ${getAvatarColor(subordinate.name)}`}
+                                      style={{
+                                        backgroundImage: `url(${subordinate.avatar})`,
+                                        backgroundColor: subordinate.avatar ? 'transparent' : undefined
+                                      }}
+                                    >
+                                      {!subordinate.avatar && getInitials(subordinate.name)}
                                     </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="p-2 border-t border-gray-100 bg-gray-50">
-                                <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 text-xs">
-                                  <Edit className="w-3 h-3" />
-                                  <span>Manage Subordinate</span>
-                                </button>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-gray-900 truncate">{subordinate.name}</p>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          )}
-                        </div>
-                      )}
+                            <div className="p-2 border-t border-gray-100 bg-gray-50">
+                              <button 
+                                onClick={() => handleManageSubordinates(employee)}
+                                className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 text-xs"
+                              >
+                                <Edit className="w-3 h-3" />
+                                <span>Manage Subordinate</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -435,6 +581,355 @@ function EmployeeManagement() {
           </button>
         </div>
       </div>
+
+      {/* Add Employee Floating Form */}
+      {showAddEmployeeForm && (
+        <div
+          className={`fixed inset-0 bg-black/40 z-50 flex justify-end transition-all duration-300 ease-in-out`}
+          onClick={handleOverlayClick}
+        >
+          <div className={`bg-white w-[500px] h-full shadow-2xl overflow-y-auto transform transition-all duration-300 ease-in-out ${isAnimating ? 'translate-x-0' : 'translate-x-full'}`}>
+            <form onSubmit={handleSubmitEmployee}>
+              {/* Form Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Add New Employee</h2>
+                <button
+                  type="button"
+                  onClick={handleCloseForm}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="p-6 space-y-6">
+                {/* Employee ID */}
+                <div>
+                  <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-2">
+                    Employee ID
+                  </label>
+                  <input
+                    type="text"
+                    id="employeeId"
+                    value={newEmployee.employeeId}
+                    onChange={(e) => handleInputChange('employeeId', e.target.value)}
+                    placeholder="QTN-00012"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  />
+                </div>
+
+                {/* Full Name */}
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    id="fullName"
+                    value={newEmployee.fullName}
+                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  />
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label htmlFor="emailAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="emailAddress"
+                    value={newEmployee.emailAddress}
+                    onChange={(e) => handleInputChange('emailAddress', e.target.value)}
+                    placeholder="johndoe@email.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Make sure to enter personal email</p>
+                </div>
+
+                {/* Division */}
+                <div>
+                  <label htmlFor="division" className="block text-sm font-medium text-gray-700 mb-2">
+                    Division
+                  </label>
+                  <select
+                    id="division"
+                    value={newEmployee.division}
+                    onChange={(e) => handleInputChange('division', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  >
+                    <option value="">Select division</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Product">Product</option>
+                    <option value="Design">Design</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                  </select>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-2">
+                    Title
+                  </label>
+                  <select
+                    id="title"
+                    value={newEmployee.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed"
+                    disabled
+                  >
+                    <option value="">Select title</option>
+                    <option value="CEO">CEO</option>
+                    <option value="CTO">CTO</option>
+                    <option value="Engineering Manager">Engineering Manager</option>
+                    <option value="Senior Developer">Senior Developer</option>
+                    <option value="Developer">Developer</option>
+                    <option value="Junior Developer">Junior Developer</option>
+                    <option value="UI/UX Designer">UI/UX Designer</option>
+                    <option value="Product Manager">Product Manager</option>
+                    <option value="Marketing Manager">Marketing Manager</option>
+                    <option value="HR Manager">HR Manager</option>
+                  </select>
+                </div>
+
+                {/* Position */}
+                <div>
+                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-2">
+                    Position
+                  </label>
+                  <select
+                    id="position"
+                    value={newEmployee.position}
+                    onChange={(e) => handleInputChange('position', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  >
+                    <option value="">Select position</option>
+                    <option value="CEO">CEO</option>
+                    <option value="Division Lead">Division Lead</option>
+                    <option value="PMs">PMs</option>
+                    <option value="Developers">Developers</option>
+                    <option value="UI/UX Designers">UI/UX Designers</option>
+                    <option value="HRs">HRs</option>
+                    <option value="Marketings">Marketings</option>
+                  </select>
+                </div>
+
+                {/* Subordinates */}
+                <div>
+                  <label htmlFor="subordinates" className="block text-sm font-medium text-gray-400 mb-2">
+                    Subordinates
+                  </label>
+                  <select
+                    id="subordinates"
+                    value={newEmployee.subordinates}
+                    onChange={(e) => handleInputChange('subordinates', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed"
+                    disabled
+                  >
+                    <option value="">Select people</option>
+                    <option value="none">None</option>
+                    <option value="team-lead">Team Lead</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+
+                {/* Skill Level */}
+                <div>
+                  <label htmlFor="skillLevel" className="block text-sm font-medium text-gray-700 mb-2">
+                    Skill Level
+                  </label>
+                  <select
+                    id="skillLevel"
+                    value={newEmployee.skillLevel}
+                    onChange={(e) => handleInputChange('skillLevel', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  >
+                    <option value="">Select skill level</option>
+                    <option value="Entry">Entry</option>
+                    <option value="Junior">Junior</option>
+                    <option value="Mid">Mid</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Lead">Lead</option>
+                    <option value="Principal">Principal</option>
+                  </select>
+                </div>
+
+                {/* Employment Type */}
+                <div>
+                  <label htmlFor="employmentType" className="block text-sm font-medium text-gray-700 mb-2">
+                    Employment Type
+                  </label>
+                  <select
+                    id="employmentType"
+                    value={newEmployee.employmentType}
+                    onChange={(e) => handleInputChange('employmentType', e.target.value as 'full-time' | 'part-time' | 'intern')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
+                  >
+                    <option value="full-time">Full Time</option>
+                    <option value="part-time">Part Time</option>
+                    <option value="intern">Intern</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Form Footer */}
+              <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Add Employee
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Subordinates Floating Form */}
+      {showManageSubordinatesForm && selectedEmployeeForSubordinates && (
+        <div
+          className={`fixed inset-0 bg-black/40 z-50 flex justify-end transition-all duration-300 ease-in-out`}
+          onClick={handleSubordinateOverlayClick}
+        >
+          <div className={`bg-white w-[500px] h-full shadow-2xl overflow-y-auto transform transition-all duration-300 ease-in-out ${isSubordinateFormAnimating ? 'translate-x-0' : 'translate-x-full'}`}>
+            {/* Form Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Manage {selectedEmployeeForSubordinates.name}'s Subordinates</h2>
+                <p className="text-sm text-gray-500 mt-1">Add or remove subordinates for this employee</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseSubordinateForm}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Current Subordinates */}
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Current Subordinates</h3>
+              {selectedEmployeeForSubordinates.subordinates.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No subordinates assigned</p>
+              ) : (
+                <div className="space-y-3">
+                  {getSubordinatesByIds(selectedEmployeeForSubordinates.subordinates).map((subordinate) => (
+                    <div key={subordinate.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`w-8 h-8 rounded-full bg-cover bg-center flex items-center justify-center text-white text-sm font-medium ${getAvatarColor(subordinate.name)}`}
+                          style={{
+                            backgroundImage: `url(${subordinate.avatar})`,
+                            backgroundColor: subordinate.avatar ? 'transparent' : undefined
+                          }}
+                        >
+                          {!subordinate.avatar && getInitials(subordinate.name)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{subordinate.name}</p>
+                          <p className="text-xs text-gray-500">{subordinate.email}</p>
+                          <p className="text-xs text-gray-500">{subordinate.title} - {subordinate.division}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveSubordinate(subordinate.id)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                        title="Remove subordinate"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add New Subordinate */}
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Subordinate</h3>
+              
+              {/* Search Input */}
+              <div className="mb-4">
+                <label htmlFor="subordinateSearch" className="block text-sm font-medium text-gray-700 mb-2">
+                  Search employee by name/ID
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    id="subordinateSearch"
+                    value={subordinateSearchTerm}
+                    onChange={(e) => setSubordinateSearchTerm(e.target.value)}
+                    placeholder="Search by name, ID, or email..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Available Employees */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {getAvailableEmployeesForSubordinate(selectedEmployeeForSubordinates.id).map((employee) => (
+                  <div key={employee.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-8 h-8 rounded-full bg-cover bg-center flex items-center justify-center text-white text-sm font-medium ${getAvatarColor(employee.name)}`}
+                        style={{
+                          backgroundImage: `url(${employee.avatar})`,
+                          backgroundColor: employee.avatar ? 'transparent' : undefined
+                        }}
+                      >
+                        {!employee.avatar && getInitials(employee.name)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{employee.name}</p>
+                        <p className="text-xs text-gray-500">{employee.id} - {employee.email}</p>
+                        <p className="text-xs text-gray-500">{employee.title} - {employee.division}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleAddSubordinate(employee.id)}
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                ))}
+                {getAvailableEmployeesForSubordinate(selectedEmployeeForSubordinates.id).length === 0 && subordinateSearchTerm && (
+                  <p className="text-sm text-gray-500 italic text-center py-4">No employees found matching your search</p>
+                )}
+                {getAvailableEmployeesForSubordinate(selectedEmployeeForSubordinates.id).length === 0 && !subordinateSearchTerm && (
+                  <p className="text-sm text-gray-500 italic text-center py-4">All employees are already subordinates or unavailable</p>
+                )}
+              </div>
+            </div>
+
+            {/* Form Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={handleCloseSubordinateForm}
+                className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors font-medium"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
