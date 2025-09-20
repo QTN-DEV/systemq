@@ -380,7 +380,6 @@ function EmployeeManagement(): ReactElement {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center" aria-hidden="true">
                       <div className="flex-shrink-0 h-10 w-10" aria-hidden="true">
-                        {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                         <div
                           className="h-10 w-10 rounded-full bg-cover bg-center flex items-center justify-center text-white font-medium text-sm"
                           style={{

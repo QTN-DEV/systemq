@@ -1,5 +1,3 @@
-import type { ReactElement } from 'react'
-import { useCallback, useMemo } from 'react'
 import {
   ReactFlow,
   MiniMap,
@@ -13,7 +11,9 @@ import {
   type Edge,
   type Node,
   Position,
+  BackgroundVariant,
 } from '@xyflow/react'
+import { useCallback, useMemo, type ReactElement } from 'react'
 import '@xyflow/react/dist/style.css'
 
 import mockData from '../data/mockData.json'
@@ -193,7 +193,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
     }
 
     // Recursive function to position nodes
-    const positionNodes = (employeeId: string, x: number, y: number, availableWidth: number): void => {
+    const positionNodes = (employeeId: string, x: number, y: number, _availableWidth: number): void => {
       const employee = employeeMap.get(employeeId)
       if (!employee) return
 
@@ -257,7 +257,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
     return { nodes, edges }
   }, [employees])
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   const onConnect = useCallback(
@@ -285,7 +285,6 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
-        edgesUpdatable={false}
         edgesFocusable={false}
         nodesFocusable={false}
         draggable={false}
@@ -297,7 +296,9 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
         <MiniMap 
           className="bg-white shadow-lg border border-gray-200 rounded-lg"
           nodeColor={(node) => {
-            const employee = (node.data as CustomNodeData).employee
+            const data = node.data as Partial<CustomNodeData>;
+            if (!data.employee) return '#6b7280';
+            const employee = data.employee;
             switch (employee.level.toLowerCase()) {
               case 'executive': return '#ef4444'
               case 'director':
@@ -312,7 +313,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
           maskColor="rgba(255, 255, 255, 0.8)"
         />
         <Background 
-          variant="dots" 
+          variant={BackgroundVariant.Dots} 
           gap={20} 
           size={1} 
           color="#e5e7eb"
