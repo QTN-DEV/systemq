@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import EmployeeManagement from './pages/EmployeeManagement'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import StructureOrganization from './pages/StructureOrganization'
 
 function App(): ReactElement {
   return (
@@ -43,7 +44,7 @@ function App(): ReactElement {
       <Route path="/work-arrangement" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Work Arrangement Request</h1></div></DashboardLayout>} />
       
       {/* Core Ops */}
-      <Route path="/structure-organization" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Structure Organization</h1></div></DashboardLayout>} />
+      <Route path="/structure-organization" element={<DashboardLayout><StructureOrganization /></DashboardLayout>} />
       <Route path="/employee-management" element={<DashboardLayout><EmployeeManagement /></DashboardLayout>} />
       <Route path="/attendance-tracker" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Attendance Tracker</h1></div></DashboardLayout>} />
       
