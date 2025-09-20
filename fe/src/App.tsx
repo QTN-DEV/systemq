@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import EmployeeManagement from './pages/EmployeeManagement'
 import DashboardLayout from './layouts/DashboardLayout'
 
 function App() {
@@ -41,7 +42,7 @@ function App() {
       
       {/* Core Ops */}
       <Route path="/structure-organization" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Structure Organization</h1></div></DashboardLayout>} />
-      <Route path="/employee-management" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Employee Management</h1></div></DashboardLayout>} />
+      <Route path="/employee-management" element={<DashboardLayout><EmployeeManagement /></DashboardLayout>} />
       <Route path="/attendance-tracker" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Attendance Tracker</h1></div></DashboardLayout>} />
       
       {/* Knowledge */}
