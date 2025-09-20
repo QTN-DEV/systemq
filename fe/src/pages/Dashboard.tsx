@@ -1,6 +1,7 @@
+import { type ReactElement } from 'react'
 import { Link } from 'react-router-dom'
 
-function Dashboard() {
+function Dashboard(): ReactElement {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -32,7 +33,7 @@ function Dashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">System Status</h3>
           <p className="text-gray-600 mb-4">All systems operational</p>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-full" />
             <span className="text-sm text-gray-700">Online</span>
           </div>
         </div>

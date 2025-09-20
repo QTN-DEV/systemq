@@ -1,5 +1,9 @@
-import { useState, useMemo, useEffect } from 'react'
+/* eslint-disable jsx-a11y/control-has-associated-label */
 import { Search, Plus, Download, X, Edit } from 'lucide-react'
+import { useState, useMemo, useEffect, type ReactElement } from 'react'
+
+import { logger } from '@/lib/logger'
+
 import mockData from '../data/mockData.json'
 
 interface Employee {
@@ -22,7 +26,7 @@ interface Project {
   avatar: string
 }
 
-function EmployeeManagement() {
+function EmployeeManagement(): ReactElement {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All Employees')
   const [currentPage, setCurrentPage] = useState(1)
@@ -51,13 +55,13 @@ function EmployeeManagement() {
   const projects: Project[] = mockData.projects
 
   // Get unique positions for filter tabs
-  const positions = useMemo(() => {
+  const positions = useMemo((): string[] => {
     const uniquePositions = [...new Set(employees.map(emp => emp.position))]
     return ['All Employees', ...uniquePositions]
   }, [employees])
 
   // Filter and search employees
-  const filteredEmployees = useMemo(() => {
+  const filteredEmployees = useMemo((): Employee[] => {
     let filtered = employees
 
     // Filter by position
@@ -84,19 +88,19 @@ function EmployeeManagement() {
   const paginatedEmployees = filteredEmployees.slice(startIndex, startIndex + rowsPerPage)
 
   // Helper functions
-  const getProjectsByIds = (projectIds: string[]) => {
+  const getProjectsByIds = (projectIds: string[]): Project[] => {
     return projects.filter(project => projectIds.includes(project.id))
   }
 
-  const getSubordinatesByIds = (subordinateIds: string[]) => {
+  const getSubordinatesByIds = (subordinateIds: string[]): Employee[] => {
     return employees.filter(emp => subordinateIds.includes(emp.id))
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string): string => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 
-  const getPositionBadgeColor = (position: string) => {
+  const getPositionBadgeColor = (position: string): string => {
     const colors = {
       'CEO': 'bg-purple-100 text-purple-800',
       'Division Lead': 'bg-blue-100 text-blue-800',
@@ -109,19 +113,35 @@ function EmployeeManagement() {
     return colors[position as keyof typeof colors] || 'bg-gray-100 text-gray-800'
   }
 
-  const handleShowSubordinates = (employeeId: string, e: React.MouseEvent) => {
+  const handleShowSubordinates = (employeeId: string, e: React.MouseEvent): void => {
     e.stopPropagation()
     setShowSubordinatesDropdown(showSubordinatesDropdown === employeeId ? null : employeeId)
     setShowProjectsDropdown(null) // Close projects dropdown if open
   }
 
-  const handleShowProjects = (employeeId: string, e: React.MouseEvent) => {
+  const handleShowSubordinatesKeyboard = (employeeId: string, e: React.KeyboardEvent): void => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setShowSubordinatesDropdown(showSubordinatesDropdown === employeeId ? null : employeeId)
+      setShowProjectsDropdown(null) // Close projects dropdown if open
+    }
+  }
+
+  const handleShowProjects = (employeeId: string, e: React.MouseEvent): void => {
     e.stopPropagation()
     setShowProjectsDropdown(showProjectsDropdown === employeeId ? null : employeeId)
     setShowSubordinatesDropdown(null) // Close subordinates dropdown if open
   }
 
-  const getAvatarColor = (name: string) => {
+  const handleShowProjectsKeyboard = (employeeId: string, e: React.KeyboardEvent): void => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setShowProjectsDropdown(showProjectsDropdown === employeeId ? null : employeeId)
+      setShowSubordinatesDropdown(null) // Close subordinates dropdown if open
+    }
+  }
+
+  const getAvatarColor = (name: string): string => {
     const colors = [
       'bg-pink-500', 'bg-blue-500', 'bg-red-500', 'bg-green-500',
       'bg-yellow-500', 'bg-purple-500', 'bg-indigo-500', 'bg-teal-500'
@@ -131,7 +151,7 @@ function EmployeeManagement() {
   }
 
   // Helper function to get available employees for subordinate assignment
-  const getAvailableEmployeesForSubordinate = (currentEmployeeId: string) => {
+  const getAvailableEmployeesForSubordinate = (currentEmployeeId: string): Employee[] => {
     return employees.filter(emp => 
       emp.id !== currentEmployeeId && 
       !selectedEmployeeForSubordinates?.subordinates.includes(emp.id)
@@ -144,14 +164,14 @@ function EmployeeManagement() {
   }
 
   // Handle manage subordinates click
-  const handleManageSubordinates = (employee: Employee) => {
+  const handleManageSubordinates = (employee: Employee): void => {
     setSelectedEmployeeForSubordinates(employee)
     setShowManageSubordinatesForm(true)
     setShowSubordinatesDropdown(null)
   }
 
   // Handle adding subordinate
-  const handleAddSubordinate = (subordinateId: string) => {
+  const handleAddSubordinate = (subordinateId: string): void => {
     if (selectedEmployeeForSubordinates) {
       // In a real app, you would update the backend here
       const updatedEmployee = {
@@ -160,12 +180,12 @@ function EmployeeManagement() {
       }
       setSelectedEmployeeForSubordinates(updatedEmployee)
       setSubordinateSearchTerm('')
-      console.log('Adding subordinate:', subordinateId, 'to employee:', selectedEmployeeForSubordinates.id)
+      logger.log('Adding subordinate:', subordinateId, 'to employee:', selectedEmployeeForSubordinates.id)
     }
   }
 
   // Handle removing subordinate
-  const handleRemoveSubordinate = (subordinateId: string) => {
+  const handleRemoveSubordinate = (subordinateId: string): void => {
     if (selectedEmployeeForSubordinates) {
       // In a real app, you would update the backend here
       const updatedEmployee = {
@@ -173,19 +193,19 @@ function EmployeeManagement() {
         subordinates: selectedEmployeeForSubordinates.subordinates.filter(id => id !== subordinateId)
       }
       setSelectedEmployeeForSubordinates(updatedEmployee)
-      console.log('Removing subordinate:', subordinateId, 'from employee:', selectedEmployeeForSubordinates.id)
+      logger.log('Removing subordinate:', subordinateId, 'from employee:', selectedEmployeeForSubordinates.id)
     }
   }
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
+    const handleClickOutside = (): void => {
       setShowSubordinatesDropdown(null)
       setShowProjectsDropdown(null)
     }
 
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    return (): void => document.removeEventListener('click', handleClickOutside)
   }, [])
 
   // Trigger animation when form opens
@@ -205,7 +225,7 @@ function EmployeeManagement() {
   }, [showManageSubordinatesForm])
 
   // Handle form input changes
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string): void => {
     setNewEmployee(prev => ({
       ...prev,
       [field]: value
@@ -213,17 +233,17 @@ function EmployeeManagement() {
   }
 
   // Handle form submission
-  const handleSubmitEmployee = (e: React.FormEvent) => {
+  const handleSubmitEmployee = (e: React.FormEvent): void => {
     e.preventDefault()
     // Here you would typically send the data to your backend
-    console.log('New employee data:', newEmployee)
+    logger.log('New employee data:', newEmployee)
 
     // Close with animation
     handleCloseForm()
   }
 
   // Close form
-  const handleCloseForm = () => {
+  const handleCloseForm = (): void => {
     setIsAnimating(false)
     setTimeout(() => {
       setShowAddEmployeeForm(false)
@@ -242,14 +262,14 @@ function EmployeeManagement() {
   }
 
   // Close form when clicking on overlay
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = (e: React.MouseEvent): void => {
     if (e.target === e.currentTarget) {
       handleCloseForm()
     }
   }
 
   // Close subordinate form
-  const handleCloseSubordinateForm = () => {
+  const handleCloseSubordinateForm = (): void => {
     setIsSubordinateFormAnimating(false)
     setTimeout(() => {
       setShowManageSubordinatesForm(false)
@@ -259,7 +279,7 @@ function EmployeeManagement() {
   }
 
   // Close subordinate form when clicking on overlay
-  const handleSubordinateOverlayClick = (e: React.MouseEvent) => {
+  const handleSubordinateOverlayClick = (e: React.MouseEvent): void => {
     if (e.target === e.currentTarget) {
       handleCloseSubordinateForm()
     }
@@ -312,6 +332,7 @@ function EmployeeManagement() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none w-64"
+              aria-label="Search employees"
             />
           </div>
           <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 px-4 py-2 border border-gray-300 hover:bg-gray-50 transition-colors">
@@ -357,14 +378,17 @@ function EmployeeManagement() {
                     {employee.id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
+                    <div className="flex items-center" aria-hidden="true">
+                      <div className="flex-shrink-0 h-10 w-10" aria-hidden="true">
+                        {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                         <div
                           className="h-10 w-10 rounded-full bg-cover bg-center flex items-center justify-center text-white font-medium text-sm"
                           style={{
                             backgroundImage: `url(${employee.avatar})`,
                             backgroundColor: employee.avatar ? 'transparent' : '#6B7280'
                           }}
+                          role="img"
+                          aria-label={`${employee.name}'s avatar`}
                         >
                           {!employee.avatar && getInitials(employee.name)}
                         </div>
@@ -394,6 +418,8 @@ function EmployeeManagement() {
                               backgroundImage: `url(${sub.avatar})`,
                               backgroundColor: sub.avatar ? 'transparent' : '#6B7280'
                             }}
+                            role="img"
+                            aria-label={`${sub.name}'s avatar`}
                           >
                             {!sub.avatar && getInitials(sub.name)}
                           </div>
@@ -404,13 +430,18 @@ function EmployeeManagement() {
                         <span
                           className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 px-3"
                           onClick={(e) => handleShowSubordinates(employee.id, e)}
+                          onKeyDown={(e) => {
+                            handleShowSubordinatesKeyboard(employee.id, e)
+                          }}
+                          role="button"
+                          tabIndex={0}
                         >
                           {subordinates.length > 2 ? `${subordinates.length - 2} more` : 'Manage'}
                         </span>
                         {showSubordinatesDropdown === employee.id && (
                           <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                             <div className="p-2 border-b border-gray-100">
-                              <div className="text-sm font-medium text-gray-900">{employee.name}'s Subordinates</div>
+                              <div className="text-sm font-medium text-gray-900">{employee.name}&#39;s Subordinates</div>
                             </div>
                             <div className="p-2 max-h-48 overflow-y-auto">
                               <div className="space-y-2">
@@ -422,6 +453,8 @@ function EmployeeManagement() {
                                         backgroundImage: `url(${subordinate.avatar})`,
                                         backgroundColor: subordinate.avatar ? 'transparent' : undefined
                                       }}
+                                      role="img"
+                                      aria-label={`${subordinate.name}'s avatar`}
                                     >
                                       {!subordinate.avatar && getInitials(subordinate.name)}
                                     </div>
@@ -456,6 +489,8 @@ function EmployeeManagement() {
                               backgroundImage: `url(${project.avatar})`,
                               backgroundColor: project.avatar ? 'transparent' : '#6B7280'
                             }}
+                            role="img"
+                            aria-label={`${project.name}'s avatar`}
                           >
                             {!project.avatar && getInitials(project.name)}
                           </div>
@@ -467,13 +502,18 @@ function EmployeeManagement() {
                           <span
                             className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 px-3"
                             onClick={(e) => handleShowProjects(employee.id, e)}
+                            onKeyDown={(e) => {
+                              handleShowProjectsKeyboard(employee.id, e)
+                            }}
+                            role="button"
+                            tabIndex={0}
                           >
                             {employeeProjects.length - 3} more
                           </span>
                           {showProjectsDropdown === employee.id && (
                             <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                               <div className="p-2 border-b border-gray-100">
-                                <div className="text-sm font-medium text-gray-900">{employee.name}'s Projects</div>
+                                <div className="text-sm font-medium text-gray-900">{employee.name}&#39;s Projects</div>
                               </div>
                               <div className="p-2 max-h-48 overflow-y-auto">
                                 <div className="space-y-2">
@@ -485,6 +525,8 @@ function EmployeeManagement() {
                                           backgroundImage: `url(${project.avatar})`,
                                           backgroundColor: project.avatar ? 'transparent' : undefined
                                         }}
+                                        role="img"
+                                        aria-label={`${project.name}'s avatar`}
                                       >
                                         {!project.avatar && getInitials(project.name)}
                                       </div>
@@ -517,8 +559,9 @@ function EmployeeManagement() {
       {/* Pagination */}
       <div className="flex items-center justify-between mt-6">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-700">Rows per page</span>
+          <label htmlFor="rowsPerPage" className="text-sm text-gray-700">Rows per page</label>
           <select
+            id="rowsPerPage"
             value={rowsPerPage}
             onChange={(e) => {
               setRowsPerPage(Number(e.target.value))
@@ -585,8 +628,16 @@ function EmployeeManagement() {
       {/* Add Employee Floating Form */}
       {showAddEmployeeForm && (
         <div
-          className={`fixed inset-0 bg-black/40 z-50 flex justify-end transition-all duration-300 ease-in-out`}
+          className="fixed inset-0 bg-black/40 z-50 flex justify-end transition-all duration-300 ease-in-out"
           onClick={handleOverlayClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              handleCloseForm()
+            }
+          }}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close add employee form"
         >
           <div className={`bg-white w-[500px] h-full shadow-2xl overflow-y-auto transform transition-all duration-300 ease-in-out ${isAnimating ? 'translate-x-0' : 'translate-x-full'}`}>
             <form onSubmit={handleSubmitEmployee}>
@@ -802,14 +853,22 @@ function EmployeeManagement() {
       {/* Manage Subordinates Floating Form */}
       {showManageSubordinatesForm && selectedEmployeeForSubordinates && (
         <div
-          className={`fixed inset-0 bg-black/40 z-50 flex justify-end transition-all duration-300 ease-in-out`}
+          className="fixed inset-0 bg-black/40 z-50 flex justify-end transition-all duration-300 ease-in-out"
           onClick={handleSubordinateOverlayClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              handleCloseSubordinateForm()
+            }
+          }}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close manage subordinates form"
         >
           <div className={`bg-white w-[500px] h-full shadow-2xl overflow-y-auto transform transition-all duration-300 ease-in-out ${isSubordinateFormAnimating ? 'translate-x-0' : 'translate-x-full'}`}>
             {/* Form Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Manage {selectedEmployeeForSubordinates.name}'s Subordinates</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Manage {selectedEmployeeForSubordinates.name}&apos;s Subordinates</h2>
                 <p className="text-sm text-gray-500 mt-1">Add or remove subordinates for this employee</p>
               </div>
               <button
@@ -837,6 +896,8 @@ function EmployeeManagement() {
                             backgroundImage: `url(${subordinate.avatar})`,
                             backgroundColor: subordinate.avatar ? 'transparent' : undefined
                           }}
+                          role="img"
+                          aria-label={`${subordinate.name}'s avatar`}
                         >
                           {!subordinate.avatar && getInitials(subordinate.name)}
                         </div>
@@ -892,6 +953,8 @@ function EmployeeManagement() {
                           backgroundImage: `url(${employee.avatar})`,
                           backgroundColor: employee.avatar ? 'transparent' : undefined
                         }}
+                        role="img"
+                        aria-label={`${employee.name}'s avatar`}
                       >
                         {!employee.avatar && getInitials(employee.name)}
                       </div>

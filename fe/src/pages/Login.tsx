@@ -1,35 +1,51 @@
-import { useState } from 'react'
+import { useState, type JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useUser } from '../contexts/UserContext'
-import logo from '../assets/logo.png'
 
-function Login() {
+import { logger } from '@/lib/logger'
+
+import logo from '../assets/logo.png'
+import { useUser } from '../contexts/UserContext'
+
+function Login(): JSX.Element {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const { login } = useUser()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     try {
       await login(email, password)
-      navigate('/dashboard')
+      const result = navigate('/dashboard')
+      if (result) {
+        result.then(() => {
+          logger.log('Login successful')
+        }).catch((error) => {
+          logger.error('Login failed', error)
+        })
+      }
     } catch (error) {
-      console.error('Login failed:', error)
+      logger.error('Login failed:', error)
       // Handle login error here
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleSubmitWrapper = (e: React.FormEvent): void => {
+    handleSubmit(e).catch(error => {
+      logger.error('Login failed:', error)
+    })
+  }
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       {/* Background overlay with subtle pattern */}
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/10 to-gray-700/10"></div>
-      
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/10 to-gray-700/10" />
+
       {/* Header */}
       <div className="absolute top-6 left-1/2 transform -translate-x-1/2">
         <div className="flex items-center space-x-2 text-white">
@@ -47,7 +63,7 @@ function Login() {
             </h1>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmitWrapper} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email

@@ -1,7 +1,11 @@
+import type { ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+
+import { logger } from '@/lib/logger'
+
 import { cn } from '../lib/utils'
 
-function Navigation() {
+function Navigation(): ReactElement {
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -12,9 +16,16 @@ function Navigation() {
     { path: '/contact', label: 'Contact' },
   ]
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     // TODO: Add actual logout logic
-    navigate('/')
+    const result = navigate('/')
+    if (result) {
+      result.then(() => {
+        logger.log('Logout successful')
+      }).catch((error) => {
+        logger.error('Logout failed', error)
+      })
+    }
   }
 
   return (
@@ -24,7 +35,7 @@ function Navigation() {
           <div className="flex items-center space-x-8">
             <Link to="/dashboard" className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-slate-900 rounded-sm flex items-center justify-center">
-                <div className="w-3 h-3 bg-white rounded-sm"></div>
+                <div className="w-3 h-3 bg-white rounded-sm" />
               </div>
               <span className="text-xl font-bold text-gray-900">Internal Ops</span>
             </Link>
@@ -45,7 +56,7 @@ function Navigation() {
               ))}
             </div>
           </div>
-          
+
           <div className="flex items-center">
             <button
               onClick={handleLogout}

@@ -1,13 +1,15 @@
+import type { ReactElement } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import Home from './pages/Home'
+
+import DashboardLayout from './layouts/DashboardLayout'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import Dashboard from './pages/Dashboard'
 import EmployeeManagement from './pages/EmployeeManagement'
-import DashboardLayout from './layouts/DashboardLayout'
+import Home from './pages/Home'
+import Login from './pages/Login'
 
-function App() {
+function App(): ReactElement {
   return (
     <Routes>
       {/* Login as landing page */}
@@ -59,7 +61,7 @@ function App() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-6">404 - Page Not Found</h1>
-            <p className="text-gray-600">The page you're looking for doesn't exist.</p>
+            <p className="text-gray-600">The page you are looking for does not exist.</p>
           </div>
         </div>
       } />

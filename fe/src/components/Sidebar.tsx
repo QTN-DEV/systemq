@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { 
   Calendar, 
   FileText, 
@@ -14,9 +12,14 @@ import {
   ChevronLeft,
   LogOut
 } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { useState, type ReactElement } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+
+import { logger } from '@/lib/logger'
+
 import logo from '../assets/logo.png'
 import menuConfig from '../config/menuConfig.json'
+import { cn } from '../lib/utils'
 
 // Icon mapping
 const iconMap = {
@@ -36,13 +39,20 @@ interface SidebarProps {
   userRole?: string
 }
 
-function Sidebar({ userRole = 'secretary' }: SidebarProps) {
+function Sidebar({ userRole = 'secretary' }: SidebarProps): ReactElement {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    navigate('/')
+  const handleLogout = (): void => {
+    const result = navigate('/')
+    if (result) {
+      result.then(() => {
+        logger.log('Logout successful')
+      }).catch((error) => {
+        logger.error('Logout failed', error)
+      })
+    }
   }
 
   // Show all menu items for logged-in users

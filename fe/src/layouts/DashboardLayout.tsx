@@ -1,4 +1,5 @@
-import { type ReactNode } from 'react'
+import { type ReactElement, type ReactNode } from 'react'
+
 import Sidebar from '../components/Sidebar'
 import { useUser } from '../contexts/UserContext'
 
@@ -6,7 +7,7 @@ interface DashboardLayoutProps {
   children: ReactNode
 }
 
-function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardLayout({ children }: DashboardLayoutProps): ReactElement {
   const { user } = useUser()
 
   return (
