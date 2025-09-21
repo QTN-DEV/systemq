@@ -1,44 +1,48 @@
 import { useState, type JSX } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
 
 import logo from '../assets/logo.png'
-import { useUser } from '../contexts/UserContext'
 
-function Login(): JSX.Element {
+function ForgotPassword(): JSX.Element {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const navigate = useNavigate()
-  const { login } = useUser()
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      await login(email, password)
-      const result = navigate('/dashboard')
-      if (result) {
-        result.then(() => {
-          logger.log('Login successful')
-        }).catch((error) => {
-          logger.error('Login failed', error)
-        })
-      }
+      // Mock API call - in real app this would call your password reset API
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      logger.log('Password reset request:', { email })
+
+      // Show success message
+      await Swal.fire({
+        title: 'Email Sent!',
+        text: 'If an account with that email exists, we\'ve sent you a password reset link.',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3B82F6'
+      })
+
+      // Reset form
+      setEmail('')
     } catch (error) {
-      logger.error('Login failed:', error)
-      // Handle login error here
+      logger.error('Password reset failed:', error)
+      await Swal.fire({
+        title: 'Error',
+        text: 'Something went wrong. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3B82F6'
+      })
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleSubmitWrapper = (e: React.FormEvent): void => {
-    handleSubmit(e).catch(error => {
-      logger.error('Login failed:', error)
-    })
   }
 
   return (
@@ -54,52 +58,29 @@ function Login(): JSX.Element {
         </div>
       </div>
 
-      {/* Login Card */}
+      {/* Forgot Password Card */}
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              Sign in to your account
+              Forgot Password
             </h1>
+            <p className="text-gray-600 text-sm">
+              Enter your email address and we'll send you a link to reset your password.
+            </p>
           </div>
 
-          <form onSubmit={handleSubmitWrapper} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                Email Address
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Try: admin@test.com, manager@test.com, employee@test.com, or secretary@test.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Use different email prefixes to test different roles
-              </p>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder="Enter your email address"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
                 required
               />
@@ -110,13 +91,22 @@ function Login(): JSX.Element {
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <Link
+              to="/"
+              className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
+            >
+              ← Back to Sign In
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-export default Login
+export default ForgotPassword

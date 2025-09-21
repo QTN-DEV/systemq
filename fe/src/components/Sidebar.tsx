@@ -10,7 +10,8 @@ import {
   Folder, 
   TrendingUp,
   ChevronLeft,
-  LogOut
+  LogOut,
+  Settings
 } from 'lucide-react'
 import { useState, type ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -165,8 +166,22 @@ function Sidebar({ userRole = 'secretary' }: SidebarProps): ReactElement {
         ))}
       </div>
 
-      {/* Logout Button */}
-      <div className="p-2 border-t border-gray-200">
+      {/* Settings and Logout */}
+      <div className="p-2 border-t border-gray-200 space-y-1">
+        <Link
+          to="/change-password"
+          className={cn(
+            'flex items-center w-full px-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors',
+            isCollapsed && 'justify-center'
+          )}
+          title={isCollapsed ? 'Change Password' : undefined}
+        >
+          <Settings className={cn(
+            'w-5 h-5 text-gray-400',
+            !isCollapsed && 'mr-3'
+          )} />
+          {!isCollapsed && <span>Change Password</span>}
+        </Link>
         <button
           onClick={handleLogout}
           className={cn(

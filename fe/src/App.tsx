@@ -3,11 +3,14 @@ import { Routes, Route } from 'react-router-dom'
 
 import DashboardLayout from './layouts/DashboardLayout'
 import About from './pages/About'
+import ChangePassword from './pages/ChangePassword'
 import Contact from './pages/Contact'
 import Dashboard from './pages/Dashboard'
 import EmployeeManagement from './pages/EmployeeManagement'
+import ForgotPassword from './pages/ForgotPassword'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import StructureOrganization from './pages/StructureOrganization'
 
 function App(): ReactElement {
@@ -15,6 +18,10 @@ function App(): ReactElement {
     <Routes>
       {/* Login as landing page */}
       <Route path="/" element={<Login />} />
+      
+      {/* Password reset routes */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       
       {/* Authenticated routes with sidebar */}
       <Route path="/dashboard" element={
@@ -35,6 +42,11 @@ function App(): ReactElement {
       <Route path="/contact" element={
         <DashboardLayout>
           <Contact />
+        </DashboardLayout>
+      } />
+      <Route path="/change-password" element={
+        <DashboardLayout>
+          <ChangePassword />
         </DashboardLayout>
       } />
       
