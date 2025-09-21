@@ -12,75 +12,81 @@ function ChangePassword(): ReactElement {
   const [isLoading, setIsLoading] = useState(false)
   const { user } = useUser()
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     
-    if (newPassword !== confirmPassword) {
-      await Swal.fire({
-        title: 'Password Mismatch',
-        text: 'The new passwords you entered do not match.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-      return
+    // Create an async function for the main logic
+    const handleAsyncSubmit = async (): Promise<void> => {
+      if (newPassword !== confirmPassword) {
+        await Swal.fire({
+          title: 'Password Mismatch',
+          text: 'The new passwords you entered do not match.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
+      if (newPassword.length < 6) {
+        await Swal.fire({
+          title: 'Password Too Short',
+          text: 'New password must be at least 6 characters long.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
+      if (oldPassword === newPassword) {
+        await Swal.fire({
+          title: 'Same Password',
+          text: 'New password must be different from your current password.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
+      setIsLoading(true)
+
+      try {
+        // Mock API call - in real app this would call your password change API
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        logger.log('Password change request:', { userId: user?.id })
+
+        // Show success message
+        await Swal.fire({
+          title: 'Password Changed!',
+          text: 'Your password has been successfully updated.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+
+        // Reset form
+        setOldPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } catch (error) {
+        logger.error('Password change failed:', error)
+        await Swal.fire({
+          title: 'Error',
+          text: 'Failed to change password. Please check your current password and try again.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    if (newPassword.length < 6) {
-      await Swal.fire({
-        title: 'Password Too Short',
-        text: 'New password must be at least 6 characters long.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-      return
-    }
-
-    if (oldPassword === newPassword) {
-      await Swal.fire({
-        title: 'Same Password',
-        text: 'New password must be different from your current password.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      // Mock API call - in real app this would call your password change API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      logger.log('Password change request:', { userId: user?.id })
-
-      // Show success message
-      await Swal.fire({
-        title: 'Password Changed!',
-        text: 'Your password has been successfully updated.',
-        icon: 'success',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-
-      // Reset form
-      setOldPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (error) {
-      logger.error('Password change failed:', error)
-      await Swal.fire({
-        title: 'Error',
-        text: 'Failed to change password. Please check your current password and try again.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    // Call the async function
+    void handleAsyncSubmit()
   }
 
   return (
@@ -146,7 +152,7 @@ function ChangePassword(): ReactElement {
             <div className="flex items-center justify-between pt-4">
               <div className="text-sm text-gray-500">
                 <p>• Use a strong, unique password</p>
-                <p>• Don't reuse passwords from other accounts</p>
+                <p>• Don&apos;t reuse passwords from other accounts</p>
               </div>
             </div>
 
@@ -167,8 +173,8 @@ function ChangePassword(): ReactElement {
                 }}
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                Clear
-              </button>
+              Clear
+            </button>
             </div>
           </form>
         </div>

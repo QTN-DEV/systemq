@@ -18,7 +18,7 @@ function ResetPassword(): JSX.Element {
     // Get token from URL parameters
     const tokenFromUrl = searchParams.get('token')
     if (!tokenFromUrl) {
-      Swal.fire({
+      void Swal.fire({
         title: 'Invalid Link',
         text: 'This password reset link is invalid or has expired.',
         icon: 'error',
@@ -26,75 +26,87 @@ function ResetPassword(): JSX.Element {
         confirmButtonColor: '#3B82F6'
       }).then(() => {
         navigate('/')
+      }).catch((error) => {
+        logger.error('Error navigating after invalid link:', error)
+        navigate('/')
       })
       return
     }
     setToken(tokenFromUrl)
   }, [searchParams, navigate])
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     
-    if (newPassword !== confirmPassword) {
-      await Swal.fire({
-        title: 'Password Mismatch',
-        text: 'The passwords you entered do not match.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-      return
+    // Create an async function for the main logic
+    const handleAsyncSubmit = async (): Promise<void> => {
+      if (newPassword !== confirmPassword) {
+        await Swal.fire({
+          title: 'Password Mismatch',
+          text: 'The passwords you entered do not match.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
+      if (newPassword.length < 6) {
+        await Swal.fire({
+          title: 'Password Too Short',
+          text: 'Password must be at least 6 characters long.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
+      setIsLoading(true)
+
+      try {
+        // Mock API call - in real app this would call your password reset API
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        logger.log('Password reset successful:', { token })
+
+        // Show success message
+        void Swal.fire({
+          title: 'Password Reset Successful!',
+          text: 'Your password has been successfully reset. You can now sign in with your new password.',
+          icon: 'success',
+          confirmButtonText: 'Go to Sign In',
+          confirmButtonColor: '#3B82F6'
+        }).then(() => {
+          // Redirect to login page
+          navigate('/')
+        }).catch((error) => {
+          logger.error('Error navigating after password reset:', error)
+          navigate('/')
+        })
+      } catch (error) {
+        logger.error('Password reset failed:', error)
+        await Swal.fire({
+          title: 'Error',
+          text: 'Something went wrong. Please try again or request a new reset link.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    if (newPassword.length < 6) {
-      await Swal.fire({
-        title: 'Password Too Short',
-        text: 'Password must be at least 6 characters long.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      // Mock API call - in real app this would call your password reset API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      logger.log('Password reset successful:', { token })
-
-      // Show success message
-      await Swal.fire({
-        title: 'Password Reset Successful!',
-        text: 'Your password has been successfully reset. You can now sign in with your new password.',
-        icon: 'success',
-        confirmButtonText: 'Go to Sign In',
-        confirmButtonColor: '#3B82F6'
-      })
-
-      // Redirect to login page
-      navigate('/')
-    } catch (error) {
-      logger.error('Password reset failed:', error)
-      await Swal.fire({
-        title: 'Error',
-        text: 'Something went wrong. Please try again or request a new reset link.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    // Call the async function
+    void handleAsyncSubmit()
   }
 
   if (!token) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
           <p>Validating reset link...</p>
         </div>
       </div>

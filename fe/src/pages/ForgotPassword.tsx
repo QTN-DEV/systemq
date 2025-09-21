@@ -10,39 +10,45 @@ function ForgotPassword(): JSX.Element {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     setIsLoading(true)
 
-    try {
-      // Mock API call - in real app this would call your password reset API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      logger.log('Password reset request:', { email })
+    // Create an async function for the main logic
+    const handleAsyncSubmit = async (): Promise<void> => {
+      try {
+        // Mock API call - in real app this would call your password reset API
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        logger.log('Password reset request:', { email })
 
-      // Show success message
-      await Swal.fire({
-        title: 'Email Sent!',
-        text: 'If an account with that email exists, we\'ve sent you a password reset link.',
-        icon: 'success',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
+        // Show success message
+        await Swal.fire({
+          title: 'Email Sent!',
+          text: 'If an account with that email exists, we&apos;ve sent you a password reset link.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
 
-      // Reset form
-      setEmail('')
-    } catch (error) {
-      logger.error('Password reset failed:', error)
-      await Swal.fire({
-        title: 'Error',
-        text: 'Something went wrong. Please try again.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#3B82F6'
-      })
-    } finally {
-      setIsLoading(false)
+        // Reset form
+        setEmail('')
+      } catch (error) {
+        logger.error('Password reset failed:', error)
+        await Swal.fire({
+          title: 'Error',
+          text: 'Something went wrong. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    // Call the async function
+    void handleAsyncSubmit()
   }
 
   return (
@@ -66,7 +72,7 @@ function ForgotPassword(): JSX.Element {
               Forgot Password
             </h1>
             <p className="text-gray-600 text-sm">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we&apos;ll send you a link to reset your password.
             </p>
           </div>
 
