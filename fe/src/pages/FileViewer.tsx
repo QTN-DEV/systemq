@@ -1,6 +1,6 @@
 import { ArrowLeft, Download, Share2, Edit2, Trash2, Clock, User, Calendar } from 'lucide-react'
-import { useParams, useNavigate } from 'react-router-dom'
 import type { ReactElement } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 
 import { getDocumentById } from '../data/mockDocuments'
 
@@ -15,9 +15,9 @@ function FileViewer(): ReactElement {
       <div className="p-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">File Not Found</h1>
-          <p className="text-gray-600 mb-6">The file you're looking for doesn't exist or has been moved.</p>
+          <p className="text-gray-600 mb-6">The file you&apos;re looking for doesn&apos;t exist or has been moved.</p>
           <button
-            onClick={() => navigate('/documents')}
+            onClick={() => { navigate('/documents') }}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             Back to Documents
@@ -70,7 +70,7 @@ function FileViewer(): ReactElement {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{file.name}</h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {file.size} • {file.category || 'Uncategorized'}
+                  {file.size} • {file.category ?? 'Uncategorized'}
                 </p>
               </div>
             </div>
@@ -135,7 +135,7 @@ function FileViewer(): ReactElement {
                       <div
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${getRoleColor(file.ownedBy.role)}`}
                       >
-                        {file.ownedBy.avatar || getInitials(file.ownedBy.name)}
+                        {file.ownedBy.avatar ?? getInitials(file.ownedBy.name)}
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">{file.ownedBy.name}</p>

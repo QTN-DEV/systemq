@@ -258,10 +258,10 @@ export function buildBreadcrumbs(currentFolderId: string | null): { id: string; 
   const pathIds: string[] = []
   let folder: DocumentItem | null = currentFolder
   
-  while (folder && folder.parentId) {
+  while (folder?.parentId) {
     pathIds.unshift(folder.parentId)
     const parentFolder = getDocumentById(folder.parentId)
-    folder = parentFolder || null
+    folder = parentFolder ?? null
   }
   
   // Add current folder

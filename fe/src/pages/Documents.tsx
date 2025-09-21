@@ -15,19 +15,19 @@ import {
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 import { 
   getDocumentsByParentId, 
   getDocumentById, 
   buildBreadcrumbs 
 } from '../data/mockDocuments'
+import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
 function Documents(): ReactElement {
   const navigate = useNavigate()
   const { '*': currentPath } = useParams<{ '*': string }>()
   
   // Parse current folder from URL path
-  const pathSegments = currentPath?.split('/').filter(Boolean) || []
+  const pathSegments = currentPath?.split('/').filter(Boolean) ?? []
   const currentFolderId = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null
   
   // State management
@@ -52,7 +52,7 @@ function Documents(): ReactElement {
   // Get current folder and items
   const currentFolder = currentFolderId ? getDocumentById(currentFolderId) : null
   const currentItems = getDocumentsByParentId(currentFolderId)
-  const breadcrumbs = buildBreadcrumbs(currentFolderId || null)
+  const breadcrumbs = buildBreadcrumbs(currentFolderId ?? null)
 
   // Get unique categories for filter tabs
   const categories = useMemo((): string[] => {
@@ -108,11 +108,11 @@ function Documents(): ReactElement {
       'employee': 'bg-blue-500',
       'secretary': 'bg-pink-500'
     }
-    return colors[role as keyof typeof colors] || 'bg-gray-500'
+    return colors[role as keyof typeof colors] ?? 'bg-gray-500'
   }
 
   const formatFileSize = (size: string | undefined): string => {
-    return size || '-'
+    return size ?? '-'
   }
 
   // Navigation handlers
@@ -181,6 +181,7 @@ function Documents(): ReactElement {
       setUrlCopied(true)
       setTimeout(() => setUrlCopied(false), 2000)
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to copy URL:', err)
     }
   }
@@ -190,7 +191,6 @@ function Documents(): ReactElement {
     e.preventDefault()
     if (newItemName.trim()) {
       // In a real app, you would create the folder via API
-      console.log('Creating folder:', newItemName)
       setShowCreateFolder(false)
       setNewItemName('')
     }
@@ -200,7 +200,6 @@ function Documents(): ReactElement {
     e.preventDefault()
     if (newItemName.trim()) {
       // In a real app, you would create the file via API
-      console.log('Creating file:', newItemName)
       setShowCreateFile(false)
       setNewItemName('')
     }
@@ -210,7 +209,6 @@ function Documents(): ReactElement {
     e.preventDefault()
     if (newItemName.trim() && selectedItem) {
       // In a real app, you would rename the item via API
-      console.log('Renaming item:', selectedItem.id, 'to:', newItemName)
       setShowRenameModal(false)
       setSelectedItem(null)
       setNewItemName('')
@@ -220,7 +218,6 @@ function Documents(): ReactElement {
   const handleDeleteConfirm = (): void => {
     if (selectedItem) {
       // In a real app, you would delete the item via API
-      console.log('Deleting item:', selectedItem.id)
       setShowDeleteModal(false)
       setSelectedItem(null)
     }
@@ -331,11 +328,14 @@ function Documents(): ReactElement {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <input
-                  type="checkbox"
-                  className="rounded border-gray-300"
-                  aria-label="Select all items"
-                />
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    aria-label="Select all items"
+                  />
+                  <span className="sr-only">Select all items</span>
+                </label>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Folder/File
@@ -368,22 +368,26 @@ function Documents(): ReactElement {
                 onClick={() => handleItemClick(item)}
               >
                 <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300"
-                    checked={selectedItems.has(item.id)}
-                    onChange={(e) => {
-                      const newSelected = new Set(selectedItems)
-                      if (e.target.checked) {
-                        newSelected.add(item.id)
-                      } else {
-                        newSelected.delete(item.id)
-                      }
-                      setSelectedItems(newSelected)
-                    }}
-                    aria-label={`Select ${item.name}`}
-                  />
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      checked={selectedItems.has(item.id)}
+                      onChange={(e) => {
+                        const newSelected = new Set(selectedItems)
+                        if (e.target.checked) {
+                          newSelected.add(item.id)
+                        } else {
+                          newSelected.delete(item.id)
+                        }
+                        setSelectedItems(newSelected)
+                      }}
+                      aria-label={`Select ${item.name}`}
+                    />
+                    <span className="sr-only">Select {item.name}</span>
+                  </label>
                 </td>
+                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center">
@@ -397,13 +401,14 @@ function Documents(): ReactElement {
                       <div className="text-sm font-medium text-gray-900">{item.name}</div>
                       <div className="text-sm text-gray-500">
                         {item.type === 'folder' 
-                          ? `${item.itemCount || 0} items`
+                          ? `${item.itemCount ?? 0} items`
                           : formatFileSize(item.size)
                         }
                       </div>
                     </div>
                   </div>
                 </td>
+                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-8 w-8">
@@ -412,7 +417,7 @@ function Documents(): ReactElement {
                         role="img"
                         aria-label={`${item.ownedBy.name}'s avatar`}
                       >
-                        {item.ownedBy.avatar || getInitials(item.ownedBy.name)}
+                        {item.ownedBy.avatar ?? getInitials(item.ownedBy.name)}
                       </div>
                     </div>
                     <div className="ml-3">
@@ -422,7 +427,7 @@ function Documents(): ReactElement {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-900">{item.category || '-'}</span>
+                  <span className="text-sm text-gray-900">{item.category ?? '-'}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getStatusBadgeColor(item.status)}`}>
@@ -565,7 +570,6 @@ function Documents(): ReactElement {
                   onChange={(e) => setNewItemName(e.target.value)}
                   placeholder="Enter folder name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  autoFocus
                   required
                 />
               </div>
@@ -606,7 +610,6 @@ function Documents(): ReactElement {
                   onChange={(e) => setNewItemName(e.target.value)}
                   placeholder="Enter file name (e.g., document.pdf)"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  autoFocus
                   required
                 />
               </div>
@@ -648,7 +651,6 @@ function Documents(): ReactElement {
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  autoFocus
                   required
                 />
               </div>
@@ -680,7 +682,7 @@ function Documents(): ReactElement {
               Delete {selectedItem.type === 'folder' ? 'Folder' : 'File'}
             </h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete "{selectedItem.name}"? 
+              Are you sure you want to delete &quot;{selectedItem.name}&quot;? 
               {selectedItem.type === 'folder' && ' This will also delete all items inside this folder.'}
               {' '}This action cannot be undone.
             </p>
@@ -710,7 +712,7 @@ function Documents(): ReactElement {
               Share {selectedItem.type === 'folder' ? 'Folder' : 'File'}
             </h3>
             <p className="text-gray-600 mb-4">
-              Share "{selectedItem.name}" with others by copying the link below:
+              Share &quot;{selectedItem.name}&quot; with others by copying the link below:
             </p>
             <div className="mb-4">
               <label htmlFor="shareUrl" className="block text-sm font-medium text-gray-700 mb-2">
@@ -725,7 +727,7 @@ function Documents(): ReactElement {
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-gray-600"
                 />
                 <button
-                  onClick={handleCopyUrl}
+                  onClick={() => { void handleCopyUrl() }}
                   className="px-3 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 flex items-center"
                 >
                   {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
