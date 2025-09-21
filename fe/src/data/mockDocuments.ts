@@ -41,7 +41,8 @@ export const mockDocuments: DocumentItem[] = [
   },
   {
     id: 'work-arrangement',
-    name: 'Work Arrangement Request',
+    name: 'work-arrangement.docx',
+    title: 'Work Arrangement Request Form',
     type: 'file',
     ownedBy: mockOwners[1], // Grace Edenia
     category: 'Attendance',
@@ -55,7 +56,8 @@ export const mockDocuments: DocumentItem[] = [
   },
   {
     id: 'charter-kenamaan',
-    name: 'Charter Kenamaan - P/KEN/2504/006',
+    name: 'charter-kenamaan.pdf',
+    title: 'Charter Kenamaan - P/KEN/2504/006',
     type: 'file',
     ownedBy: mockOwners[2], // Grace Maron
     category: 'Charter',
@@ -219,7 +221,8 @@ export const mockDocuments: DocumentItem[] = [
   },
   {
     id: 'meeting-notes',
-    name: 'Meeting Notes - Q3 2025.docx',
+    name: 'meeting-notes-q3-2025.docx',
+    title: 'Meeting Notes - Q3 2025',
     type: 'file',
     ownedBy: mockOwners[1],
     category: 'Meeting Notes',
@@ -307,4 +310,103 @@ export function buildBreadcrumbs(currentFolderId: string | null): { id: string; 
   })
   
   return breadcrumbs
+}
+
+// Mock API functions for document types and categories
+export async function getDocumentTypes(searchQuery: string = ''): Promise<string[]> {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 200))
+  
+  // Get distinct document types from existing documents
+  const existingTypes = Array.from(new Set(
+    mockDocuments
+      .filter(doc => doc.type === 'file')
+      .map(doc => doc.category)
+      .filter(Boolean)
+  )) as string[]
+  
+  // Add some predefined types
+  const predefinedTypes = [
+    'Standard Operating Procedure',
+    'Policy Document',
+    'Charter',
+    'Meeting Notes',
+    'Template',
+    'Report',
+    'Manual',
+    'Guidelines',
+    'Contract',
+    'Proposal',
+    'Specification',
+    'Training Material'
+  ]
+  
+  const allTypes = Array.from(new Set([...predefinedTypes, ...existingTypes]))
+  
+  if (!searchQuery) {
+    return allTypes.sort()
+  }
+  
+  // Filter based on search query
+  const filtered = allTypes.filter(type => 
+    type.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  
+  // If no matches found, suggest the exact search query as a new option
+  if (filtered.length === 0) {
+    return [searchQuery]
+  }
+  
+  return filtered.sort()
+}
+
+export async function getDocumentCategories(searchQuery: string = ''): Promise<string[]> {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 200))
+  
+  // Get distinct categories from existing documents
+  const existingCategories = Array.from(new Set(
+    mockDocuments
+      .filter(doc => doc.category)
+      .map(doc => doc.category)
+      .filter(Boolean)
+  )) as string[]
+  
+  // Add some predefined categories
+  const predefinedCategories = [
+    'Company Policies',
+    'Attendance',
+    'Charter',
+    'Meeting Notes',
+    'Templates',
+    'HR Policies',
+    'Financial',
+    'Operations',
+    'Legal',
+    'Marketing',
+    'Sales',
+    'Technical',
+    'Training',
+    'Compliance',
+    'Quality Assurance',
+    'Project Management'
+  ]
+  
+  const allCategories = Array.from(new Set([...predefinedCategories, ...existingCategories]))
+  
+  if (!searchQuery) {
+    return allCategories.sort()
+  }
+  
+  // Filter based on search query
+  const filtered = allCategories.filter(category => 
+    category.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  
+  // If no matches found, suggest the exact search query as a new option
+  if (filtered.length === 0) {
+    return [searchQuery]
+  }
+  
+  return filtered.sort()
 }

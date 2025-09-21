@@ -11,7 +11,8 @@ export interface DocumentOwner {
 
 export interface DocumentItem {
   id: string
-  name: string
+  name: string // File name (e.g., "work-arrangement.docx")
+  title?: string // Document title (e.g., "Work Arrangement Request Form")
   type: DocumentItemType
   ownedBy: DocumentOwner
   category?: string

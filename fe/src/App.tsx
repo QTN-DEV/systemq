@@ -7,8 +7,8 @@ import ChangePassword from './pages/ChangePassword'
 import Contact from './pages/Contact'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
+import DocumentEditorPage from './pages/DocumentEditorPage'
 import EmployeeManagement from './pages/EmployeeManagement'
-import FileViewer from './pages/FileViewer'
 import ForgotPassword from './pages/ForgotPassword'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -65,7 +65,7 @@ function App(): ReactElement {
       {/* Knowledge */}
       <Route path="/documents" element={<DashboardLayout><Documents /></DashboardLayout>} />
       <Route path="/documents/*" element={<DashboardLayout><Documents /></DashboardLayout>} />
-      <Route path="/documents/file/:fileId" element={<DashboardLayout><FileViewer /></DashboardLayout>} />
+      <Route path="/documents/file/:fileId" element={<DashboardLayout><DocumentEditorPage /></DashboardLayout>} />
       <Route path="/charter-management" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Charter Management</h1></div></DashboardLayout>} />
       <Route path="/product-roadmap" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Product Roadmap</h1></div></DashboardLayout>} />
       
