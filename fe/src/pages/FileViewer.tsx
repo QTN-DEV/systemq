@@ -2,7 +2,7 @@ import { ArrowLeft, Download, Share2, Edit2, Trash2, Clock, User, Calendar } fro
 import type { ReactElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
-import { getDocumentById } from '../data/mockDocuments'
+import { getDocumentById, getFolderPathIds } from '../data/mockDocuments'
 
 function FileViewer(): ReactElement {
   const { fileId } = useParams<{ fileId: string }>()
@@ -28,9 +28,10 @@ function FileViewer(): ReactElement {
   }
 
   const handleGoBack = (): void => {
-    if (file.path.length > 0) {
-      // Navigate back to the parent folder
-      const parentPath = file.path.join('/')
+    if (file.parentId) {
+      // Navigate back to the parent folder using folder IDs
+      const parentPathIds = getFolderPathIds(file.parentId)
+      const parentPath = parentPathIds.join('/')
       navigate(`/documents/${parentPath}`)
     } else {
       // Navigate to root documents

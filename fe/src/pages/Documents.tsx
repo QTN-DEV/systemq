@@ -18,7 +18,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { 
   getDocumentsByParentId, 
   getDocumentById, 
-  buildBreadcrumbs 
+  buildBreadcrumbs,
+  getActualItemCount 
 } from '../data/mockDocuments'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
@@ -235,17 +236,56 @@ function Documents(): ReactElement {
 
   return (
     <div className="p-8">
+      {/* Breadcrumbs */}
+      {breadcrumbs.length > 1 && (
+        <div className="flex items-center space-x-2 mb-6 text-sm text-gray-600">
+          {breadcrumbs.map((breadcrumb, index) => (
+            <div key={breadcrumb.id} className="flex items-center space-x-2">
+              {index > 0 && <ChevronRight className="w-4 h-4" />}
+              <button
+                onClick={() => handleBreadcrumbClick(breadcrumb)}
+                className="hover:text-blue-600 transition-colors flex items-center space-x-1"
+              >
+                {index === 0 && <Home className="w-4 h-4" />}
+                <span>{breadcrumb.name}</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
-            <p className="text-gray-600 mt-1">
-              {currentFolder 
-                ? `Manage files and folders in ${currentFolder.name}`
-                : 'Manage your documents, folders, and files in one centralized location.'
-              }
-            </p>
+            {currentFolder ? (
+              <div className="flex items-center">
+                <div className="flex-shrink-0 h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center mr-4 border border-blue-100">
+                  <Folder className="h-8 w-8 text-blue-500" />
+                </div>
+                <div>
+                  <div className="text-xl font-semibold text-gray-900">{currentFolder.name}</div>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                    <span>Owned by</span>
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium ${getRoleColor(currentFolder.ownedBy.role)}`}
+                      >
+                        {currentFolder.ownedBy.avatar ?? getInitials(currentFolder.ownedBy.name)}
+                      </div>
+                      <span className="font-medium">{currentFolder.ownedBy.name}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
+                <p className="text-gray-600 mt-1">
+                  Manage your documents, folders, and files in one centralized location.
+                </p>
+              </>
+            )}
           </div>
           <div className="flex items-center space-x-3">
             <button
@@ -264,24 +304,6 @@ function Documents(): ReactElement {
             </button>
           </div>
         </div>
-
-        {/* Breadcrumbs */}
-        {breadcrumbs.length > 1 && (
-          <div className="flex items-center space-x-2 mb-6 text-sm text-gray-600">
-            {breadcrumbs.map((breadcrumb, index) => (
-              <div key={breadcrumb.id} className="flex items-center space-x-2">
-                {index > 0 && <ChevronRight className="w-4 h-4" />}
-                <button
-                  onClick={() => handleBreadcrumbClick(breadcrumb)}
-                  className="hover:text-blue-600 transition-colors flex items-center space-x-1"
-                >
-                  {index === 0 && <Home className="w-4 h-4" />}
-                  <span>{breadcrumb.name}</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Filter Tabs */}
         <div className="flex items-center space-x-1 mb-6 border-b">
@@ -323,7 +345,7 @@ function Documents(): ReactElement {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -361,7 +383,45 @@ function Documents(): ReactElement {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedItems.map((item) => (
+            {paginatedItems.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Folder className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {searchTerm || activeFilter !== 'All' ? 'No matching items found' : 'This folder is empty'}
+                    </h3>
+                    <p className="text-gray-500 mb-6 max-w-sm">
+                      {searchTerm || activeFilter !== 'All' 
+                        ? 'Try adjusting your search terms or filters to find what you\'re looking for.'
+                        : 'Get started by creating a new file or folder in this location.'
+                      }
+                    </p>
+                    {(!searchTerm && activeFilter === 'All') && (
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleCreateFile}
+                          className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+                        >
+                          <File className="w-4 h-4" />
+                          <span>New File</span>
+                        </button>
+                        <button
+                          onClick={handleCreateFolder}
+                          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                          <Folder className="w-4 h-4" />
+                          <span>New Folder</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              paginatedItems.map((item) => (
               <tr 
                 key={item.id} 
                 className="hover:bg-gray-50 cursor-pointer"
@@ -401,7 +461,7 @@ function Documents(): ReactElement {
                       <div className="text-sm font-medium text-gray-900">{item.name}</div>
                       <div className="text-sm text-gray-500">
                         {item.type === 'folder' 
-                          ? `${item.itemCount ?? 0} items`
+                          ? `${getActualItemCount(item.id)} items`
                           : formatFileSize(item.size)
                         }
                       </div>
@@ -450,7 +510,7 @@ function Documents(): ReactElement {
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                     {showActionsDropdown === item.id && (
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                         <div className="py-1">
                           <button
                             onClick={() => handleRename(item)}
@@ -479,7 +539,7 @@ function Documents(): ReactElement {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

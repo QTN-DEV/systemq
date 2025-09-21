@@ -235,12 +235,37 @@ export const mockDocuments: DocumentItem[] = [
 
 // Helper function to get items by parent ID
 export function getDocumentsByParentId(parentId: string | null | undefined): DocumentItem[] {
-  return mockDocuments.filter(doc => doc.parentId === parentId)
+  return mockDocuments.filter(doc => doc.parentId === parentId || (!doc.parentId && !parentId))
+}
+
+// Helper function to calculate actual item count for a folder
+export function getActualItemCount(folderId: string): number {
+  return mockDocuments.filter(doc => doc.parentId === folderId).length
 }
 
 // Helper function to get document by ID
 export function getDocumentById(id: string): DocumentItem | undefined {
   return mockDocuments.find(doc => doc.id === id)
+}
+
+// Helper function to get folder path by IDs (for URL navigation)
+export function getFolderPathIds(folderId: string): string[] {
+  const folder = getDocumentById(folderId)
+  if (!folder) return []
+  
+  const pathIds: string[] = []
+  let currentFolder: DocumentItem | null = folder
+  
+  // Build path from current folder to root
+  while (currentFolder?.parentId) {
+    pathIds.unshift(currentFolder.parentId)
+    currentFolder = getDocumentById(currentFolder.parentId) ?? null
+  }
+  
+  // Add current folder
+  pathIds.push(folderId)
+  
+  return pathIds
 }
 
 // Helper function to build breadcrumbs
