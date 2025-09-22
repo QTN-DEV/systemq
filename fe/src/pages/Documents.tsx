@@ -20,7 +20,7 @@ import {
   getDocumentById, 
   buildBreadcrumbs,
   getActualItemCount 
-} from '../data/mockDocuments'
+} from '../services/DocumentService'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
 function Documents(): ReactElement {

@@ -16,20 +16,10 @@ import {
 import { useCallback, useMemo, type ReactElement } from 'react'
 import '@xyflow/react/dist/style.css'
 
-import mockData from '../data/mockData.json'
+import { getAllEmployees } from '../services/UserService'
+import type { User as Employee } from '../types/user-type'
 
-interface Employee {
-  id: string
-  name: string
-  email: string
-  title: string
-  division: string
-  level: string
-  position: string
-  subordinates: string[]
-  projects: string[]
-  avatar: string
-}
+// Using shared Employee type from types/user-type
 
 interface CustomNodeData {
   employee: Employee
@@ -40,7 +30,7 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
   const { employee } = data
   
   // Check if this employee has a supervisor (is subordinate to someone)
-  const employees = mockData.employees as Employee[]
+  const employees = getAllEmployees()
   const hasSupervisor = employees.some(emp => emp.subordinates.includes(employee.id))
   
   // Get initials from name
@@ -157,7 +147,7 @@ interface OrganizationChartProps {
 }
 
 export default function OrganizationChart({ className = '' }: OrganizationChartProps): ReactElement {
-  const employees = mockData.employees as Employee[]
+  const employees = getAllEmployees()
 
   // Create nodes and edges from employee data
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {

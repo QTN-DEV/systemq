@@ -1,0 +1,20 @@
+[
+  { "id": "proj-001", "name": "QuantumByte", "avatar": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-002", "name": "Nevuka", "avatar": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-003", "name": "Kemangan", "avatar": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-004", "name": "DataFlow", "avatar": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-005", "name": "CloudSync", "avatar": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-006", "name": "MobileFirst", "avatar": "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-007", "name": "AIInsight", "avatar": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-008", "name": "SecureNet", "avatar": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-009", "name": "BlockChain", "avatar": "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-010", "name": "VirtualReality", "avatar": "https://images.unsplash.com/photo-1592478411213-6153e4ebc696?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-011", "name": "IoTSolutions", "avatar": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-012", "name": "MachineLearning", "avatar": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-013", "name": "CyberSecurity", "avatar": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-014", "name": "FinTech", "avatar": "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-015", "name": "HealthTech", "avatar": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-016", "name": "GreenEnergy", "avatar": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=100&h=100&fit=crop&crop=center" },
+  { "id": "proj-017", "name": "SmartCity", "avatar": "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f?w=100&h=100&fit=crop&crop=center" }
+]
+

@@ -4,27 +4,10 @@ import { useState, useMemo, useEffect, type ReactElement } from 'react'
 
 import { logger } from '@/lib/logger'
 
-import mockData from '../data/mockData.json'
-
-interface Employee {
-  id: string
-  name: string
-  email: string
-  title: string
-  division: string
-  level: string
-  position: string
-  subordinates: string[]
-  projects: string[]
-  avatar: string
-  employmentType?: 'full-time' | 'part-time' | 'intern'
-}
-
-interface Project {
-  id: string
-  name: string
-  avatar: string
-}
+import { getProjectsByIds as getProjectsByIdsService } from '../services/ProjectService'
+import { getAllEmployees } from '../services/UserService'
+import type { Project } from '../types/project-type'
+import type { User as Employee } from '../types/user-type'
 
 function EmployeeManagement(): ReactElement {
   const [searchTerm, setSearchTerm] = useState('')
@@ -51,8 +34,7 @@ function EmployeeManagement(): ReactElement {
     employmentType: 'full-time' as 'full-time' | 'part-time' | 'intern'
   })
 
-  const employees: Employee[] = mockData.employees
-  const projects: Project[] = mockData.projects
+  const employees: Employee[] = getAllEmployees()
 
   // Get unique positions for filter tabs
   const positions = useMemo((): string[] => {
@@ -88,9 +70,7 @@ function EmployeeManagement(): ReactElement {
   const paginatedEmployees = filteredEmployees.slice(startIndex, startIndex + rowsPerPage)
 
   // Helper functions
-  const getProjectsByIds = (projectIds: string[]): Project[] => {
-    return projects.filter(project => projectIds.includes(project.id))
-  }
+  const getProjectsByIds = (projectIds: string[]): Project[] => getProjectsByIdsService(projectIds)
 
   const getSubordinatesByIds = (subordinateIds: string[]): Employee[] => {
     return employees.filter(emp => subordinateIds.includes(emp.id))
