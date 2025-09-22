@@ -7,7 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 
 import DocumentEditor, { type DocumentBlock } from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
-import { getDocumentById, getFolderPathIds, getDocumentTypes, getDocumentCategories } from '../data/mockDocuments'
+import { getDocumentById, getFolderPathIds, getDocumentTypes, getDocumentCategories } from '../services/DocumentService'
 import type { DocumentItem } from '../types/documents'
 
 function DocumentEditorPage(): ReactElement {
