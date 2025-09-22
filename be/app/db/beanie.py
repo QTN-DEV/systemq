@@ -6,7 +6,7 @@ from typing import AsyncIterator
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.models import SystemStatus
+from app.models import PasswordResetToken, SystemStatus, User
 from constants import MONGODB_DATABASE, MONGODB_URI
 
 _motor_client: AsyncIOMotorClient | None = None
@@ -19,7 +19,16 @@ async def init_database() -> None:
         return
 
     _motor_client = AsyncIOMotorClient(MONGODB_URI)
-    await init_beanie(database=_motor_client[MONGODB_DATABASE], document_models=[SystemStatus])
+    await init_beanie(
+        database=_motor_client[MONGODB_DATABASE],
+        document_models=[SystemStatus, User, PasswordResetToken],
+    )
+
+
+async def ensure_default_data() -> None:
+    from app.services.auth import ensure_default_admin
+
+    await ensure_default_admin()
 
 
 def get_motor_client() -> AsyncIOMotorClient | None:
@@ -39,6 +48,7 @@ async def close_database() -> None:
 @asynccontextmanager
 async def lifespan_context() -> AsyncIterator[None]:
     await init_database()
+    await ensure_default_data()
     try:
         yield
     finally:
