@@ -8,7 +8,7 @@ interface User {
   id: string
   name: string
   email: string
-  role: 'secretary' | 'employee' | 'manager' | 'admin'
+  role: 'employee' | 'hr' | 'internalops' | 'pm'
   avatar?: string
 }
 
@@ -18,12 +18,7 @@ interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps): ReactNode {
   // Mock user data - in real app this would come from authentication
-  const [user, setUser] = useState<User | null>({
-    id: '1',
-    name: 'Grace Edenia',
-    email: 'grace.edenia@company.com',
-    role: 'secretary' // Default role for demo
-  })
+  const [user, setUser] = useState<User | null>(null)
 
   const isAuthenticated = user !== null
 
@@ -33,33 +28,26 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
 
     // Mock different users based on email for demo
     let mockUser: User
-    if (email.includes('admin')) {
+    if (email === 'hr@quantumteknologi.com') {
       mockUser = {
-        id: '4',
-        name: 'Admin User',
+        id: '1',
+        name: 'HR User',
         email,
-        role: 'admin'
+        role: 'hr'
       }
-    } else if (email.includes('manager')) {
-      mockUser = {
-        id: '3',
-        name: 'Manager User',
-        email,
-        role: 'manager'
-      }
-    } else if (email.includes('employee')) {
+    } else if (email === 'internalops@quantumteknologi.com') {
       mockUser = {
         id: '2',
-        name: 'Employee User',
+        name: 'Internal Ops User',
         email,
-        role: 'employee'
+        role: 'internalops'
       }
     } else {
       mockUser = {
-        id: '1',
-        name: 'Grace Edenia',
+        id: '3',
+        name: 'Employee User',
         email,
-        role: 'secretary'
+        role: 'employee'
       }
     }
 

@@ -1,14 +1,9 @@
 import { 
-  Calendar, 
   FileText, 
   LayoutDashboard, 
   Building2, 
   Users, 
-  Clock, 
-  ScrollText, 
-  Map, 
-  Folder, 
-  TrendingUp,
+  Folder,
   ChevronLeft,
   LogOut,
   Settings
@@ -24,23 +19,18 @@ import { cn } from '../lib/utils'
 
 // Icon mapping
 const iconMap = {
-  Calendar,
   FileText,
   LayoutDashboard,
   Building2,
   Users,
-  Clock,
-  ScrollText,
-  Map,
-  Folder,
-  TrendingUp
+  Folder
 }
 
 interface SidebarProps {
   userRole?: string
 }
 
-function Sidebar({ userRole = 'secretary' }: SidebarProps): ReactElement {
+function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
@@ -56,9 +46,23 @@ function Sidebar({ userRole = 'secretary' }: SidebarProps): ReactElement {
     }
   }
 
-  // Show all menu items for logged-in users
-  const filteredMenuItems = menuConfig.menuItems
-  const currentRole = menuConfig.roles[userRole as keyof typeof menuConfig.roles]
+  // Filter menu items based on user role
+  const filteredMenuItems = menuConfig.menuItems.map(section => ({
+    ...section,
+    items: section.items.filter(item => 
+      !item.roles || item.roles.includes(userRole)
+    )
+  })).filter(section => section.items.length > 0) // Remove empty sections
+
+  const currentRole = menuConfig.roles[userRole as keyof typeof menuConfig.roles] || {
+    name: 'Employee',
+    color: 'blue'
+  }
+
+  // Get user initials for avatar
+  const getUserInitials = (name: string): string => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
 
   return (
     <div className={cn(
@@ -101,7 +105,7 @@ function Sidebar({ userRole = 'secretary' }: SidebarProps): ReactElement {
               GE
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">Grace Edenia</p>
+              <p className="text-sm font-medium text-gray-900">Employee User</p>
               <p className="text-xs text-gray-500">{currentRole.name}</p>
             </div>
           </div>

@@ -1,27 +1,6 @@
 {
   "menuItems": [
     {
-      "id": "quick-actions",
-      "title": "QUICK ACTIONS",
-      "type": "section",
-      "items": [
-        {
-          "id": "daily-standup",
-          "title": "Daily Standup",
-          "path": "/daily-standup",
-          "icon": "Calendar",
-          "type": "item"
-        },
-        {
-          "id": "work-arrangement",
-          "title": "Work Arrangement Request",
-          "path": "/work-arrangement",
-          "icon": "FileText",
-          "type": "item"
-        }
-      ]
-    },
-    {
       "id": "core-ops",
       "title": "CORE OPS",
       "type": "section",
@@ -31,28 +10,24 @@
           "title": "Dashboard",
           "path": "/dashboard",
           "icon": "LayoutDashboard",
-          "type": "item"
+          "type": "item",
+          "roles": ["employee", "hr", "internalops"]
         },
         {
           "id": "structure-organization",
-          "title": "Structure Organization",
+          "title": "Organizational Structure",
           "path": "/structure-organization",
           "icon": "Building2",
-          "type": "item"
+          "type": "item",
+          "roles": ["employee", "hr", "internalops"]
         },
         {
           "id": "employee-management",
           "title": "Employee Management",
           "path": "/employee-management",
           "icon": "Users",
-          "type": "item"
-        },
-        {
-          "id": "attendance-tracker",
-          "title": "Attendance Tracker",
-          "path": "/attendance-tracker",
-          "icon": "Clock",
-          "type": "item"
+          "type": "item",
+          "roles": ["hr", "internalops"]
         }
       ]
     },
@@ -66,21 +41,8 @@
           "title": "Documents",
           "path": "/documents",
           "icon": "FileText",
-          "type": "item"
-        },
-        {
-          "id": "charter-management",
-          "title": "Charter Management",
-          "path": "/charter-management",
-          "icon": "ScrollText",
-          "type": "item"
-        },
-        {
-          "id": "product-roadmap",
-          "title": "Product Roadmap",
-          "path": "/product-roadmap",
-          "icon": "Map",
-          "type": "item"
+          "type": "item",
+          "roles": ["employee", "hr", "internalops"]
         }
       ]
     },
@@ -94,38 +56,32 @@
           "title": "Project Management",
           "path": "/project-management",
           "icon": "Folder",
-          "type": "item"
-        },
-        {
-          "id": "daily-startup-tracker",
-          "title": "Daily Startup Tracker",
-          "path": "/daily-startup-tracker",
-          "icon": "TrendingUp",
-          "type": "item"
+          "type": "item",
+          "roles": ["internalops", "pm"]
         }
       ]
     }
   ],
   "roles": {
-    "secretary": {
-      "name": "Secretary",
-      "color": "pink",
-      "permissions": ["read", "create"]
-    },
     "employee": {
       "name": "Employee", 
       "color": "blue",
       "permissions": ["read", "create"]
     },
-    "manager": {
-      "name": "Manager",
+    "hr": {
+      "name": "HR",
+      "color": "pink",
+      "permissions": ["read", "create", "update"]
+    },
+    "internalops": {
+      "name": "Internal Ops",
       "color": "green", 
       "permissions": ["read", "create", "update", "delete"]
     },
-    "admin": {
-      "name": "Administrator",
+    "pm": {
+      "name": "Project Manager",
       "color": "purple",
-      "permissions": ["read", "create", "update", "delete", "manage"]
+      "permissions": ["read", "create", "update"]
     }
   }
 }

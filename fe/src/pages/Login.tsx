@@ -73,12 +73,12 @@ function Login(): JSX.Element {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Try: admin@test.com, manager@test.com, employee@test.com, or secretary@test.com"
+                placeholder="Try: hr@quantumteknologi.com, internalops@quantumteknologi.com, or any other email"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                Use different email prefixes to test different roles
+                Use hr@quantumteknologi.com for HR role, internalops@quantumteknologi.com for Internal Ops role, or any other email for Employee role
               </p>
             </div>
 
