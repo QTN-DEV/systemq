@@ -38,9 +38,8 @@ function EmployeeManagement(): ReactElement {
 
   // Get unique positions for filter tabs
   const positions = useMemo((): string[] => {
-    const uniquePositions = [...new Set(employees.map(emp => emp.position))]
-    return ['All Employees', ...uniquePositions]
-  }, [employees])
+    return ['All Employees', 'CEO', 'Internal Ops', 'HR', 'PM', 'Div. Lead', 'Team Member']
+  }, [])
 
   // Filter and search employees
   const filteredEmployees = useMemo((): Employee[] => {
@@ -83,12 +82,11 @@ function EmployeeManagement(): ReactElement {
   const getPositionBadgeColor = (position: string): string => {
     const colors = {
       'CEO': 'bg-purple-100 text-purple-800',
-      'Division Lead': 'bg-blue-100 text-blue-800',
-      'PMs': 'bg-pink-100 text-pink-800',
-      'Developers': 'bg-green-100 text-green-800',
-      'UI/UX Designers': 'bg-orange-100 text-orange-800',
-      'HRs': 'bg-red-100 text-red-800',
-      'Marketings': 'bg-indigo-100 text-indigo-800'
+      'Internal Ops': 'bg-blue-100 text-blue-800',
+      'HR': 'bg-red-100 text-red-800',
+      'PM': 'bg-pink-100 text-pink-800',
+      'Div. Lead': 'bg-green-100 text-green-800',
+      'Team Member': 'bg-gray-100 text-gray-800'
     }
     return colors[position as keyof typeof colors] || 'bg-gray-100 text-gray-800'
   }
@@ -746,12 +744,11 @@ function EmployeeManagement(): ReactElement {
                   >
                     <option value="">Select position</option>
                     <option value="CEO">CEO</option>
-                    <option value="Division Lead">Division Lead</option>
-                    <option value="PMs">PMs</option>
-                    <option value="Developers">Developers</option>
-                    <option value="UI/UX Designers">UI/UX Designers</option>
-                    <option value="HRs">HRs</option>
-                    <option value="Marketings">Marketings</option>
+                    <option value="Internal Ops">Internal Ops</option>
+                    <option value="HR">HR</option>
+                    <option value="PM">PM</option>
+                    <option value="Div. Lead">Div. Lead</option>
+                    <option value="Team Member">Team Member</option>
                   </select>
                 </div>
 

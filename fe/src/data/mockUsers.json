@@ -18,7 +18,7 @@
     "title": "Sr. Fullstack Developer",
     "division": "Developer",
     "level": "Senior",
-    "position": "Division Lead",
+    "position": "Div. Lead",
     "subordinates": ["QTN-007", "QTN-008", "QTN-009"],
     "projects": ["proj-001", "proj-002", "proj-003"],
     "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=center"
@@ -30,7 +30,7 @@
     "title": "Executive Secretary",
     "division": "Administration",
     "level": "Senior",
-    "position": "PMs",
+    "position": "Internal Ops",
     "subordinates": [],
     "projects": ["proj-004"],
     "avatar": "https://images.unsplash.com/photo-1494790108755-2616c4f23e3e?w=100&h=100&fit=crop&crop=center"
@@ -42,7 +42,7 @@
     "title": "Lead UI/UX Designer",
     "division": "Design",
     "level": "Lead",
-    "position": "UI/UX Designers",
+    "position": "Div. Lead",
     "subordinates": ["QTN-010", "QTN-011"],
     "projects": ["proj-001", "proj-005", "proj-006"],
     "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=center"
@@ -54,7 +54,7 @@
     "title": "HR Manager",
     "division": "Human Resources",
     "level": "Manager",
-    "position": "HRs",
+    "position": "HR",
     "subordinates": ["QTN-012"],
     "projects": ["proj-007"],
     "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=center"
@@ -66,7 +66,7 @@
     "title": "Marketing Director",
     "division": "Marketing",
     "level": "Director",
-    "position": "Marketings",
+    "position": "Div. Lead",
     "subordinates": ["QTN-013", "QTN-014"],
     "projects": ["proj-008"],
     "avatar": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=center"
@@ -78,7 +78,7 @@
     "title": "Frontend Developer",
     "division": "Developer",
     "level": "Mid",
-    "position": "Developers",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-001", "proj-003"],
     "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=center"
@@ -90,7 +90,7 @@
     "title": "Backend Developer",
     "division": "Developer",
     "level": "Mid",
-    "position": "Developers",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-002", "proj-004"],
     "avatar": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop&crop=center"
@@ -102,7 +102,7 @@
     "title": "DevOps Engineer",
     "division": "Developer",
     "level": "Senior",
-    "position": "Developers",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-005", "proj-008"],
     "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=center"
@@ -114,7 +114,7 @@
     "title": "UI Designer",
     "division": "Design",
     "level": "Mid",
-    "position": "UI/UX Designers",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-001", "proj-006"],
     "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=center"
@@ -126,7 +126,7 @@
     "title": "UX Researcher",
     "division": "Design",
     "level": "Mid",
-    "position": "UI/UX Designers",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-005", "proj-007"],
     "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=center"
@@ -138,7 +138,7 @@
     "title": "HR Specialist",
     "division": "Human Resources",
     "level": "Junior",
-    "position": "HRs",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-007"],
     "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=center"
@@ -150,7 +150,7 @@
     "title": "Digital Marketing Specialist",
     "division": "Marketing",
     "level": "Mid",
-    "position": "Marketings",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-008"],
     "avatar": "https://images.unsplash.com/photo-1463453091185-61582044d556?w=100&h=100&fit=crop&crop=center"
@@ -162,7 +162,7 @@
     "title": "Content Marketing Manager",
     "division": "Marketing",
     "level": "Manager",
-    "position": "Marketings",
+    "position": "Team Member",
     "subordinates": [],
     "projects": ["proj-008"],
     "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=center"
