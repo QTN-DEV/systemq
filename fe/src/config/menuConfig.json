@@ -1,65 +1,44 @@
 {
   "menuItems": [
     {
-      "id": "core-ops",
-      "title": "CORE OPS",
-      "type": "section",
-      "items": [
-        {
-          "id": "dashboard",
-          "title": "Dashboard",
-          "path": "/dashboard",
-          "icon": "LayoutDashboard",
-          "type": "item",
-          "roles": ["employee", "hr", "internalops"]
-        },
-        {
-          "id": "structure-organization",
-          "title": "Organizational Structure",
-          "path": "/structure-organization",
-          "icon": "Building2",
-          "type": "item",
-          "roles": ["employee", "hr", "internalops"]
-        },
-        {
-          "id": "employee-management",
-          "title": "Employee Management",
-          "path": "/employee-management",
-          "icon": "Users",
-          "type": "item",
-          "roles": ["hr", "internalops"]
-        }
-      ]
+      "id": "dashboard",
+      "title": "Dashboard",
+      "path": "/dashboard",
+      "icon": "LayoutDashboard",
+      "type": "item",
+      "roles": ["employee", "hr", "internalops"]
     },
     {
-      "id": "knowledge",
-      "title": "KNOWLEDGE",
-      "type": "section",
-      "items": [
-        {
-          "id": "documents",
-          "title": "Documents",
-          "path": "/documents",
-          "icon": "FileText",
-          "type": "item",
-          "roles": ["employee", "hr", "internalops"]
-        }
-      ]
+      "id": "structure-organization",
+      "title": "Organizational Structure",
+      "path": "/structure-organization",
+      "icon": "Building2",
+      "type": "item",
+      "roles": ["employee", "hr", "internalops"]
     },
     {
-      "id": "productivity",
-      "title": "PRODUCTIVITY",
-      "type": "section",
-      "items": [
-        {
-          "id": "project-management",
-          "title": "Project Management",
-          "path": "/project-management",
-          "icon": "Folder",
-          "type": "item",
-          "roles": ["internalops", "pm"]
-        }
-      ]
+      "id": "employee-management",
+      "title": "Employee Management",
+      "path": "/employee-management",
+      "icon": "Users",
+      "type": "item",
+      "roles": ["hr", "internalops"]
+    },
+    {
+      "id": "documents",
+      "title": "Documents",
+      "path": "/documents",
+      "icon": "FileText",
+      "type": "item",
+      "roles": ["employee", "hr", "internalops"]
+    },
+    {
+      "id": "project-management",
+      "title": "Project Management",
+      "path": "/project-management",
+      "icon": "Folder",
+      "type": "item",
+      "roles": ["internalops", "pm"]
     }
   ],
   "roles": {

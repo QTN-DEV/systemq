@@ -47,21 +47,13 @@ function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
   }
 
   // Filter menu items based on user role
-  const filteredMenuItems = menuConfig.menuItems.map(section => ({
-    ...section,
-    items: section.items.filter(item => 
-      !item.roles || item.roles.includes(userRole)
-    )
-  })).filter(section => section.items.length > 0) // Remove empty sections
+  const filteredMenuItems = menuConfig.menuItems.filter(item => 
+    !item.roles || item.roles.includes(userRole)
+  )
 
   const currentRole = menuConfig.roles[userRole as keyof typeof menuConfig.roles] || {
     name: 'Employee',
     color: 'blue'
-  }
-
-  // Get user initials for avatar
-  const getUserInitials = (name: string): string => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
   return (
@@ -129,45 +121,36 @@ function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
 
       {/* Menu Items */}
       <div className="flex-1 overflow-y-auto py-4">
-        {filteredMenuItems.map((section) => (
-          <div key={section.id} className="mb-6">
-            {!isCollapsed && (
-              <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                {section.title}
-              </h3>
-            )}
-            <nav className="space-y-1 px-2">
-              {section.items.map((item) => {
-                const Icon = iconMap[item.icon as keyof typeof iconMap]
-                const isActive = location.pathname === item.path
-                
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className={cn(
-                      'flex items-center px-2 py-2 text-sm font-medium transition-colors group',
-                      isActive 
-                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                      isCollapsed && 'justify-center'
-                    )}
-                    title={isCollapsed ? item.title : undefined}
-                  >
-                    <Icon className={cn(
-                      'flex-shrink-0 w-5 h-5',
-                      isActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500',
-                      !isCollapsed && 'mr-3'
-                    )} />
-                    {!isCollapsed && (
-                      <span className="truncate">{item.title}</span>
-                    )}
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-        ))}
+        <nav className="space-y-1 px-2">
+          {filteredMenuItems.map((item) => {
+            const Icon = iconMap[item.icon as keyof typeof iconMap]
+            const isActive = location.pathname === item.path
+            
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={cn(
+                  'flex items-center px-2 py-2 text-sm font-medium transition-colors group',
+                  isActive 
+                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                  isCollapsed && 'justify-center'
+                )}
+                title={isCollapsed ? item.title : undefined}
+              >
+                <Icon className={cn(
+                  'flex-shrink-0 w-5 h-5',
+                  isActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500',
+                  !isCollapsed && 'mr-3'
+                )} />
+                {!isCollapsed && (
+                  <span className="truncate">{item.title}</span>
+                )}
+              </Link>
+            )
+          })}
+        </nav>
       </div>
 
       {/* Settings and Logout */}
