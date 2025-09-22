@@ -49,6 +49,8 @@ Use the provided script to start Uvicorn with four workers:
 
 The script activates the virtual environment and runs the application on `http://0.0.0.0:8000`.
 
+Interactive API documentation is published at `http://localhost:8000/docs` (Swagger UI) and `http://localhost:8000/redoc` (ReDoc).
+
 ## Database Bootstrapping
 
 On startup the application connects to MongoDB and initialises Beanie with the registered document models. It also ensures an administrator account exists:
