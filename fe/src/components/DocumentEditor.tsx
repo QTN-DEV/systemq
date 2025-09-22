@@ -9,15 +9,20 @@ import {
   Type,
   Plus,
   GripVertical,
-  X
+  X,
+  Image,
+  FileText
 } from 'lucide-react'
 import { useState, useRef, useEffect, type ReactElement } from 'react'
 
 export interface DocumentBlock {
   id: string
-  type: 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'bulleted-list' | 'numbered-list' | 'quote' | 'code'
+  type: 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'bulleted-list' | 'numbered-list' | 'quote' | 'code' | 'image' | 'file'
   content: string
   alignment?: 'left' | 'center' | 'right'
+  url?: string // For image src or file download URL
+  fileName?: string // For file blocks
+  fileSize?: string // For file blocks
 }
 
 interface DocumentEditorProps {
@@ -48,7 +53,9 @@ const TypeMenu = ({
       { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list', description: 'Create a simple bulleted list.' },
       { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list', description: 'Create a list with numbering.' },
       { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Capture a quote.' },
-      { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' }
+      { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' },
+      { type: 'image' as const, icon: Image, label: 'Image', description: 'Upload or embed an image.' },
+      { type: 'file' as const, icon: FileText, label: 'File', description: 'Attach a file or document.' }
     ].map(({ type, icon: Icon, label, description }) => (
       <button
         key={type}
@@ -234,6 +241,8 @@ function DocumentEditor({
       case 'numbered-list': return 'Numbered list'
       case 'quote': return 'Quote'
       case 'code': return 'Code block'
+      case 'image': return 'Enter image URL or upload an image'
+      case 'file': return 'Enter file name or upload a file'
       default: return 'Type \'/\' for commands'
     }
   }
@@ -342,6 +351,94 @@ function DocumentEditor({
           </div>
         )
       }
+      case 'image':
+        return (
+          <div className="space-y-3">
+            {block.url && (
+              <div className="relative">
+                <img 
+                  src={block.url} 
+                  alt={block.content || 'Uploaded image'} 
+                  className="max-w-full h-auto rounded-lg shadow-sm"
+                  style={{ maxHeight: '400px' }}
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <input
+                {...commonProps}
+                type="url"
+                placeholder="Enter image URL"
+                className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
+                value={block.url ?? ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
+                  updateBlock(block.id, { url: e.target.value })
+                }
+              />
+              <input
+                {...commonProps}
+                placeholder="Alt text / Caption (optional)"
+                className={`${commonProps.className} text-sm`}
+                value={block.content}
+              />
+            </div>
+          </div>
+        )
+      case 'file':
+        return (
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div className="flex items-center space-x-3">
+              <FileText className="w-8 h-8 text-gray-500" />
+              <div className="flex-1 space-y-2">
+                <input
+                  {...commonProps}
+                  placeholder="File name"
+                  className={`${commonProps.className} font-medium text-gray-900 bg-transparent`}
+                  value={block.fileName ?? block.content}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                    updateBlock(block.id, { 
+                      fileName: e.target.value,
+                      content: e.target.value 
+                    })
+                  }}
+                />
+                <div className="flex space-x-4">
+                  <input
+                    type="url"
+                    placeholder="File URL"
+                    className="flex-1 text-xs bg-transparent border border-gray-200 rounded px-2 py-1"
+                    value={block.url ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
+                      updateBlock(block.id, { url: e.target.value })
+                    }
+                    disabled={readOnly}
+                  />
+                  <input
+                    placeholder="File size (e.g. 2.5 MB)"
+                    className="w-24 text-xs bg-transparent border border-gray-200 rounded px-2 py-1"
+                    value={block.fileSize ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
+                      updateBlock(block.id, { fileSize: e.target.value })
+                    }
+                    disabled={readOnly}
+                  />
+                </div>
+              </div>
+            </div>
+            {block.url && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <a 
+                  href={block.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Download {block.fileName ?? 'file'}
+                </a>
+              </div>
+            )}
+          </div>
+        )
       default:
         return (
           <textarea
@@ -433,7 +530,9 @@ function DocumentEditor({
                           { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list', description: 'Create a simple bulleted list.' },
                           { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list', description: 'Create a list with numbering.' },
                           { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Capture a quote.' },
-                          { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' }
+                          { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' },
+                          { type: 'image' as const, icon: Image, label: 'Image', description: 'Upload or embed an image.' },
+                          { type: 'file' as const, icon: FileText, label: 'File', description: 'Attach a file or document.' }
                         ].map(({ type, icon: Icon, label, description }) => (
                           <button
                             key={type}
