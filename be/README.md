@@ -1,6 +1,6 @@
 # SystemQ Backend
 
-FastAPI-based backend service for the SystemQ platform. It provides health monitoring and authentication endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
+FastAPI-based backend service for the SystemQ platform. It provides health monitoring, authentication, and project management endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
 
 ## Prerequisites
 
@@ -70,6 +70,20 @@ Base path: `/auth`
 | `/auth/change-password` | `POST` | Update a user's password after validating the current password. |
 
 Responses mirror the structure used in the frontend mock service (`AuthService.ts`). The `UserProfile` payload includes the same fields defined in `mockUsers.json`.
+
+## Projects API
+
+Base path: `/projects`
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/projects/` | `GET` | List all projects. |
+| `/projects/{id}` | `GET` | Retrieve a project by identifier. |
+| `/projects/` | `POST` | Create a new project (id must be unique). |
+| `/projects/{id}` | `PATCH` | Update project name and/or avatar. |
+| `/projects/{id}` | `DELETE` | Delete a project. |
+
+Project payloads mirror the structure used in the frontend (`ProjectService.ts` and `mockProjects.json`). Each object exposes `id`, `name`, and optional `avatar` fields.
 
 ## SMTP Integration
 
