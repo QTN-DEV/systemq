@@ -11,7 +11,10 @@ import {
   GripVertical,
   X,
   Image,
-  FileText
+  FileText,
+  AlignLeft,
+  AlignCenter,
+  AlignRight
 } from 'lucide-react'
 import { useState, useRef, useEffect, type ReactElement } from 'react'
 
@@ -87,7 +90,33 @@ function DocumentEditor({
   const [showGripMenu, setShowGripMenu] = useState<string | null>(null)
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null)
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null)
+  const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(new Set())
+  const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
   const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
+
+  // Mock upload API function
+  const mockUploadFile = async (file: File): Promise<{ url: string; fileName: string; fileSize: string }> => {
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Create mock URL (in real app, this would be from your server)
+    const mockUrl = URL.createObjectURL(file)
+    
+    // Format file size
+    const formatFileSize = (bytes: number): string => {
+      if (bytes === 0) return '0 Bytes'
+      const k = 1024
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+    }
+    
+    return {
+      url: mockUrl,
+      fileName: file.name,
+      fileSize: formatFileSize(file.size)
+    }
+  }
 
   useEffect((): (() => void) | void => {
     if (onSave) {
@@ -208,6 +237,35 @@ function DocumentEditor({
     setDragOverBlockId(null)
   }
 
+  const handleFileUpload = async (blockId: string, file: File): Promise<void> => {
+    if (readOnly) return
+    
+    // Add block to uploading set
+    setUploadingBlocks(prev => new Set(prev).add(blockId))
+    
+    try {
+      const uploadResult = await mockUploadFile(file)
+      
+      // Update block with upload result
+      updateBlock(blockId, {
+        url: uploadResult.url,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize,
+        content: uploadResult.fileName // For file blocks, content is the file name
+      })
+    } catch {
+      // console.error('Upload failed:', error)
+      // Handle upload error (could show toast notification)
+    } finally {
+      // Remove block from uploading set
+      setUploadingBlocks(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(blockId)
+        return newSet
+      })
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -272,7 +330,7 @@ function DocumentEditor({
           />
         )
       case 'heading2':
-        return (
+        return ( 
           <input
             {...commonProps}
             className={`${commonProps.className} text-2xl font-semibold text-gray-900`}
@@ -351,94 +409,209 @@ function DocumentEditor({
           </div>
         )
       }
-      case 'image':
-        return (
-          <div className="space-y-3">
-            {block.url && (
-              <div className="relative">
+      case 'image': {
+        const isUploading = uploadingBlocks.has(block.id)
+        const hasImage = block.url && !isUploading
+        
+        if (hasImage) {
+          // Render uploaded image with alignment and hover toolbar
+          const imageAlignment = block.alignment ?? 'center'
+          const alignmentClasses = {
+            left: 'justify-start',
+            center: 'justify-center', 
+            right: 'justify-end'
+          }
+          
+          return (
+            <div className={`flex w-full ${alignmentClasses[imageAlignment]}`}>
+              <div 
+                className="relative group"
+                onMouseEnter={() => !readOnly && setHoveredImageId(block.id)}
+                onMouseLeave={() => setHoveredImageId(null)}
+              >
                 <img 
                   src={block.url} 
                   alt={block.content || 'Uploaded image'} 
                   className="max-w-full h-auto rounded-lg shadow-sm"
-                  style={{ maxHeight: '400px' }}
+                  style={{ maxHeight: '500px' }}
+                />
+                
+                {/* Floating Alignment Toolbar */}
+                {hoveredImageId === block.id && (
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 translate-y-[-8px] bg-white rounded-lg shadow-lg border border-gray-200 px-2 py-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    <button
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
+                        imageAlignment === 'left' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
+                      }`}
+                      onClick={() => updateBlock(block.id, { alignment: 'left' })}
+                      title="Align left"
+                    >
+                      <AlignLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
+                        imageAlignment === 'center' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
+                      }`}
+                      onClick={() => updateBlock(block.id, { alignment: 'center' })}
+                      title="Align center"
+                    >
+                      <AlignCenter className="w-4 h-4" />
+                    </button>
+                    <button
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
+                        imageAlignment === 'right' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
+                      }`}
+                      onClick={() => updateBlock(block.id, { alignment: 'right' })}
+                      title="Align right"
+                    >
+                      <AlignRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
+        
+        return (
+          <div className="space-y-3">
+            {isUploading ? (
+              <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Uploading image...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer bg-gray-50">
+                  <label className="cursor-pointer text-center">
+                    <Image className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Click to upload an image</p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          handleFileUpload(block.id, file)
+                        }
+                      }}
+                      disabled={readOnly}
+                    />
+                  </label>
+                </div>
+                <div className="text-center text-sm text-gray-500">or</div>
+                <input
+                  {...commonProps}
+                  type="url"
+                  placeholder="Paste image URL"
+                  className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2 text-center`}
+                  value={block.url ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
+                    updateBlock(block.id, { url: e.target.value })
+                  }
                 />
               </div>
             )}
-            <div className="space-y-2">
-              <input
-                {...commonProps}
-                type="url"
-                placeholder="Enter image URL"
-                className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
-                value={block.url ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
-                  updateBlock(block.id, { url: e.target.value })
-                }
-              />
-              <input
-                {...commonProps}
-                placeholder="Alt text / Caption (optional)"
-                className={`${commonProps.className} text-sm`}
-                value={block.content}
-              />
-            </div>
           </div>
         )
-      case 'file':
+      }
+      case 'file': {
+        const isUploading = uploadingBlocks.has(block.id)
+        const hasFile = block.url && block.fileName && !isUploading
+        
+        if (hasFile) {
+          // Render uploaded file as card
+          return (
+            <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <FileText className="w-10 h-10 text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-gray-900 truncate">
+                    {block.fileName}
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {block.fileSize}
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <a 
+                    href={block.url} 
+                    download={block.fileName}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Download
+                  </a>
+                </div>
+              </div>
+            </div>
+          )
+        }
+        
         return (
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-            <div className="flex items-center space-x-3">
-              <FileText className="w-8 h-8 text-gray-500" />
-              <div className="flex-1 space-y-2">
-                <input
-                  {...commonProps}
-                  placeholder="File name"
-                  className={`${commonProps.className} font-medium text-gray-900 bg-transparent`}
-                  value={block.fileName ?? block.content}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                    updateBlock(block.id, { 
-                      fileName: e.target.value,
-                      content: e.target.value 
-                    })
-                  }}
-                />
-                <div className="flex space-x-4">
+          <div className="space-y-3">
+            {isUploading ? (
+              <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Uploading file...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer bg-gray-50">
+                  <label className="cursor-pointer text-center">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Click to upload a file</p>
+                    <p className="text-xs text-gray-500 mt-1">Any file type up to 50MB</p>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          handleFileUpload(block.id, file)
+                        }
+                      }}
+                      disabled={readOnly}
+                    />
+                  </label>
+                </div>
+                <div className="text-center text-sm text-gray-500">or</div>
+                <div className="space-y-2">
+                  <input
+                    {...commonProps}
+                    placeholder="File name"
+                    className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
+                    value={block.fileName ?? block.content}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                      updateBlock(block.id, { 
+                        fileName: e.target.value,
+                        content: e.target.value 
+                      })
+                    }}
+                  />
                   <input
                     type="url"
-                    placeholder="File URL"
-                    className="flex-1 text-xs bg-transparent border border-gray-200 rounded px-2 py-1"
+                    placeholder="Paste file URL"
+                    className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
                     value={block.url ?? ''}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
                       updateBlock(block.id, { url: e.target.value })
                     }
                     disabled={readOnly}
                   />
-                  <input
-                    placeholder="File size (e.g. 2.5 MB)"
-                    className="w-24 text-xs bg-transparent border border-gray-200 rounded px-2 py-1"
-                    value={block.fileSize ?? ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
-                      updateBlock(block.id, { fileSize: e.target.value })
-                    }
-                    disabled={readOnly}
-                  />
                 </div>
-              </div>
-            </div>
-            {block.url && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <a 
-                  href={block.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:text-blue-800 underline"
-                >
-                  Download {block.fileName ?? 'file'}
-                </a>
               </div>
             )}
           </div>
         )
+      }
       default:
         return (
           <textarea
