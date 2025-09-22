@@ -1,3 +1,4 @@
+from app.models.document import DocumentHistory, DocumentItem
 from app.models.health import SystemStatus
 from app.models.password_reset_token import PasswordResetToken
 from app.models.project import Project
@@ -8,4 +9,6 @@ __all__ = [
     "User",
     "PasswordResetToken",
     "Project",
+    "DocumentItem",
+    "DocumentHistory",
 ]

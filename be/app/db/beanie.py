@@ -6,7 +6,14 @@ from typing import AsyncIterator
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.models import PasswordResetToken, Project, SystemStatus, User
+from app.models import (
+    DocumentHistory,
+    DocumentItem,
+    PasswordResetToken,
+    Project,
+    SystemStatus,
+    User,
+)
 from constants import MONGODB_DATABASE, MONGODB_URI
 
 _motor_client: AsyncIOMotorClient | None = None
@@ -21,7 +28,14 @@ async def init_database() -> None:
     _motor_client = AsyncIOMotorClient(MONGODB_URI)
     await init_beanie(
         database=_motor_client[MONGODB_DATABASE],
-        document_models=[SystemStatus, User, PasswordResetToken, Project],
+        document_models=[
+            SystemStatus,
+            User,
+            PasswordResetToken,
+            Project,
+            DocumentItem,
+            DocumentHistory,
+        ],
     )
 
 

@@ -1,6 +1,6 @@
 # SystemQ Backend
 
-FastAPI-based backend service for the SystemQ platform. It provides health monitoring, authentication, project management, and employee management endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
+FastAPI-based backend service for the SystemQ platform. It provides health monitoring, authentication, project management, employee management, and document management endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
 
 ## Prerequisites
 
@@ -100,6 +100,25 @@ Base path: `/employees`
 | `/employees/{id}/deactivate` | `POST` | Deactivate an employee and send a notification email. |
 
 Employee payloads align with the frontend mocks (`mockUsers.json` / `UserService.ts`). Deactivated employees cannot authenticate and are omitted from the `GET /employees/` endpoint.
+
+## Documents API
+
+Base path: `/documents`
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/documents/` | `GET` | List documents for a given parent (root by default). |
+| `/documents/{id}` | `GET` | Retrieve metadata for a document. |
+| `/documents/{id}/item-count` | `GET` | Count immediate children of a folder. |
+| `/documents/{id}/path-ids` | `GET` | Return ancestor folder ids ending with the current id. |
+| `/documents/{id}/breadcrumbs` | `GET` | Build breadcrumb entries from root to the folder. |
+| `/documents/types` | `GET` | Return distinct document types (supports substring filter). |
+| `/documents/categories` | `GET` | Return distinct document categories (supports substring filter). |
+| `/documents/` | `POST` | Create a document or folder (maintains parent counts and history). |
+| `/documents/{id}` | `PATCH` | Rename, move, or edit document metadata and content (snapshots history). |
+| `/documents/{id}` | `DELETE` | Soft delete a document (and descendants), recording history. |
+
+Each update to a document is snapshot in the `document_history` collection, enabling audit trails for rename, content, or structural changes. Distinct type/category queries reflect live values from storage.
 
 ## SMTP Integration
 
