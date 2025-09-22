@@ -1,5 +1,4 @@
 import { 
-  FileText,
   Tag
 } from 'lucide-react'
 import { useState, useEffect, useCallback, type ReactElement } from 'react'
@@ -7,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 
 import DocumentEditor, { type DocumentBlock } from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
-import { getDocumentById, getFolderPathIds, getDocumentTypes, getDocumentCategories } from '../services/DocumentService'
+import { getDocumentById, getFolderPathIds, getDocumentCategories } from '../services/DocumentService'
 import type { DocumentItem } from '../types/documents'
 
 function DocumentEditorPage(): ReactElement {
@@ -18,7 +17,6 @@ function DocumentEditorPage(): ReactElement {
   const [blocks, setBlocks] = useState<DocumentBlock[]>([])
   const [documentTitle, setDocumentTitle] = useState('')
   const [fileName, setFileName] = useState('')
-  const [documentType, setDocumentType] = useState<string>('')
   const [documentCategory, setDocumentCategory] = useState<string>('')
 
   const getMockDocumentContent = useCallback((docId: string): DocumentBlock[] => {
@@ -255,18 +253,8 @@ function DocumentEditorPage(): ReactElement {
             placeholder="Untitled Document"
           />
           
-          {/* Document Type and Category Buttons */}
+          {/* Category Searchable Dropdown */}
           <div className="flex items-center space-x-3 mb-6">
-            {/* Document Type Searchable Dropdown */}
-            <SearchableDropdown
-              value={documentType}
-              placeholder="Document Type"
-              icon={FileText}
-              onSelect={setDocumentType}
-              fetchOptions={getDocumentTypes}
-            />
-
-            {/* Category Searchable Dropdown */}
             <SearchableDropdown
               value={documentCategory}
               placeholder="Add Category"
