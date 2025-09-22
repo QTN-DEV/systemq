@@ -49,17 +49,17 @@ const TypeMenu = ({
     </div>
     
     {[
-      { type: 'paragraph' as const, icon: Type, label: 'Text', description: 'Just start writing with plain text.' },
-      { type: 'heading1' as const, icon: Heading1, label: 'Heading 1', description: 'Big section heading.' },
-      { type: 'heading2' as const, icon: Heading2, label: 'Heading 2', description: 'Medium section heading.' },
-      { type: 'heading3' as const, icon: Heading3, label: 'Heading 3', description: 'Small section heading.' },
-      { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list', description: 'Create a simple bulleted list.' },
-      { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list', description: 'Create a list with numbering.' },
-      { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Capture a quote.' },
-      { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' },
-      { type: 'image' as const, icon: Image, label: 'Image', description: 'Upload or embed an image.' },
-      { type: 'file' as const, icon: FileText, label: 'File', description: 'Attach a file or document.' }
-    ].map(({ type, icon: Icon, label, description }) => (
+      { type: 'paragraph' as const, icon: Type, label: 'Text' },
+      { type: 'heading1' as const, icon: Heading1, label: 'Heading 1' },
+      { type: 'heading2' as const, icon: Heading2, label: 'Heading 2' },
+      { type: 'heading3' as const, icon: Heading3, label: 'Heading 3' },
+      { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list' },
+      { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list' },
+      { type: 'quote' as const, icon: Quote, label: 'Quote' },
+      { type: 'code' as const, icon: Code, label: 'Code' },
+      { type: 'image' as const, icon: Image, label: 'Image' },
+      { type: 'file' as const, icon: FileText, label: 'File' }
+    ].map(({ type, icon: Icon, label }) => (
       <button
         key={type}
         className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
@@ -68,7 +68,6 @@ const TypeMenu = ({
         <Icon className="w-5 h-5 text-gray-400" />
         <div>
           <div className="text-sm font-medium text-gray-900">{label}</div>
-          <div className="text-xs text-gray-500">{description}</div>
         </div>
       </button>
     ))}
@@ -696,17 +695,17 @@ function DocumentEditor({
                         </div>
                         
                         {[
-                          { type: 'paragraph' as const, icon: Type, label: 'Text', description: 'Just start writing with plain text.' },
-                          { type: 'heading1' as const, icon: Heading1, label: 'Heading 1', description: 'Big section heading.' },
-                          { type: 'heading2' as const, icon: Heading2, label: 'Heading 2', description: 'Medium section heading.' },
-                          { type: 'heading3' as const, icon: Heading3, label: 'Heading 3', description: 'Small section heading.' },
-                          { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list', description: 'Create a simple bulleted list.' },
-                          { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list', description: 'Create a list with numbering.' },
-                          { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Capture a quote.' },
-                          { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' },
-                          { type: 'image' as const, icon: Image, label: 'Image', description: 'Upload or embed an image.' },
-                          { type: 'file' as const, icon: FileText, label: 'File', description: 'Attach a file or document.' }
-                        ].map(({ type, icon: Icon, label, description }) => (
+                          { type: 'paragraph' as const, icon: Type, label: 'Text'},
+                          { type: 'heading1' as const, icon: Heading1, label: 'Heading 1' },
+                          { type: 'heading2' as const, icon: Heading2, label: 'Heading 2' },
+                          { type: 'heading3' as const, icon: Heading3, label: 'Heading 3' },
+                          { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list' },
+                          { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list' },
+                          { type: 'quote' as const, icon: Quote, label: 'Quote' },
+                          { type: 'code' as const, icon: Code, label: 'Code' },
+                          { type: 'image' as const, icon: Image, label: 'Image' },
+                          { type: 'file' as const, icon: FileText, label: 'File' }
+                        ].map(({ type, icon: Icon, label }) => (
                           <button
                             key={type}
                             className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
@@ -718,7 +717,6 @@ function DocumentEditor({
                             <Icon className="w-5 h-5 text-gray-400" />
                             <div>
                               <div className="text-sm font-medium text-gray-900">{label}</div>
-                              <div className="text-xs text-gray-500">{description}</div>
                             </div>
                           </button>
                         ))}

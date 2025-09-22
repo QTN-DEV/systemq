@@ -12,4 +12,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000, // Increase the limit to 1000 kB
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor chunks
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          // Split UI library chunks
+          ui: ['lucide-react', 'sweetalert2'],
+          // Split utility chunks
+          utils: ['clsx', 'tailwind-merge', 'class-variance-authority']
+        }
+      }
+    }
+  }
 })

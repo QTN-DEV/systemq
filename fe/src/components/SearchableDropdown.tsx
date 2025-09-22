@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, type ReactElement } from 'react'
-import { ChevronDown, Search, Plus } from 'lucide-react'
+import { ChevronDown, Plus, Search } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
 interface SearchableDropdownProps {
   value: string
@@ -26,38 +26,38 @@ function SearchableDropdown({
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Load initial options when dropdown opens
-  useEffect(() => {
-    if (isOpen && !isSearching) {
-      loadOptions('')
-    }
-  }, [isOpen])
-
-  // Search when query changes
-  useEffect(() => {
-    if (isSearching && searchQuery !== '') {
-      const debounceTimer = setTimeout(() => {
-        loadOptions(searchQuery)
-      }, 300)
-
-      return () => clearTimeout(debounceTimer)
-    } else if (isSearching && searchQuery === '') {
-      loadOptions('')
-    }
-  }, [searchQuery, isSearching])
-
-  const loadOptions = async (query: string): Promise<void> => {
+  const loadOptions = useCallback(async (query: string): Promise<void> => {
     setIsLoading(true)
     try {
       const results = await fetchOptions(query)
       setOptions(results)
-    } catch (error) {
-      console.error('Error loading options:', error)
+    } catch {
+      // Silently handle errors or implement proper error handling
       setOptions([])
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [fetchOptions])
+
+  // Load initial options when dropdown opens
+  useEffect(() => {
+    if (isOpen && !isSearching) {
+      void loadOptions('')
+    }
+  }, [isOpen, isSearching, loadOptions])
+
+  // Search when query changes
+  useEffect(() => {
+    if (isSearching && searchQuery !== '') {
+      const debounceTimer = setTimeout((): void => {
+        void loadOptions(searchQuery)
+      }, 300)
+
+      return (): void => clearTimeout(debounceTimer)
+    } else if (isSearching && searchQuery === '') {
+      void loadOptions('')
+    }
+  }, [searchQuery, isSearching, loadOptions])
 
   const handleOpen = (): void => {
     setIsOpen(true)
@@ -116,6 +116,14 @@ function SearchableDropdown({
           <div 
             className="fixed inset-0 z-10"
             onClick={handleClose}
+            onKeyDown={(e): void => {
+              if (e.key === 'Escape') {
+                handleClose()
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Close dropdown"
           />
           <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
             {/* Search Input */}
@@ -141,7 +149,7 @@ function SearchableDropdown({
                   Loading...
                 </div>
               ) : (
-                <>
+                <div>
                   {options.length > 0 ? (
                     options.map((option) => (
                       <button
@@ -158,14 +166,14 @@ function SearchableDropdown({
                       className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center space-x-2"
                     >
                       <Plus className="w-4 h-4 text-gray-400" />
-                      <span>Create "{searchQuery}"</span>
+                      <span>Create &quot;{searchQuery}&quot;</span>
                     </button>
                   ) : (
                     <div className="p-3 text-center text-sm text-gray-500">
                       Start typing to search...
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 

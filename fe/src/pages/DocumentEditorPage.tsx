@@ -2,7 +2,7 @@ import {
   FileText,
   Tag
 } from 'lucide-react'
-import { useState, useEffect, type ReactElement } from 'react'
+import { useState, useEffect, useCallback, type ReactElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import DocumentEditor, { type DocumentBlock } from '../components/DocumentEditor'
@@ -21,23 +21,7 @@ function DocumentEditorPage(): ReactElement {
   const [documentType, setDocumentType] = useState<string>('')
   const [documentCategory, setDocumentCategory] = useState<string>('')
 
-  useEffect(() => {
-    if (fileId) {
-      const doc = getDocumentById(fileId)
-      if (doc && doc.type === 'file') {
-        setDocument(doc)
-        setFileName(doc.name) // This is the file name
-        setDocumentTitle(doc.title || doc.name) // This is the document title, fallback to file name
-        setDocumentCategory(doc.category || '')
-        
-        // Load document content (mock data for now)
-        const mockContent = getMockDocumentContent(doc.id)
-        setBlocks(mockContent)
-      }
-    }
-  }, [fileId])
-
-  const getMockDocumentContent = (docId: string): DocumentBlock[] => {
+  const getMockDocumentContent = useCallback((docId: string): DocumentBlock[] => {
     // Return different mock content based on document ID
     switch (docId) {
       case 'work-arrangement':
@@ -161,7 +145,7 @@ function DocumentEditorPage(): ReactElement {
           {
             id: '1',
             type: 'heading1',
-            content: document?.title || document?.name || 'Untitled Document',
+            content: document?.title ?? document?.name ?? 'Untitled Document',
             alignment: 'left'
           },
           {
@@ -172,7 +156,23 @@ function DocumentEditorPage(): ReactElement {
           }
         ]
     }
-  }
+  }, [document])
+
+  useEffect(() => {
+    if (fileId) {
+      const doc = getDocumentById(fileId)
+      if (doc && doc.type === 'file') {
+        setDocument(doc)
+        setFileName(doc.name) // This is the file name
+        setDocumentTitle(doc.title ?? doc.name) // This is the document title, fallback to file name
+        setDocumentCategory(doc.category ?? '')
+        
+        // Load document content (mock data for now)
+        const mockContent = getMockDocumentContent(doc.id)
+        setBlocks(mockContent)
+      }
+    }
+  }, [fileId, getMockDocumentContent])
 
 
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
@@ -196,9 +196,9 @@ function DocumentEditorPage(): ReactElement {
       <div className="p-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Document Not Found</h1>
-          <p className="text-gray-600 mb-6">The document you're looking for doesn't exist or has been moved.</p>
+          <p className="text-gray-600 mb-6">The document you&apos;re looking for doesn&apos;t exist or has been moved.</p>
           <button
-            onClick={() => navigate('/documents')}
+            onClick={(): void => { void navigate('/documents') }}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             Back to Documents
@@ -215,7 +215,7 @@ function DocumentEditorPage(): ReactElement {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center space-x-2 text-sm text-gray-500">
           <button
-            onClick={() => navigate('/documents')}
+            onClick={(): void => { void navigate('/documents') }}
             className="hover:text-gray-700 transition-colors"
           >
             All Documents
@@ -224,11 +224,11 @@ function DocumentEditorPage(): ReactElement {
           {document?.parentId && (
             <>
               <button
-                onClick={() => {
+                onClick={(): void => {
                   if (document.parentId) {
                     const parentPathIds = getFolderPathIds(document.parentId)
                     const parentPath = parentPathIds.join('/')
-                    navigate(`/documents/${parentPath}`)
+                    void navigate(`/documents/${parentPath}`)
                   }
                 }}
                 className="hover:text-gray-700 transition-colors"
@@ -282,7 +282,7 @@ function DocumentEditorPage(): ReactElement {
           {/* Document Editor */}
           <DocumentEditor
             initialBlocks={blocks}
-            onSave={handleSave}
+            onSave={(newBlocks): void => { void handleSave(newBlocks) }}
             readOnly={false}
           />
           </div>
