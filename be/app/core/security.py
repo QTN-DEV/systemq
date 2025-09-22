@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
+import string
 import time
 from dataclasses import dataclass
 
@@ -10,6 +11,7 @@ from constants import RESET_TOKEN_EXPIRE_MINUTES, SECRET_KEY
 
 _PASSWORD_HASH_ITERATIONS = 390000
 _SESSION_TTL_SECONDS = 2 * 60 * 60  # 2 hours
+_DEFAULT_PASSWORD_LENGTH = 8
 
 
 def _require_secret_key() -> str:
@@ -67,3 +69,8 @@ def generate_reset_token() -> ResetToken:
     expires_in_seconds = RESET_TOKEN_EXPIRE_MINUTES * 60
     expires_at = int((time.time() + expires_in_seconds) * 1000)
     return ResetToken(token=token, expires_at=expires_at)
+
+
+def generate_random_password(length: int = _DEFAULT_PASSWORD_LENGTH) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))

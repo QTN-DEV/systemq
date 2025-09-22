@@ -1,6 +1,6 @@
 # SystemQ Backend
 
-FastAPI-based backend service for the SystemQ platform. It provides health monitoring, authentication, and project management endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
+FastAPI-based backend service for the SystemQ platform. It provides health monitoring, authentication, project management, and employee management endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
 
 ## Prerequisites
 
@@ -87,9 +87,23 @@ Base path: `/projects`
 
 Project payloads mirror the structure used in the frontend (`ProjectService.ts` and `mockProjects.json`). Each object exposes `id`, `name`, and optional `avatar` fields.
 
+## Employees API
+
+Base path: `/employees`
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/employees/` | `GET` | List active employees; supports `search` query parameter. |
+| `/employees/{id}` | `GET` | Retrieve a single employee profile. |
+| `/employees/{id}/subordinates` | `GET` | Fetch active subordinates for an employee. |
+| `/employees/` | `POST` | Create an employee, auto-generate an 8 character password, and send an invitation email. |
+| `/employees/{id}/deactivate` | `POST` | Deactivate an employee and send a notification email. |
+
+Employee payloads align with the frontend mocks (`mockUsers.json` / `UserService.ts`). Deactivated employees cannot authenticate and are omitted from the `GET /employees/` endpoint.
+
 ## SMTP Integration
 
-Password recovery emails are dispatched through the configured SMTP server. For local development you can run a debugging server, e.g.:
+Password recovery, invitation, and deactivation emails are dispatched through the configured SMTP server. For local development you can run a debugging server, e.g.:
 
 ```bash
 python -m smtpd -c DebuggingServer -n localhost:1025

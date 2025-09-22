@@ -8,7 +8,7 @@ from constants import APP_NAME
 
 APP_DESCRIPTION = (
     "Backend APIs powering SystemQ, covering authentication, project management, "
-    "and health monitoring services."
+    "employee administration, and health monitoring services."
 )
 
 TAGS_METADATA = [
@@ -23,6 +23,10 @@ TAGS_METADATA = [
     {
         "name": "Projects",
         "description": "CRUD operations for project catalogue entries consumed by the frontend.",
+    },
+    {
+        "name": "Employees",
+        "description": "Employee roster management including onboarding, search, and deactivation.",
     },
 ]
 
