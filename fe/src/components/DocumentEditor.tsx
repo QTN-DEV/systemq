@@ -28,6 +28,43 @@ interface DocumentEditorProps {
   onTitleChange?: (title: string) => void
 }
 
+const TypeMenu = ({ 
+  blockId, 
+  onChangeBlockType 
+}: { 
+  blockId: string
+  onChangeBlockType: (blockId: string, newType: DocumentBlock['type']) => void
+}): ReactElement => (
+  <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px]">
+    <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
+      Basic blocks
+    </div>
+    
+    {[
+      { type: 'paragraph' as const, icon: Type, label: 'Text', description: 'Just start writing with plain text.' },
+      { type: 'heading1' as const, icon: Heading1, label: 'Heading 1', description: 'Big section heading.' },
+      { type: 'heading2' as const, icon: Heading2, label: 'Heading 2', description: 'Medium section heading.' },
+      { type: 'heading3' as const, icon: Heading3, label: 'Heading 3', description: 'Small section heading.' },
+      { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list', description: 'Create a simple bulleted list.' },
+      { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list', description: 'Create a list with numbering.' },
+      { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Capture a quote.' },
+      { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' }
+    ].map(({ type, icon: Icon, label, description }) => (
+      <button
+        key={type}
+        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
+        onClick={() => onChangeBlockType(blockId, type)}
+      >
+        <Icon className="w-5 h-5 text-gray-400" />
+        <div>
+          <div className="text-sm font-medium text-gray-900">{label}</div>
+          <div className="text-xs text-gray-500">{description}</div>
+        </div>
+      </button>
+    ))}
+  </div>
+)
+
 function DocumentEditor({ 
   initialBlocks = [], 
   onSave, 
@@ -41,9 +78,11 @@ function DocumentEditor({
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState<string | null>(null)
   const [showGripMenu, setShowGripMenu] = useState<string | null>(null)
+  const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null)
+  const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null)
   const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
 
-  useEffect(() => {
+  useEffect((): (() => void) | void => {
     if (onSave) {
       const timeoutId = setTimeout(() => {
         onSave(blocks)
@@ -107,6 +146,61 @@ function DocumentEditor({
     }
   }
 
+  const moveBlock = (fromId: string, toId: string): void => {
+    const fromIndex = blocks.findIndex(block => block.id === fromId)
+    const toIndex = blocks.findIndex(block => block.id === toId)
+    
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
+    
+    const newBlocks = [...blocks]
+    const [movedBlock] = newBlocks.splice(fromIndex, 1)
+    newBlocks.splice(toIndex, 0, movedBlock)
+    
+    setBlocks(newBlocks)
+  }
+
+  const handleDragStart = (e: React.DragEvent, blockId: string): void => {
+    setDraggedBlockId(blockId)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', blockId)
+  }
+
+  const handleDragOver = (e: React.DragEvent, blockId: string): void => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedBlockId !== blockId) {
+      setDragOverBlockId(blockId)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent): void => {
+    // Only clear drag over if we're actually leaving the block area
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverBlockId(null)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent, blockId: string): void => {
+    e.preventDefault()
+    const draggedId = e.dataTransfer.getData('text/plain')
+    
+    if (draggedId && draggedId !== blockId) {
+      moveBlock(draggedId, blockId)
+    }
+    
+    setDraggedBlockId(null)
+    setDragOverBlockId(null)
+  }
+
+  const handleDragEnd = (): void => {
+    setDraggedBlockId(null)
+    setDragOverBlockId(null)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -146,17 +240,17 @@ function DocumentEditor({
 
   const getBlockElement = (block: DocumentBlock): ReactElement => {
     const commonProps = {
-      ref: (el: HTMLElement | null) => { blockRefs.current[block.id] = el },
+      ref: (el: HTMLElement | null): void => { blockRefs.current[block.id] = el },
       className: `w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5em] ${
         block.alignment === 'center' ? 'text-center' : 
         block.alignment === 'right' ? 'text-right' : 'text-left'
       }`,
       placeholder: getBlockPlaceholder(block.type),
       value: block.content,
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => 
         updateBlock(block.id, { content: e.target.value }),
-      onFocus: () => setActiveBlockId(block.id),
-      onKeyDown: (e: React.KeyboardEvent) => handleKeyDown(e, block.id),
+      onFocus: (): void => setActiveBlockId(block.id),
+      onKeyDown: (e: React.KeyboardEvent): void => handleKeyDown(e, block.id),
       disabled: readOnly
     }
 
@@ -189,7 +283,7 @@ function DocumentEditor({
             className={`${commonProps.className} border-l-4 border-gray-300 pl-4 italic text-gray-700 bg-gray-50`}
             rows={1}
             style={{ resize: 'none' }}
-            onInput={(e) => {
+            onInput={(e): void => {
               const target = e.target as HTMLTextAreaElement
               target.style.height = 'auto'
               target.style.height = `${target.scrollHeight}px`
@@ -203,7 +297,7 @@ function DocumentEditor({
             className={`${commonProps.className} font-mono text-sm bg-gray-100 p-3 rounded`}
             rows={1}
             style={{ resize: 'none' }}
-            onInput={(e) => {
+            onInput={(e): void => {
               const target = e.target as HTMLTextAreaElement
               target.style.height = 'auto'
               target.style.height = `${target.scrollHeight}px`
@@ -219,7 +313,7 @@ function DocumentEditor({
               className={`${commonProps.className} flex-1`}
               rows={1}
               style={{ resize: 'none' }}
-              onInput={(e) => {
+              onInput={(e): void => {
                 const target = e.target as HTMLTextAreaElement
                 target.style.height = 'auto'
                 target.style.height = `${target.scrollHeight}px`
@@ -227,7 +321,7 @@ function DocumentEditor({
             />
           </div>
         )
-      case 'numbered-list':
+      case 'numbered-list': {
         const listIndex = blocks.filter((b, i) => 
           i <= blocks.findIndex(b => b.id === block.id) && b.type === 'numbered-list'
         ).length
@@ -239,7 +333,7 @@ function DocumentEditor({
               className={`${commonProps.className} flex-1`}
               rows={1}
               style={{ resize: 'none' }}
-              onInput={(e) => {
+              onInput={(e): void => {
                 const target = e.target as HTMLTextAreaElement
                 target.style.height = 'auto'
                 target.style.height = `${target.scrollHeight}px`
@@ -247,6 +341,7 @@ function DocumentEditor({
             />
           </div>
         )
+      }
       default:
         return (
           <textarea
@@ -254,7 +349,7 @@ function DocumentEditor({
             className={`${commonProps.className} text-gray-900`}
             rows={1}
             style={{ resize: 'none' }}
-            onInput={(e) => {
+            onInput={(e): void => {
               const target = e.target as HTMLTextAreaElement
               target.style.height = 'auto'
               target.style.height = `${target.scrollHeight}px`
@@ -264,36 +359,6 @@ function DocumentEditor({
     }
   }
 
-  const TypeMenu = ({ blockId }: { blockId: string }): ReactElement => (
-    <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px]">
-      <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
-        Basic blocks
-      </div>
-      
-      {[
-        { type: 'paragraph' as const, icon: Type, label: 'Text', description: 'Just start writing with plain text.' },
-        { type: 'heading1' as const, icon: Heading1, label: 'Heading 1', description: 'Big section heading.' },
-        { type: 'heading2' as const, icon: Heading2, label: 'Heading 2', description: 'Medium section heading.' },
-        { type: 'heading3' as const, icon: Heading3, label: 'Heading 3', description: 'Small section heading.' },
-        { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list', description: 'Create a simple bulleted list.' },
-        { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list', description: 'Create a list with numbering.' },
-        { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Capture a quote.' },
-        { type: 'code' as const, icon: Code, label: 'Code', description: 'Capture a code snippet.' }
-      ].map(({ type, icon: Icon, label, description }) => (
-        <button
-          key={type}
-          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
-          onClick={() => changeBlockType(blockId, type)}
-        >
-          <Icon className="w-5 h-5 text-gray-400" />
-          <div>
-            <div className="text-sm font-medium text-gray-900">{label}</div>
-            <div className="text-xs text-gray-500">{description}</div>
-          </div>
-        </button>
-      ))}
-    </div>
-  )
 
   return (
     <div className="w-full">
@@ -302,8 +367,15 @@ function DocumentEditor({
         {blocks.map((block) => (
           <div
             key={block.id}
-            className="group relative"
+            className={`group relative transition-all duration-200 ${
+              dragOverBlockId === block.id ? 'border-t-2 border-blue-400' : ''
+            } ${
+              draggedBlockId === block.id ? 'opacity-50' : ''
+            }`}
             onMouseEnter={() => !readOnly && setActiveBlockId(block.id)}
+            onDragOver={(e) => handleDragOver(e, block.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, block.id)}
           >
             {/* Block Controls */}
             {!readOnly && activeBlockId === block.id && (
@@ -316,8 +388,19 @@ function DocumentEditor({
                 </button>
                 <div className="relative">
                   <button 
-                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded cursor-grab"
-                    onClick={() => setShowGripMenu(showGripMenu === block.id ? null : block.id)}
+                    draggable
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing"
+                    onDragStart={(e) => handleDragStart(e, block.id)}
+                    onDragEnd={handleDragEnd}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
+                      setShowGripMenu(showGripMenu === block.id ? null : block.id)
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setShowGripMenu(showGripMenu === block.id ? null : block.id)
+                    }}
+                    title="Drag to reorder, right-click to change type"
                   >
                     <GripVertical className="w-4 h-4" />
                   </button>
@@ -328,6 +411,14 @@ function DocumentEditor({
                       <div 
                         className="fixed inset-0 z-5"
                         onClick={() => setShowGripMenu(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setShowGripMenu(null)
+                          }
+                        }}
+                        role="button"
+                        tabIndex={-1}
+                        aria-label="Close menu"
                       />
                       <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px] z-10">
                         <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -376,8 +467,16 @@ function DocumentEditor({
                   <div 
                     className="fixed inset-0 z-5"
                     onClick={() => setShowTypeMenu(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setShowTypeMenu(null)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={-1}
+                    aria-label="Close menu"
                   />
-                  <TypeMenu blockId={block.id} />
+                  <TypeMenu blockId={block.id} onChangeBlockType={changeBlockType} />
                 </>
               )}
             </div>
