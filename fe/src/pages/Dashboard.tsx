@@ -15,7 +15,7 @@ function Dashboard(): ReactElement {
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h2>
               <p className="text-gray-600">
-                The dashboard is currently under development. Check back soon for analytics, reports, and key metrics.
+                Hello Bang Aldi
               </p>
             </div>
             <div className="text-sm text-gray-500">
