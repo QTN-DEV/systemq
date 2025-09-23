@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
+import { forgotPassword } from '@/services/AuthService'
 
 import logo from '../assets/logo.png'
 
@@ -14,30 +15,26 @@ function ForgotPassword(): JSX.Element {
     e.preventDefault()
     setIsLoading(true)
 
-    // Create an async function for the main logic
     const handleAsyncSubmit = async (): Promise<void> => {
       try {
-        // Mock API call - in real app this would call your password reset API
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
+        const message = await forgotPassword(email)
         logger.log('Password reset request:', { email })
 
-        // Show success message
         await Swal.fire({
           title: 'Email Sent!',
-          text: 'If an account with that email exists, we&apos;ve sent you a password reset link.',
+          text: message || 'If an account with that email exists, we\'ve sent you a password reset link.',
           icon: 'success',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
         })
 
-        // Reset form
         setEmail('')
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
         logger.error('Password reset failed:', error)
         await Swal.fire({
           title: 'Error',
-          text: 'Something went wrong. Please try again.',
+          text: message,
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
@@ -47,7 +44,6 @@ function ForgotPassword(): JSX.Element {
       }
     }
 
-    // Call the async function
     void handleAsyncSubmit()
   }
 

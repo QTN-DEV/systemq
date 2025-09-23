@@ -1,62 +1,38 @@
-import { useState, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, useEffect, useCallback, type ReactNode } from 'react'
 
 import { logger } from '@/lib/logger'
+import { getCurrentSession, login as loginService, logout as logoutService, type AuthenticatedUser } from '@/services/AuthService'
 
 import { UserContext } from './UserContextDefinition'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: 'employee' | 'hr' | 'internalops' | 'pm'
-  avatar?: string
-}
 
 interface UserProviderProps {
   children: ReactNode
 }
 
 export function UserProvider({ children }: UserProviderProps): ReactNode {
-  // Mock user data - in real app this would come from authentication
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthenticatedUser | null>(() => getCurrentSession()?.user ?? null)
+
+  useEffect(() => {
+    const session = getCurrentSession()
+    if (session) {
+      setUser(session.user)
+    }
+  }, [])
+
+  const login = useCallback(async (email: string, password: string) => {
+    logger.log('Login attempt:', { email })
+    const session = await loginService(email, password)
+    setUser(session.user)
+    logger.log('Login successful', { userId: session.user.id })
+  }, [])
+
+  const logout = useCallback(() => {
+    logoutService()
+    setUser(null)
+    logger.log('User logged out')
+  }, [])
 
   const isAuthenticated = user !== null
-
-  const login = async (email: string, _password: string): Promise<void> => {
-    // Mock login logic - in real app this would call your auth API
-    logger.log('Login attempt:', { email, password: _password })
-
-    // Mock different users based on email for demo
-    let mockUser: User
-    if (email === 'hr@quantumteknologi.com') {
-      mockUser = {
-        id: '1',
-        name: 'HR User',
-        email,
-        role: 'hr'
-      }
-    } else if (email === 'internalops@quantumteknologi.com') {
-      mockUser = {
-        id: '2',
-        name: 'Internal Ops User',
-        email,
-        role: 'internalops'
-      }
-    } else {
-      mockUser = {
-        id: '3',
-        name: 'Employee User',
-        email,
-        role: 'employee'
-      }
-    }
-
-    setUser(mockUser)
-  }
-
-  const logout = (): void => {
-    setUser(null)
-  }
 
   const value = useMemo(() => ({
     user,
@@ -64,7 +40,7 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
     isAuthenticated,
     login,
     logout
-  }), [user, isAuthenticated])
+  }), [user, isAuthenticated, login, logout])
 
   return (
     <UserContext.Provider value={value}>

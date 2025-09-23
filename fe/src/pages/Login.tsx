@@ -1,5 +1,6 @@
 import { useState, type JSX } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
 
@@ -19,17 +20,18 @@ function Login(): JSX.Element {
 
     try {
       await login(email, password)
-      const result = navigate('/dashboard')
-      if (result) {
-        result.then(() => {
-          logger.log('Login successful')
-        }).catch((error) => {
-          logger.error('Login failed', error)
-        })
-      }
+      navigate('/dashboard')
+      logger.log('Login successful')
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in. Please try again.'
       logger.error('Login failed:', error)
-      // Handle login error here
+      await Swal.fire({
+        title: 'Login Failed',
+        text: message,
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3B82F6'
+      })
     } finally {
       setIsLoading(false)
     }

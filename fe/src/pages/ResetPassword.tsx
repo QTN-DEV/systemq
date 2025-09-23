@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
+import { resetPassword } from '@/services/AuthService'
 
 import logo from '../assets/logo.png'
 
@@ -37,8 +38,7 @@ function ResetPassword(): JSX.Element {
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
-    
-    // Create an async function for the main logic
+
     const handleAsyncSubmit = async (): Promise<void> => {
       if (newPassword !== confirmPassword) {
         await Swal.fire({
@@ -51,10 +51,21 @@ function ResetPassword(): JSX.Element {
         return
       }
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 8) {
         await Swal.fire({
           title: 'Password Too Short',
-          text: 'Password must be at least 6 characters long.',
+          text: 'Password must be at least 8 characters long.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
+      if (!token) {
+        await Swal.fire({
+          title: 'Invalid Token',
+          text: 'This password reset link has expired. Please request a new one.',
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
@@ -65,30 +76,24 @@ function ResetPassword(): JSX.Element {
       setIsLoading(true)
 
       try {
-        // Mock API call - in real app this would call your password reset API
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
+        const message = await resetPassword(token, newPassword)
         logger.log('Password reset successful:', { token })
 
-        // Show success message
-        void Swal.fire({
+        await Swal.fire({
           title: 'Password Reset Successful!',
-          text: 'Your password has been successfully reset. You can now sign in with your new password.',
+          text: message || 'Your password has been successfully reset. You can now sign in with your new password.',
           icon: 'success',
           confirmButtonText: 'Go to Sign In',
           confirmButtonColor: '#3B82F6'
-        }).then(() => {
-          // Redirect to login page
-          navigate('/')
-        }).catch((error) => {
-          logger.error('Error navigating after password reset:', error)
-          navigate('/')
         })
+
+        navigate('/')
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Something went wrong. Please try again or request a new reset link.'
         logger.error('Password reset failed:', error)
         await Swal.fire({
           title: 'Error',
-          text: 'Something went wrong. Please try again or request a new reset link.',
+          text: message,
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
@@ -98,7 +103,6 @@ function ResetPassword(): JSX.Element {
       }
     }
 
-    // Call the async function
     void handleAsyncSubmit()
   }
 
@@ -151,7 +155,7 @@ function ResetPassword(): JSX.Element {
                 placeholder="Enter new password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
 
@@ -167,7 +171,7 @@ function ResetPassword(): JSX.Element {
                 placeholder="Confirm new password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
 

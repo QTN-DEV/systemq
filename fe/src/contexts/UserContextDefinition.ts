@@ -1,16 +1,10 @@
 import { createContext } from 'react'
 
-interface User {
-  id: string
-  name: string
-  email: string
-  role: 'employee' | 'hr' | 'internalops' | 'pm'
-  avatar?: string
-}
+import type { AuthenticatedUser } from '@/services/AuthService'
 
 interface UserContextType {
-  user: User | null
-  setUser: (user: User | null) => void
+  user: AuthenticatedUser | null
+  setUser: (user: AuthenticatedUser | null) => void
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void

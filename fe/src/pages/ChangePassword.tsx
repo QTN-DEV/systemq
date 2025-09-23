@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react'
 import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
+import { changePassword } from '@/services/AuthService'
 
 import { useUser } from '../contexts/UserContext'
 
@@ -14,9 +15,19 @@ function ChangePassword(): ReactElement {
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
-    
-    // Create an async function for the main logic
+
     const handleAsyncSubmit = async (): Promise<void> => {
+      if (!user) {
+        await Swal.fire({
+          title: 'Not Authenticated',
+          text: 'Please sign in again to update your password.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
+        return
+      }
+
       if (newPassword !== confirmPassword) {
         await Swal.fire({
           title: 'Password Mismatch',
@@ -28,10 +39,10 @@ function ChangePassword(): ReactElement {
         return
       }
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 8) {
         await Swal.fire({
           title: 'Password Too Short',
-          text: 'New password must be at least 6 characters long.',
+          text: 'New password must be at least 8 characters long.',
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
@@ -53,29 +64,26 @@ function ChangePassword(): ReactElement {
       setIsLoading(true)
 
       try {
-        // Mock API call - in real app this would call your password change API
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        logger.log('Password change request:', { userId: user?.id })
+        const message = await changePassword(user.id, oldPassword, newPassword)
+        logger.log('Password change request:', { userId: user.id })
 
-        // Show success message
         await Swal.fire({
           title: 'Password Changed!',
-          text: 'Your password has been successfully updated.',
+          text: message || 'Your password has been successfully updated.',
           icon: 'success',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
         })
 
-        // Reset form
         setOldPassword('')
         setNewPassword('')
         setConfirmPassword('')
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to change password. Please check your current password and try again.'
         logger.error('Password change failed:', error)
         await Swal.fire({
           title: 'Error',
-          text: 'Failed to change password. Please check your current password and try again.',
+          text: message,
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#3B82F6'
@@ -85,7 +93,6 @@ function ChangePassword(): ReactElement {
       }
     }
 
-    // Call the async function
     void handleAsyncSubmit()
   }
 
@@ -126,10 +133,10 @@ function ChangePassword(): ReactElement {
                 placeholder="Enter new password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
                 required
-                minLength={6}
+                minLength={8}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Password must be at least 6 characters long
+                Password must be at least 8 characters long
               </p>
             </div>
 
@@ -145,7 +152,7 @@ function ChangePassword(): ReactElement {
                 placeholder="Confirm new password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 placeholder-gray-500"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
 

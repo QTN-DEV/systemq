@@ -1,18 +1,12 @@
 import { useContext } from 'react'
 
+import type { AuthenticatedUser } from '@/services/AuthService'
+
 import { UserContext } from './UserContextDefinition'
 
-interface User {
-  id: string
-  name: string
-  email: string
-  role: 'employee' | 'hr' | 'internalops' | 'pm'
-  avatar?: string
-}
-
 interface UserContextType {
-  user: User | null
-  setUser: (user: User | null) => void
+  user: AuthenticatedUser | null
+  setUser: (user: AuthenticatedUser | null) => void
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
