@@ -14,7 +14,7 @@ class DocumentNotFoundError(ValueError):
     pass
 
 
-ACTIVE_DOCUMENT = DocumentItem.is_deleted == False  # noqa: E712
+ACTIVE_DOCUMENT = {"is_deleted": False}
 
 
 def _utcnow() -> datetime:

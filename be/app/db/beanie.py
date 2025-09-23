@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -60,7 +60,7 @@ async def close_database() -> None:
 
 
 @asynccontextmanager
-async def lifespan_context() -> AsyncIterator[None]:
+async def lifespan_context(_: Any) -> AsyncIterator[None]:
     await init_database()
     await ensure_default_data()
     try:
