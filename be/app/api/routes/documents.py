@@ -51,7 +51,7 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     response_description="Documents that belong to the requested parent folder.",
 )
 async def list_documents(
-    parent_id: str | None,
+    parent_id: str | None = Query(None),
 ) -> list[DocumentResponse]:
     documents = await document_service.get_documents_by_parent(parent_id)
     return [DocumentResponse.model_validate(doc) for doc in documents]
@@ -113,7 +113,7 @@ async def get_breadcrumbs(document_id: str) -> list[DocumentBreadcrumbSchema]:
     response_description="Distinct document types recorded in the repository.",
 )
 async def get_document_types(
-    search: str | None,
+    search: str | None = Query(None),
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_types(search)
     return DistinctValuesResponse(values=values)
@@ -126,7 +126,7 @@ async def get_document_types(
     response_description="Distinct document categories recorded in the repository.",
 )
 async def get_document_categories(
-    search: str | None,
+    search: str | None = Query(None),
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_categories(search)
     return DistinctValuesResponse(values=values)

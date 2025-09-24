@@ -23,7 +23,7 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
     response_description="Active employees matching the optional search criteria.",
 )
 async def list_employees(
-    search: str | None,
+    search: str | None = Query(None),
 ) -> list[Employee]:
     """Return active employees, optionally filtered by a search string."""
     employees = await employee_service.list_employees(search)
