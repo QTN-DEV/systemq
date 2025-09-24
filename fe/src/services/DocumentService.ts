@@ -253,3 +253,51 @@ export async function createDocument(name: string, type: 'file' | 'folder', pare
   }
 }
 
+// Delete document or folder
+export async function deleteDocument(documentId: string): Promise<boolean> {
+  try {
+    await api.delete(`/documents/${encodeURIComponent(documentId)}`)
+    return true
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error deleting document:', error)
+    return false
+  }
+}
+
+// Rename document or folder
+export async function renameDocument(documentId: string, newName: string): Promise<DocumentItem | null> {
+  try {
+    const response = await api.patch<ApiDocumentItem>(`/documents/${encodeURIComponent(documentId)}`, {
+      name: newName
+    })
+    return transformApiDocument(response.data)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error renaming document:', error)
+    return null
+  }
+}
+
+// Update document content payload interface
+export interface UpdateDocumentContentPayload {
+  title: string
+  category: string
+  content: string
+}
+
+// Update document content (for files only)
+export async function updateDocumentContent(
+  documentId: string,
+  payload: UpdateDocumentContentPayload
+): Promise<DocumentItem | null> {
+  try {
+    const response = await api.patch<ApiDocumentItem>(`/documents/${encodeURIComponent(documentId)}`, payload)
+    return transformApiDocument(response.data)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error updating document content:', error)
+    return null
+  }
+}
+

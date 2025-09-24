@@ -21,7 +21,11 @@ import {
   getDocumentById,
   buildBreadcrumbs,
   getActualItemCount,
-  createDocument
+  createDocument,
+  deleteDocument,
+  renameDocument,
+  updateDocumentContent,
+  type UpdateDocumentContentPayload
 } from '../services/DocumentService'
 import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
@@ -40,7 +44,6 @@ function Documents(): ReactElement {
   const [activeFilter, setActiveFilter] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
   const [itemCounts, setItemCounts] = useState<Record<string, number | null>>({})
   
@@ -141,15 +144,6 @@ function Documents(): ReactElement {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 
-  const getStatusBadgeColor = (status: string): string => {
-    const colors = {
-      'active': 'bg-green-100 text-green-800',
-      'shared': 'bg-blue-100 text-blue-800',
-      'archived': 'bg-gray-100 text-gray-800',
-      'private': 'bg-purple-100 text-purple-800'
-    }
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'
-  }
 
   const getRoleColor = (role: string): string => {
     const colors = {
@@ -304,21 +298,100 @@ function Documents(): ReactElement {
     }
   }
 
-  const handleRenameSubmit = (e: React.FormEvent): void => {
+  const handleRenameSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (newItemName.trim() && selectedItem) {
-      // In a real app, you would rename the item via API
-      setShowRenameModal(false)
-      setSelectedItem(null)
-      setNewItemName('')
+    if (!newItemName.trim() || !selectedItem) return
+
+    try {
+      const updatedItem = await renameDocument(selectedItem.id, newItemName.trim())
+
+      if (updatedItem) {
+        // Refresh the current items after successful rename
+        const updatedItems = await getDocumentsByParentId(currentFolderId)
+        setCurrentItems(updatedItems)
+
+        setShowRenameModal(false)
+        setSelectedItem(null)
+        setNewItemName('')
+      } else {
+        setError('Failed to rename item. Please try again.')
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error renaming item:', error)
+      setError('Failed to rename item. Please try again.')
     }
   }
 
-  const handleDeleteConfirm = (): void => {
-    if (selectedItem) {
-      // In a real app, you would delete the item via API
-      setShowDeleteModal(false)
-      setSelectedItem(null)
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!selectedItem) return
+
+    try {
+      const success = await deleteDocument(selectedItem.id)
+
+      if (success) {
+        // Refresh the current items after successful deletion
+        const updatedItems = await getDocumentsByParentId(currentFolderId)
+        setCurrentItems(updatedItems)
+
+        // Remove from item counts if it was a folder
+        if (selectedItem.type === 'folder') {
+          const newCounts = { ...itemCounts }
+          delete newCounts[selectedItem.id]
+          setItemCounts(newCounts)
+        }
+
+        setShowDeleteModal(false)
+        setSelectedItem(null)
+      } else {
+        setError('Failed to delete item. Please try again.')
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error deleting item:', error)
+      setError('Failed to delete item. Please try again.')
+    }
+  }
+
+  // Helper function to format dates in a user-friendly way
+  const formatDate = (dateString: string): string => {
+    try {
+      // Server returns UTC time, so we need to parse it as UTC
+      // If the dateString doesn't end with 'Z', assume it's UTC and add 'Z'
+      const utcString = dateString.endsWith('Z') ? dateString : `${dateString}Z`
+      const date = new Date(utcString)
+
+      // Verify the date is valid
+      if (isNaN(date.getTime())) {
+        return dateString
+      }
+
+      const now = new Date()
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+      if (diffInSeconds < 0) {
+        return 'In the future'
+      } else if (diffInSeconds < 60) {
+        return 'Just now'
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60)
+        return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600)
+        return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+      } else if (diffInSeconds < 604800) {
+        const days = Math.floor(diffInSeconds / 86400)
+        return `${days} day${days !== 1 ? 's' : ''} ago`
+      } else {
+        // For older dates, show in user's local timezone
+        return date.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        })
+      }
+    } catch {
+      return dateString
     }
   }
 
@@ -456,16 +529,6 @@ function Documents(): ReactElement {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300"
-                    aria-label="Select all items"
-                  />
-                  <span className="sr-only">Select all items</span>
-                </label>
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Folder/File
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -473,12 +536,6 @@ function Documents(): ReactElement {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Category
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date Created
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Last Modified
@@ -491,7 +548,7 @@ function Documents(): ReactElement {
           <tbody className="bg-white divide-y divide-gray-200">
             {isInitialLoad ? (
               <tr>
-                <td colSpan={8} className="px-6 py-16 text-center">
+                <td colSpan={5} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" aria-label="Loading documents" />
                     <p className="text-gray-600">Loading documents...</p>
@@ -500,7 +557,7 @@ function Documents(): ReactElement {
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={8} className="px-6 py-16 text-center">
+                <td colSpan={5} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4" aria-label="Error indicator">
                       <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,7 +578,7 @@ function Documents(): ReactElement {
               </tr>
             ) : paginatedItems.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-16 text-center">
+                <td colSpan={5} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Folder className="w-8 h-8 text-gray-400" />
@@ -558,31 +615,11 @@ function Documents(): ReactElement {
               </tr>
             ) : (
               paginatedItems.map((item) => (
-              <tr 
-                key={item.id} 
+              <tr
+                key={item.id}
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleItemClick(item)}
               >
-                <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300"
-                      checked={selectedItems.has(item.id)}
-                      onChange={(e) => {
-                        const newSelected = new Set(selectedItems)
-                        if (e.target.checked) {
-                          newSelected.add(item.id)
-                        } else {
-                          newSelected.delete(item.id)
-                        }
-                        setSelectedItems(newSelected)
-                      }}
-                      aria-label={`Select ${item.name}`}
-                    />
-                    <span className="sr-only">Select {item.name}</span>
-                  </label>
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center" aria-label={`${item.type === 'folder' ? 'Folder' : 'File'} icon`}>
@@ -595,8 +632,8 @@ function Documents(): ReactElement {
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">{item.name}</div>
                       <div className="text-sm text-gray-500">
-                        {item.type === 'folder' 
-                          ? itemCounts[item.id] !== undefined 
+                        {item.type === 'folder'
+                          ? itemCounts[item.id] !== undefined
                             ? `${itemCounts[item.id] ?? 0} items`
                             : 'Loading...'
                           : formatFileSize(item.size)
@@ -625,16 +662,8 @@ function Documents(): ReactElement {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm text-gray-900">{item.category ?? '-'}</span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getStatusBadgeColor(item.status)}`}>
-                    {item.status}
-                  </span>
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.dateCreated}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.lastModified}
+                  {formatDate(item.lastModified)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                   <div className="relative">
@@ -833,7 +862,7 @@ function Documents(): ReactElement {
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Rename {selectedItem.type === 'folder' ? 'Folder' : 'File'}
             </h3>
-            <form onSubmit={handleRenameSubmit}>
+            <form onSubmit={(e) => { void handleRenameSubmit(e) }}>
               <div className="mb-4">
                 <label htmlFor="itemName" className="block text-sm font-medium text-gray-700 mb-2">
                   {selectedItem.type === 'folder' ? 'Folder' : 'File'} Name
@@ -886,7 +915,7 @@ function Documents(): ReactElement {
                 Cancel
               </button>
               <button
-                onClick={handleDeleteConfirm}
+                onClick={() => { void handleDeleteConfirm() }}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
                 Delete
