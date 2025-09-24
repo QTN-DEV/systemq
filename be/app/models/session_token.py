@@ -11,7 +11,7 @@ from pydantic import Field
 class SessionToken(Document):
     user_id: PydanticObjectId
     token_hash: str
-    issued_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC))
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
     revoked: bool = False
 
@@ -23,8 +23,8 @@ class SessionToken(Document):
     def is_expired(self) -> bool:
         expiry = self.expires_at
         if expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=datetime.UTC)
-        return datetime.now(datetime.UTC) > expiry
+            expiry = expiry.replace(tzinfo=UTC)
+        return datetime.now(UTC) > expiry
 
     async def revoke(self) -> None:
         if self.revoked:
