@@ -485,7 +485,7 @@ function Documents(): ReactElement {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center space-x-1 mb-6 border-b">
+      <div className="flex items-center space-x-1 border-b">
         {categories.map((category) => (
           <button
             key={category}
@@ -504,7 +504,7 @@ function Documents(): ReactElement {
       </div>
 
       {/* Search and Export */}
-      <div className="flex items-center justify-between mb-6">
+      {/* <div className="flex items-center justify-between mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -520,7 +520,7 @@ function Documents(): ReactElement {
           <Download className="w-4 h-4" />
           <span>Export</span>
         </button>
-      </div>
+      </div> */}
 
       <div className="bg-white border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
