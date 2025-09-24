@@ -1,5 +1,4 @@
 import axios from 'axios'
-import type { AxiosRequestHeaders } from 'axios'
 
 import type { Position, User } from '../types/user-type'
 
@@ -50,10 +49,21 @@ type ApiErrorPayload = {
   message?: string
 }
 
-api.interceptors.request.use(config => {
+export class AuthServiceError extends Error {
+  readonly status?: number
+
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'AuthServiceError'
+    this.status = status
+    Object.setPrototypeOf(this, new.target.prototype)
+  }
+}
+
+api.interceptors.request.use((config) => {
   const session = getCurrentSession()
   if (session?.token) {
-    const headers = (config.headers ?? {}) as AxiosRequestHeaders
+    const headers = config.headers ?? {}
     headers.Authorization = `Bearer ${session.token}`
     config.headers = headers
   }
@@ -62,6 +72,10 @@ api.interceptors.request.use(config => {
 
 function saveSession(session: AuthSession): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+function clearSession(): void {
+  localStorage.removeItem(SESSION_KEY)
 }
 
 function mapApiUserToUser(profile: ApiUserProfile): AuthenticatedUser {
@@ -165,6 +179,11 @@ function extractErrorMessage(error: unknown): string {
   return 'An unexpected error occurred. Please try again.'
 }
 
+function toAuthServiceError(error: unknown): AuthServiceError {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined
+  return new AuthServiceError(extractErrorMessage(error), status)
+}
+
 export function getCurrentSession(): AuthSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
@@ -180,10 +199,6 @@ export function getCurrentSession(): AuthSession | null {
   }
 }
 
-export function logout(): void {
-  localStorage.removeItem(SESSION_KEY)
-}
-
 export async function login(email: string, password: string): Promise<AuthSession> {
   try {
     const { data } = await api.post<LoginResponse>('/auth/login', { email, password })
@@ -191,7 +206,7 @@ export async function login(email: string, password: string): Promise<AuthSessio
     saveSession(session)
     return session
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw toAuthServiceError(error)
   }
 }
 
@@ -200,7 +215,7 @@ export async function forgotPassword(email: string): Promise<string> {
     const { data } = await api.post<MessageResponse>('/auth/forgot-password', { email })
     return data.message
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw toAuthServiceError(error)
   }
 }
 
@@ -212,7 +227,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
     })
     return data.message
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw toAuthServiceError(error)
   }
 }
 
@@ -225,7 +240,55 @@ export async function changePassword(userId: string, currentPassword: string, ne
     })
     return data.message
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw toAuthServiceError(error)
   }
 }
 
+function persistUserToSession(user: AuthenticatedUser): void {
+  const session = getCurrentSession()
+  if (!session) return
+  saveSession({ ...session, user })
+}
+
+export async function fetchCurrentUser(): Promise<AuthenticatedUser> {
+  try {
+    const { data } = await api.get<ApiUserProfile>('/auth/me')
+    const user = mapApiUserToUser(data)
+    persistUserToSession(user)
+    return user
+  } catch (error) {
+    throw toAuthServiceError(error)
+  }
+}
+
+export async function renewSession(): Promise<AuthSession> {
+  const existing = getCurrentSession()
+  if (!existing) {
+    throw new AuthServiceError('No active session to renew')
+  }
+
+  try {
+    const { data } = await api.post<LoginResponse>('/auth/renew', { token: existing.token })
+    const session = mapLoginResponse(data)
+    saveSession(session)
+    return session
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearSession()
+    }
+    throw toAuthServiceError(error)
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await api.post('/auth/logout')
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return
+    }
+    throw toAuthServiceError(error)
+  } finally {
+    clearSession()
+  }
+}

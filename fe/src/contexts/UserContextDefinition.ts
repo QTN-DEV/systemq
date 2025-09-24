@@ -7,7 +7,7 @@ interface UserContextType {
   setUser: (user: AuthenticatedUser | null) => void
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined)
