@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.security import (
@@ -98,7 +98,7 @@ def _hash_token(token: str) -> str:
 
 
 async def _persist_session_token(user: User, token: str, expires_at: int) -> SessionToken:
-    expires_at_dt = datetime.fromtimestamp(expires_at / 1000, tz=datetime.UTC)
+    expires_at_dt = datetime.fromtimestamp(expires_at / 1000, tz=UTC)
     session = SessionToken(
         user_id=user.id,
         token_hash=_hash_token(token),
@@ -127,7 +127,7 @@ async def _resolve_session(token: str) -> tuple[SessionToken, User]:
 
 
 async def _store_reset_token(email: str, token: ResetToken) -> PasswordResetToken:
-    expires_at = datetime.fromtimestamp(token.expires_at / 1000, tz=datetime.UTC)
+    expires_at = datetime.fromtimestamp(token.expires_at / 1000, tz=UTC)
     reset_document = PasswordResetToken(
         email=email,
         token=token.token,

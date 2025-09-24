@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from app.models.document import DocumentHistory, DocumentItem, DocumentOwner
@@ -20,7 +20,7 @@ ACTIVE_DOCUMENT = {"is_deleted": False}
 
 
 def _utcnow() -> datetime:
-    return datetime.now(datetime.UTC)
+    return datetime.now(UTC)
 
 
 def _serialize_document(document: DocumentItem) -> dict[str, Any]:

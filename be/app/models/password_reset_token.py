@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from beanie import Document
 from pydantic import EmailStr, Field
 
 
 def _utcnow() -> datetime:
-    return datetime.now(datetime.UTC)
+    return datetime.now(UTC)
 
 
 class PasswordResetToken(Document):
@@ -27,5 +27,5 @@ class PasswordResetToken(Document):
     def is_expired(self) -> bool:
         expiry = self.expires_at
         if expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=datetime.UTC)
-        return datetime.now(datetime.UTC) > expiry
+            expiry = expiry.replace(tzinfo=UTC)
+        return datetime.now(UTC) > expiry

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, UTC
 
 from beanie import Document, PydanticObjectId
 from pydantic import Field
