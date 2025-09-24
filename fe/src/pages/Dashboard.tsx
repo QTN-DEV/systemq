@@ -14,9 +14,6 @@ function Dashboard(): ReactElement {
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h2>
-              <p className="text-gray-600">
-                Hello Bang Aldi
-              </p>
             </div>
             <div className="text-sm text-gray-500">
               <p>In the meantime, you can explore other sections using the sidebar navigation.</p>

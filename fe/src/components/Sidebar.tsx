@@ -1,8 +1,8 @@
-import { 
-  FileText, 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
+import {
+  FileText,
+  LayoutDashboard,
+  Building2,
+  Users,
   Folder,
   ChevronLeft,
   LogOut,
@@ -12,10 +12,13 @@ import { useState, type ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { logger } from '@/lib/logger'
+import type { AuthenticatedUser } from '@/services/AuthService'
 
 import logo from '../assets/logo.png'
 import menuConfig from '../config/menuConfig.json'
 import { cn } from '../lib/utils'
+
+import { getAvatarUrl } from './Avatar'
 
 // Icon mapping
 const iconMap = {
@@ -27,13 +30,25 @@ const iconMap = {
 }
 
 interface SidebarProps {
-  userRole?: string
+  user?: AuthenticatedUser | null
 }
 
-function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
+function Sidebar({ user }: SidebarProps): ReactElement {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+
+  const userRole = user?.role ?? 'employee'
+  const rawName = user?.name?.trim()
+  const displayName = rawName && rawName.length > 0 ? rawName : 'Employee User'
+  const computedInitials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .map(part => part[0]?.toUpperCase() ?? '')
+    .slice(0, 2)
+    .join('')
+  const initials = computedInitials.length > 0 ? computedInitials : 'EU'
+  const avatarUrl = user ? getAvatarUrl(user.avatar, user.name) : null
 
   const handleLogout = (): void => {
     const result = navigate('/')
@@ -51,7 +66,7 @@ function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
     !item.roles || item.roles.includes(userRole)
   )
 
-  const currentRole = menuConfig.roles[userRole as keyof typeof menuConfig.roles] || {
+  const currentRole = menuConfig.roles?.[userRole] ?? {
     name: 'Employee',
     color: 'blue'
   }
@@ -87,17 +102,26 @@ function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
       {!isCollapsed && (
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <div className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
-              currentRole.color === 'pink' && 'bg-pink-500',
-              currentRole.color === 'blue' && 'bg-blue-500',
-              currentRole.color === 'green' && 'bg-green-500',
-              currentRole.color === 'purple' && 'bg-purple-500'
-            )}>
-              GE
-            </div>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="w-8 h-8 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
+                currentRole.color === 'pink' && 'bg-pink-500',
+                currentRole.color === 'blue' && 'bg-blue-500',
+                currentRole.color === 'green' && 'bg-green-500',
+                currentRole.color === 'purple' && 'bg-purple-500'
+              )}>
+                {initials}
+              </div>
+            )}
             <div>
-              <p className="text-sm font-medium text-gray-900">Employee User</p>
+              <p className="text-sm font-medium text-gray-900">{displayName}</p>
               <p className="text-xs text-gray-500">{currentRole.name}</p>
             </div>
           </div>
@@ -107,15 +131,24 @@ function Sidebar({ userRole = 'employee' }: SidebarProps): ReactElement {
       {/* Collapsed user indicator */}
       {isCollapsed && (
         <div className="p-2 border-b border-gray-200 flex justify-center">
-          <div className={cn(
-            'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
-            currentRole.color === 'pink' && 'bg-pink-500',
-            currentRole.color === 'blue' && 'bg-blue-500', 
-            currentRole.color === 'green' && 'bg-green-500',
-            currentRole.color === 'purple' && 'bg-purple-500'
-          )}>
-            GE
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-8 h-8 rounded-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className={cn(
+              'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
+              currentRole.color === 'pink' && 'bg-pink-500',
+              currentRole.color === 'blue' && 'bg-blue-500', 
+              currentRole.color === 'green' && 'bg-green-500',
+              currentRole.color === 'purple' && 'bg-purple-500'
+            )}>
+              {initials}
+            </div>
+          )}
         </div>
       )}
 

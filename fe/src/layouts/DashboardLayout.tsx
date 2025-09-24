@@ -12,7 +12,7 @@ function DashboardLayout({ children }: DashboardLayoutProps): ReactElement {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar userRole={user?.role} />
+      <Sidebar user={user} />
       <main className="flex-1 overflow-auto">
         {children}
       </main>
