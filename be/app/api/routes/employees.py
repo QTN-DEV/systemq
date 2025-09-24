@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.schemas import MessageResponse
@@ -25,12 +23,9 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
     response_description="Active employees matching the optional search criteria.",
 )
 async def list_employees(
-    search: Annotated[
-        str | None,
-        Query(
-            description="Filter by id, name, title, or email.",
-        ),
-    ],
+    search: Query(
+        description="Filter by id, name, title, or email.",
+    ),
 ) -> list[Employee]:
     """Return active employees, optionally filtered by a search string."""
     employees = await employee_service.list_employees(search)

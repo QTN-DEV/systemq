@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
@@ -51,10 +51,7 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     response_description="Documents that belong to the requested parent folder.",
 )
 async def list_documents(
-    parent_id=Annotated[
-        str | None,
-        Query(description="Parent folder identifier. Omit for root documents."),
-    ],
+    parent_id: Query(description="Parent folder identifier. Omit for root documents."),
 ) -> list[DocumentResponse]:
     documents = await document_service.get_documents_by_parent(parent_id)
     return [DocumentResponse.model_validate(doc) for doc in documents]
@@ -122,7 +119,7 @@ async def get_breadcrumbs(document_id: str) -> list[DocumentBreadcrumbSchema]:
     response_description="Distinct document types recorded in the repository.",
 )
 async def get_document_types(
-    search: Annotated[str | None, Query(description="Filter values by substring.")],
+    search: Query(description="Filter values by substring."),
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_types(search)
     return DistinctValuesResponse(values=values)
@@ -135,7 +132,7 @@ async def get_document_types(
     response_description="Distinct document categories recorded in the repository.",
 )
 async def get_document_categories(
-    search: Annotated[str | None, Query(description="Filter values by substring.")],
+    search: Query(description="Filter values by substring."),
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_categories(search)
     return DistinctValuesResponse(values=values)
@@ -153,7 +150,7 @@ async def get_document_categories(
 )
 async def create_document(
     payload: DocumentCreate,
-    authorization: Annotated[str | None, Header()],
+    authorization: Header(),
 ) -> DocumentResponse:
     try:
         token = auth_service.parse_bearer_token(authorization)

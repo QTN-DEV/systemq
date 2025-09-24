@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 from fastapi import APIRouter, HTTPException, status
 
 from app.schemas.project import Project, ProjectCreate, ProjectUpdate

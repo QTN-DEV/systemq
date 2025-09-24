@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 from fastapi import APIRouter, Header, HTTPException, Response, status
 
 from app.schemas.auth import (
@@ -142,7 +140,7 @@ async def renew_session(payload: RenewSessionRequest) -> AuthSession:
     return AuthSession.model_validate(result)
 
 
-async def get_current_user(authorization: Annotated[str | None, Header()]) -> UserProfile:
+async def get_current_user(authorization: Header()) -> UserProfile:
     """Resolve the user profile associated with the supplied bearer token."""
     token = auth_service.parse_bearer_token(authorization)
     try:
@@ -155,7 +153,7 @@ async def get_current_user(authorization: Annotated[str | None, Header()]) -> Us
     return UserProfile.model_validate(user_data)
 
 
-async def logout(authorization: Annotated[str | None, Header()]) -> Response:
+async def logout(authorization: Header()) -> Response:
     """Invalidate the supplied bearer token so it can no longer be used."""
     token = auth_service.parse_bearer_token(authorization)
     try:
