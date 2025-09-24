@@ -209,9 +209,9 @@ async def get_distinct_categories(search: str | None = None) -> list[str]:
 
 async def create_document(payload: DocumentCreate, owner: dict[str, Any]) -> dict[str, Any]:
     document_id = payload.name.lower().replace(" ", "-").replace("/", "--")
-    existing = await DocumentItem.find_one(
+    existing = await DocumentItem.find(
         {
-            "document_id": document_id,
+            "id": document_id,
             "parent_id": payload.parent_id,
             "deleted_at": None,
         },
