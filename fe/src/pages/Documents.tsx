@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Home,
   Copy,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -38,6 +39,7 @@ function Documents(): ReactElement {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
+  const [itemCounts, setItemCounts] = useState<Record<string, number | null>>({})
   
   // Modal states
   const [showCreateFolder, setShowCreateFolder] = useState(false)
@@ -50,10 +52,54 @@ function Documents(): ReactElement {
   const [shareUrl, setShareUrl] = useState('')
   const [urlCopied, setUrlCopied] = useState(false)
 
-  // Get current folder and items
-  const currentFolder = currentFolderId ? getDocumentById(currentFolderId) : null
-  const currentItems = getDocumentsByParentId(currentFolderId)
-  const breadcrumbs = buildBreadcrumbs(currentFolderId ?? null)
+  // State for loading, data, and errors
+  const [currentFolder, setCurrentFolder] = useState<DocumentItem | null | undefined>(null)
+  const [currentItems, setCurrentItems] = useState<DocumentItem[]>([])
+  const [breadcrumbs, setBreadcrumbs] = useState<DocumentBreadcrumb[]>([])
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Fetch documents and current folder when currentFolderId changes
+  useEffect(() => {
+    const fetchData = async (): Promise<void> => {
+      setIsInitialLoad(true)
+      try {
+        // Fetch current folder and items
+        const [folder, items, breadcrumbsData] = await Promise.all([
+          currentFolderId ? getDocumentById(currentFolderId) : Promise.resolve(null),
+          getDocumentsByParentId(currentFolderId),
+          buildBreadcrumbs(currentFolderId ?? null)
+        ])
+        
+        setCurrentFolder(folder)
+        setCurrentItems(items)
+        setBreadcrumbs(breadcrumbsData)
+        
+        // Fetch item counts for each folder
+        const counts: Record<string, number> = {}
+        for (const item of items) {
+          if (item.type === 'folder') {
+            counts[item.id] = await getActualItemCount(item.id)
+          }
+        }
+        setItemCounts(counts)
+        setError(null) // Clear any previous errors
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching documents:', error)
+        // Set empty arrays on error to prevent UI issues
+        setCurrentFolder(null)
+        setCurrentItems([])
+        setBreadcrumbs([{ id: 'root', name: 'Documents', path: [] }])
+        setItemCounts({})
+        setError('Failed to load documents. Please try again.')
+      } finally {
+        setIsInitialLoad(false)
+      }
+    }
+    
+    void fetchData()
+  }, [currentFolderId])
 
   // Get unique categories for filter tabs
   const categories = useMemo((): string[] => {
@@ -236,7 +282,6 @@ function Documents(): ReactElement {
 
   return (
     <div className="p-8">
-      {/* Breadcrumbs */}
       {breadcrumbs.length > 1 && (
         <div className="flex items-center space-x-2 mb-6 text-sm text-gray-600">
           {breadcrumbs.map((breadcrumb, index) => (
@@ -254,7 +299,6 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -304,47 +348,57 @@ function Documents(): ReactElement {
             </button>
           </div>
         </div>
-
-        {/* Filter Tabs */}
-        <div className="flex items-center space-x-1 mb-6 border-b">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => {
-                setActiveFilter(category)
-                setCurrentPage(1)
-              }}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeFilter === category
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-
-        {/* Search and Export */}
-        <div className="flex items-center justify-between">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search documents..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none w-64"
-              aria-label="Search documents"
-            />
-          </div>
-          <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 px-4 py-2 border border-gray-300 hover:bg-gray-50 transition-colors">
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
-        </div>
       </div>
 
-      {/* Table */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-red-700 font-medium">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex items-center space-x-1 mb-6 border-b">
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => {
+              setActiveFilter(category)
+              setCurrentPage(1)
+            }}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeFilter === category
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+
+      {/* Search and Export */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search documents..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none w-64"
+            aria-label="Search documents"
+          />
+        </div>
+        <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 px-4 py-2 border border-gray-300 hover:bg-gray-50 transition-colors">
+          <Download className="w-4 h-4" />
+          <span>Export</span>
+        </button>
+      </div>
+
       <div className="bg-white border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -383,7 +437,37 @@ function Documents(): ReactElement {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedItems.length === 0 ? (
+            {isInitialLoad ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" />
+                    <p className="text-gray-600">Loading documents...</p>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Documents</h3>
+                    <p className="text-gray-500 mb-6 max-w-sm">There was an error loading your documents. Please check your connection and try again.</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Reload Page</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : paginatedItems.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center">
@@ -447,7 +531,6 @@ function Documents(): ReactElement {
                     <span className="sr-only">Select {item.name}</span>
                   </label>
                 </td>
-                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center">
@@ -461,14 +544,15 @@ function Documents(): ReactElement {
                       <div className="text-sm font-medium text-gray-900">{item.name}</div>
                       <div className="text-sm text-gray-500">
                         {item.type === 'folder' 
-                          ? `${getActualItemCount(item.id)} items`
+                          ? itemCounts[item.id] !== undefined 
+                            ? `${itemCounts[item.id] ?? 0} items`
+                            : 'Loading...'
                           : formatFileSize(item.size)
                         }
                       </div>
                     </div>
                   </div>
                 </td>
-                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-8 w-8">
@@ -544,7 +628,6 @@ function Documents(): ReactElement {
         </table>
       </div>
 
-      {/* Pagination */}
       <div className="flex items-center justify-between mt-6">
         <div className="flex items-center space-x-2">
           <label htmlFor="rowsPerPage" className="text-sm text-gray-700">Rows per page</label>
@@ -613,7 +696,7 @@ function Documents(): ReactElement {
         </div>
       </div>
 
-      {/* Create Folder Modal */}
+      {/* Modals */}
       {showCreateFolder && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
@@ -653,7 +736,6 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {/* Create File Modal */}
       {showCreateFile && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
@@ -693,7 +775,6 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {/* Rename Modal */}
       {showRenameModal && selectedItem && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
@@ -734,7 +815,6 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedItem && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
@@ -764,7 +844,6 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {/* Share Modal */}
       {showShareModal && selectedItem && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
