@@ -108,7 +108,7 @@ async def save_upload_file(upload_file: UploadFile, allowed_extensions: set[str]
 
     # Return file metadata
     return {
-        "url": f"/api/uploads/files/{unique_filename}",
+        "url": f"/static/uploads/{unique_filename}",
         "fileName": upload_file.filename,
         "fileSize": format_file_size(file_size)
     }
