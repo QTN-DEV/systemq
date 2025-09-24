@@ -44,6 +44,7 @@ def _send(message: EmailMessage) -> None:
 
 
 async def send_email(subject: str, recipient: str, body: str) -> None:
+    print("MASUK SEND EMAIL")
     _ensure_smtp_configured()
     message = _build_message(subject, recipient, body)
     await asyncio.to_thread(_send, message)

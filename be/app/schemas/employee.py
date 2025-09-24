@@ -26,3 +26,16 @@ class EmployeeCreate(EmployeeBase):
 
 class Employee(EmployeeBase):
     id: str
+
+
+class EmployeeUpdate(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+    title: str | None = None
+    division: str | None = None
+    level: str | None = None
+    position: PositionLiteral | None = None
+    subordinates: list[str] | None = None
+    projects: list[str] | None = None
+    avatar: HttpUrl | None = None
+    employment_type: EmploymentTypeLiteral | None = None

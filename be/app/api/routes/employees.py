@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.schemas import MessageResponse
-from app.schemas.employee import Employee, EmployeeCreate
+from app.schemas.employee import Employee, EmployeeCreate, EmployeeUpdate
 from app.services import employee as employee_service
 from app.services.employee import (
     EmployeeAlreadyExistsError,
@@ -69,6 +69,7 @@ async def get_subordinates(employee_id: str) -> list[Employee]:
 )
 async def create_employee(payload: EmployeeCreate) -> Employee:
     """Create a new employee, provision a temporary password, and send an invitation email."""
+    print("masuk")
     try:
         employee = await employee_service.create_employee(payload.model_dump())
     except EmployeeAlreadyExistsError as exc:
@@ -99,3 +100,25 @@ async def deactivate_employee(employee_id: str) -> MessageResponse:
             detail=str(exc),
         ) from exc
     return MessageResponse(message="Employee deactivated successfully.")
+
+
+@router.put(
+    "/{employee_id}",
+    response_model=Employee,
+    summary="Update an employee",
+    response_description="Updated employee profile.",
+)
+async def update_employee(employee_id: str, payload: EmployeeUpdate) -> Employee:
+    """Update basic employee fields by employee_id."""
+    try:
+        employee = await employee_service.update_employee(
+            employee_id,
+            payload.model_dump(exclude_unset=True),
+        )
+    except EmployeeNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except EmployeeAlreadyExistsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return Employee.model_validate(employee)

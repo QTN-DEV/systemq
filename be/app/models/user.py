@@ -10,6 +10,10 @@ from pydantic import EmailStr, Field, HttpUrl
 from app.models.enums import EmploymentTypeLiteral, PositionLiteral
 
 
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+
 class User(Document):
     employee_id: str | None = None
     name: str
@@ -24,13 +28,13 @@ class User(Document):
     avatar: HttpUrl | None = None
     hashed_password: str
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=datetime.now(UTC))
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
     class Settings:
         name = "users"
         indexes = ["email", "employee_id"]
 
     async def touch(self) -> None:
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = _utcnow()
         await self.save()

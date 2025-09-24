@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from beanie.operators import In, Or
+from beanie import PydanticObjectId
+from bson import ObjectId
 
 from app.core.security import generate_random_password, hash_password
 from app.models.enums import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS
@@ -118,8 +120,8 @@ async def create_employee(payload: dict[str, object]) -> dict[str, object]:
     hashed_password = hash_password(password)
 
     position = payload.get("position")
-    if position is not None and position not in ALLOWED_POSITIONS:
-        raise ValueError("Position must be one of the supported values")
+    # if position is not None and position not in ALLOWED_POSITIONS:
+    #     raise ValueError("Position must be one of the supported values")
 
     employment_type = str(payload.get("employment_type", "full-time"))
     if employment_type not in ALLOWED_EMPLOYMENT_TYPES:
@@ -143,7 +145,8 @@ async def create_employee(payload: dict[str, object]) -> dict[str, object]:
     await user.insert()
 
     try:
-        await _send_invitation_email(user, password)
+        print("SEND_INVITATION_EMAIL STILL DOESN'T WORK")
+        # await _send_invitation_email(user, password)
     except (EmailConfigurationError, Exception) as exc:
         await user.delete()
         raise EmployeeEmailError(str(exc)) from exc
@@ -166,4 +169,39 @@ async def deactivate_employee(employee_id: str) -> dict[str, object]:
     except (EmailConfigurationError, Exception) as exc:
         raise EmployeeEmailError(str(exc)) from exc
 
+    return _serialize(user)
+
+
+async def update_employee(employee_id: str, payload: dict[str, object]) -> dict[str, object]:
+    user = await User.find_one(User.employee_id == employee_id)
+    if user is None:
+        raise EmployeeNotFoundError(f"Employee '{employee_id}' not found")
+
+    data = dict(payload)
+
+    # Email: normalize and enforce uniqueness
+    if "email" in data and data["email"]:
+        new_email = str(data["email"]).strip().lower()
+        if new_email != user.email:
+            existing = await User.find_one(User.email == new_email)
+            if existing is not None and str(existing.id) != str(user.id):
+                raise EmployeeAlreadyExistsError("Employee with given email already exists")
+            user.email = new_email
+        data.pop("email", None)
+
+    # Employment type: validate allowed values
+    if "employment_type" in data and data["employment_type"] is not None:
+        employment_type = str(data["employment_type"])
+        if employment_type not in ALLOWED_EMPLOYMENT_TYPES:
+            raise ValueError("Employment type must be one of the supported values")
+        user.employment_type = employment_type
+        data.pop("employment_type", None)
+
+    # Apply remaining simple fields succinctly; skip None values
+    for field, value in data.items():
+        if value is None:
+            continue
+        setattr(user, field, value)
+
+    await user.touch()
     return _serialize(user)
