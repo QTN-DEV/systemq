@@ -28,11 +28,6 @@ async def list_projects() -> list[Project]:
     response_model=Project,
     summary="Retrieve a project",
     response_description="Full details for the requested project.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Project with the supplied identifier does not exist.",
-        },
-    },
 )
 async def get_project(project_id: str) -> Project:
     """Fetch an individual project by its identifier."""
@@ -49,11 +44,6 @@ async def get_project(project_id: str) -> Project:
     status_code=status.HTTP_201_CREATED,
     summary="Create a new project",
     response_description="Details for the newly created project entry.",
-    responses={
-        status.HTTP_409_CONFLICT: {
-            "description": "A project with that identifier already exists.",
-        },
-    },
 )
 async def create_project(payload: ProjectCreate) -> Project:
     """Persist a new project derived from the provided payload."""
@@ -69,14 +59,6 @@ async def create_project(payload: ProjectCreate) -> Project:
     response_model=Project,
     summary="Update project metadata",
     response_description="Updated project details after the patch operation.",
-    responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "description": "No fields provided in the request body.",
-        },
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Project with the supplied identifier does not exist.",
-        },
-    },
 )
 async def update_project(project_id: str, payload: ProjectUpdate) -> Project:
     """Modify project attributes such as the display name or avatar."""
@@ -100,11 +82,6 @@ async def update_project(project_id: str, payload: ProjectUpdate) -> Project:
     "/{project_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a project",
-    responses={
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Project with the supplied identifier does not exist.",
-        },
-    },
 )
 async def delete_project(project_id: str) -> None:
     """Remove the specified project from the catalogue."""

@@ -51,7 +51,7 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     response_description="Documents that belong to the requested parent folder.",
 )
 async def list_documents(
-    parent_id: Query(description="Parent folder identifier. Omit for root documents."),
+    parent_id: str | None,
 ) -> list[DocumentResponse]:
     documents = await document_service.get_documents_by_parent(parent_id)
     return [DocumentResponse.model_validate(doc) for doc in documents]
@@ -62,9 +62,6 @@ async def list_documents(
     response_model=DocumentResponse,
     summary="Retrieve a document",
     response_description="Full metadata for the requested document.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Document not found."},
-    },
 )
 async def get_document(document_id: str) -> DocumentResponse:
     try:
@@ -90,9 +87,6 @@ async def get_item_count(document_id: str) -> ItemCountResponse:
     response_model=list[str],
     summary="Resolve folder ancestor identifiers",
     response_description="Ordered identifiers of ancestor folders ending with the requested id.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Document not found."},
-    },
 )
 async def get_folder_path_ids(document_id: str) -> list[str]:
     try:
@@ -119,7 +113,7 @@ async def get_breadcrumbs(document_id: str) -> list[DocumentBreadcrumbSchema]:
     response_description="Distinct document types recorded in the repository.",
 )
 async def get_document_types(
-    search: Query(description="Filter values by substring."),
+    search: str | None,
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_types(search)
     return DistinctValuesResponse(values=values)
@@ -132,7 +126,7 @@ async def get_document_types(
     response_description="Distinct document categories recorded in the repository.",
 )
 async def get_document_categories(
-    search: Query(description="Filter values by substring."),
+    search: str | None,
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_categories(search)
     return DistinctValuesResponse(values=values)
@@ -140,17 +134,12 @@ async def get_document_categories(
 
 @router.post(
     "/",
-    response_model=DocumentResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a document",
-    response_description="Newly created document metadata.",
-    responses={
-        status.HTTP_409_CONFLICT: {"description": "Document with that identifier already exists."},
-    },
 )
 async def create_document(
     payload: DocumentCreate,
-    authorization: Header(),
+    authorization: str = Header(),
 ) -> DocumentResponse:
     try:
         token = auth_service.parse_bearer_token(authorization)
@@ -179,10 +168,6 @@ async def create_document(
     response_model=DocumentResponse,
     summary="Update document metadata",
     response_description="Updated document representation after applying changes.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Document or parent not found."},
-        status.HTTP_400_BAD_REQUEST: {"description": "Invalid update payload."},
-    },
 )
 async def update_document(document_id: str, payload: DocumentUpdate) -> DocumentResponse:
     try:
@@ -202,9 +187,6 @@ async def update_document(document_id: str, payload: DocumentUpdate) -> Document
     response_model=MessageResponse,
     summary="Soft delete a document",
     response_description="Confirmation that the document was marked as deleted.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Document not found."},
-    },
 )
 async def delete_document(document_id: str) -> MessageResponse:
     try:

@@ -30,11 +30,6 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     response_model=AuthSession,
     summary="Authenticate with email and password",
     response_description="Session token with the authenticated user's profile.",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {
-            "description": "Invalid credentials or the account is inactive.",
-        },
-    },
 )
 async def login(payload: LoginRequest) -> AuthSession:
     """Validate credentials and issue a short-lived session token."""
@@ -57,11 +52,6 @@ async def login(payload: LoginRequest) -> AuthSession:
     status_code=status.HTTP_202_ACCEPTED,
     summary="Send password reset instructions",
     response_description="Acknowledgement that a reset email was dispatched.",
-    responses={
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "SMTP configuration error prevented email delivery.",
-        },
-    },
 )
 async def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     """Queue a password reset token and dispatch the notification email."""
@@ -80,11 +70,6 @@ async def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     response_model=MessageResponse,
     summary="Reset a password using a token",
     response_description="Confirmation that the password reset succeeded.",
-    responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "description": "Token is invalid, expired, or already used.",
-        },
-    },
 )
 async def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
     """Validate the reset token and set a new password for the account."""
@@ -122,11 +107,6 @@ async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     response_model=AuthSession,
     summary="Renew an existing session token",
     response_description="New session token and updated user payload.",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {
-            "description": "Token is invalid or expired beyond the renewal window.",
-        },
-    },
 )
 async def renew_session(payload: RenewSessionRequest) -> AuthSession:
     """Exchange a valid session token for a fresh one."""
@@ -140,7 +120,7 @@ async def renew_session(payload: RenewSessionRequest) -> AuthSession:
     return AuthSession.model_validate(result)
 
 
-async def get_current_user(authorization: Header()) -> UserProfile:
+async def get_current_user(authorization: str = Header()) -> UserProfile:
     """Resolve the user profile associated with the supplied bearer token."""
     token = auth_service.parse_bearer_token(authorization)
     try:
@@ -153,7 +133,7 @@ async def get_current_user(authorization: Header()) -> UserProfile:
     return UserProfile.model_validate(user_data)
 
 
-async def logout(authorization: Header()) -> Response:
+async def logout(authorization: str = Header()) -> Response:
     """Invalidate the supplied bearer token so it can no longer be used."""
     token = auth_service.parse_bearer_token(authorization)
     try:

@@ -23,9 +23,7 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
     response_description="Active employees matching the optional search criteria.",
 )
 async def list_employees(
-    search: Query(
-        description="Filter by id, name, title, or email.",
-    ),
+    search: str | None,
 ) -> list[Employee]:
     """Return active employees, optionally filtered by a search string."""
     employees = await employee_service.list_employees(search)
@@ -37,9 +35,6 @@ async def list_employees(
     response_model=Employee,
     summary="Retrieve an employee",
     response_description="Full employee profile for the given identifier.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Employee not found."},
-    },
 )
 async def get_employee(employee_id: str) -> Employee:
     """Fetch a single employee by identifier."""
@@ -55,9 +50,6 @@ async def get_employee(employee_id: str) -> Employee:
     response_model=list[Employee],
     summary="List employee subordinates",
     response_description="Active subordinates assigned to the employee.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Employee not found."},
-    },
 )
 async def get_subordinates(employee_id: str) -> list[Employee]:
     """Return the active subordinates for the specified employee."""
@@ -74,14 +66,6 @@ async def get_subordinates(employee_id: str) -> list[Employee]:
     status_code=status.HTTP_201_CREATED,
     summary="Create a new employee",
     response_description="Freshly created employee profile.",
-    responses={
-        status.HTTP_409_CONFLICT: {
-            "description": "Employee with given id or email already exists.",
-        },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Failed to dispatch the invitation email.",
-        },
-    },
 )
 async def create_employee(payload: EmployeeCreate) -> Employee:
     """Create a new employee, provision a temporary password, and send an invitation email."""
@@ -102,12 +86,6 @@ async def create_employee(payload: EmployeeCreate) -> Employee:
     response_model=MessageResponse,
     summary="Deactivate an employee",
     response_description="Confirmation that the employee was deactivated.",
-    responses={
-        status.HTTP_404_NOT_FOUND: {"description": "Employee not found."},
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Failed to send deactivation notice.",
-        },
-    },
 )
 async def deactivate_employee(employee_id: str) -> MessageResponse:
     """Disable an employee and send a deactivation notice."""
