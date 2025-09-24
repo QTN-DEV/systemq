@@ -4,6 +4,8 @@ import {
 import { useState, useEffect, useCallback, type ReactElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
+import { logger } from '@/lib/logger'
+
 import DocumentEditor from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
 import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent } from '../services/DocumentService'
@@ -197,7 +199,7 @@ function DocumentEditorPage(): ReactElement {
           setDocument(updatedDoc)
         }
       } catch (error) {
-        console.error('Failed to save document:', error)
+        logger.error('Failed to save document:', error)
         // Optionally show user feedback about save failure
       }
     }
@@ -218,7 +220,7 @@ function DocumentEditorPage(): ReactElement {
           content: blocks
         })
       } catch (error) {
-        console.error('Failed to save title:', error)
+        logger.error('Failed to save title:', error)
       }
     }
   }
@@ -238,7 +240,7 @@ function DocumentEditorPage(): ReactElement {
           content: blocks
         })
       } catch (error) {
-        console.error('Failed to save category:', error)
+        logger.error('Failed to save category:', error)
       }
     }
   }
@@ -281,7 +283,7 @@ function DocumentEditorPage(): ReactElement {
                 onClick={(): void => {
                   if (document.parentId) {
                     const navigateToParent = async (): Promise<void> => {
-                      const parentPathIds = await getFolderPathIds(document.parentId)
+                      const parentPathIds = await getFolderPathIds(document.parentId!)
                       const parentPath = parentPathIds.join('/')
                       void navigate(`/documents/${parentPath}`)
                     }

@@ -1,11 +1,9 @@
-import { 
-  Search, 
-  Download, 
-  Edit2, 
-  Trash2, 
-  Share2, 
-  Folder, 
-  File, 
+import {
+  Edit2,
+  Trash2,
+  Share2,
+  Folder,
+  File,
   MoreHorizontal,
   ChevronRight,
   Home,
@@ -38,7 +36,7 @@ function Documents(): ReactElement {
   const currentFolderId = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null
   
   // State management
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)

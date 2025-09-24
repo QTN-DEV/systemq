@@ -1,18 +1,15 @@
 import { type ReactElement, type ReactNode } from 'react'
 
 import Sidebar from '../components/Sidebar'
-import { useUser } from '../contexts/UserContext'
 
 interface DashboardLayoutProps {
   children: ReactNode
 }
 
 function DashboardLayout({ children }: DashboardLayoutProps): ReactElement {
-  const { user } = useUser()
-
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar user={user} />
+      <Sidebar />
       <main className="flex-1 overflow-auto">
         {children}
       </main>

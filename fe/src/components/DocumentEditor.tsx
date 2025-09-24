@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { useState, useRef, useEffect, type ReactElement } from 'react'
 
+import { logger } from '@/lib/logger'
+
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
 
 export interface DocumentBlock {
@@ -108,7 +110,7 @@ function DocumentEditor({
         fileSize: uploadResponse.fileSize
       }
     } catch (error) {
-      console.error('Upload failed:', error)
+      logger.error('Upload failed:', error)
       throw new Error(`Failed to upload ${blockType}`)
     }
   }
@@ -255,7 +257,7 @@ function DocumentEditor({
         content: blockType === 'file' ? uploadResult.fileName : file.name // For file blocks, content is the file name
       })
     } catch (error) {
-      console.error('Upload failed:', error)
+      logger.error('Upload failed:', error)
       // Handle upload error (could show toast notification)
       // For now, just remove from uploading set
     } finally {

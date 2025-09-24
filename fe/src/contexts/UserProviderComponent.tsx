@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, type ReactNode, type ReactElement } from 'react'
+import { useMemo, useEffect, useCallback, type ReactNode, type ReactElement } from 'react'
 
 import { logger } from '@/lib/logger'
 import {
@@ -6,8 +6,7 @@ import {
   fetchCurrentUser,
   login as loginService,
   logout as logoutService,
-  renewSession,
-  type AuthenticatedUser
+  renewSession
 } from '@/services/AuthService'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -18,8 +17,11 @@ interface UserProviderProps {
 }
 
 export function UserProvider({ children }: UserProviderProps): ReactElement {
-  const getCurrentSession = useAuthStore((state) => state.getCurrentSession)
-  const [user, setUser] = useState<AuthenticatedUser | null>(() => getCurrentSession()?.user ?? null)
+  const { getCurrentSession, user, setUser } = useAuthStore((state) => ({
+    getCurrentSession: state.getCurrentSession,
+    user: state.user,
+    setUser: state.setUser
+  }))
 
   useEffect(() => {
     let cancelled = false
@@ -81,7 +83,7 @@ export function UserProvider({ children }: UserProviderProps): ReactElement {
     return (): void => {
       cancelled = true
     }
-  }, [getCurrentSession])
+  }, [getCurrentSession, setUser])
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     logger.log('Login attempt:', { email })
@@ -110,7 +112,7 @@ export function UserProvider({ children }: UserProviderProps): ReactElement {
     isAuthenticated,
     login,
     logout
-  }), [user, isAuthenticated, login, logout])
+  }), [user, setUser, isAuthenticated, login, logout])
 
   return (
     <UserContext.Provider value={value}>

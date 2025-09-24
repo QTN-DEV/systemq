@@ -12,7 +12,7 @@ import { useState, type ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { logger } from '@/lib/logger'
-import type { AuthenticatedUser } from '@/services/AuthService'
+import { useAuthStore } from '@/stores/authStore'
 
 import logo from '../assets/logo.png'
 import menuConfig from '../config/menuConfig.json'
@@ -29,14 +29,11 @@ const iconMap = {
   Folder
 }
 
-interface SidebarProps {
-  user?: AuthenticatedUser | null
-}
-
-function Sidebar({ user }: SidebarProps): ReactElement {
+function Sidebar(): ReactElement {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
 
   const userRole = user?.role ?? 'employee'
   const rawName = user?.name?.trim()

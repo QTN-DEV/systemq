@@ -1,5 +1,6 @@
 import axios from 'axios'
 
+import { logger } from '@/lib/logger'
 import { useAuthStore } from '@/stores/authStore'
 
 const API_BASE_URL = 'https://api.systemq.qtn.ai'
@@ -42,7 +43,7 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
 
     return response.data
   } catch (error) {
-    console.error('Image upload failed:', error)
+    logger.error('Image upload failed:', error)
     throw new Error('Failed to upload image')
   }
 }
@@ -65,7 +66,7 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
 
     return response.data
   } catch (error) {
-    console.error('File upload failed:', error)
+    logger.error('File upload failed:', error)
     throw new Error('Failed to upload file')
   }
 }

@@ -1,11 +1,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { AuthSession } from '@/services/AuthService'
+import type { AuthSession, AuthenticatedUser } from '@/services/AuthService'
 
 interface AuthState {
   session: AuthSession | null
+  user: AuthenticatedUser | null
   setSession: (session: AuthSession | null) => void
+  setUser: (user: AuthenticatedUser | null) => void
   clearSession: () => void
   getCurrentSession: () => AuthSession | null
   isSessionValid: () => boolean
@@ -15,13 +17,18 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       session: null,
+      user: null,
 
       setSession: (session: AuthSession | null): void => {
-        set({ session })
+        set({ session, user: session?.user ?? null })
+      },
+
+      setUser: (user: AuthenticatedUser | null): void => {
+        set({ user })
       },
 
       clearSession: (): void => {
-        set({ session: null })
+        set({ session: null, user: null })
       },
 
       getCurrentSession: (): AuthSession | null => {
@@ -44,7 +51,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth.session',
-      partialize: (state) => ({ session: state.session })
+      partialize: (state) => ({ session: state.session, user: state.user })
     }
   )
 )
