@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.models.document import DocumentBlock
+
 
 class DocumentOwnerSchema(BaseModel):
     id: str
@@ -40,7 +42,7 @@ class DocumentUpdate(BaseModel):
     parent_id: str | None = None
     shared: bool | None = None
     share_url: str | None = None
-    content: str | None = None
+    content: list[DocumentBlock] | None = None
 
 
 class DocumentResponse(DocumentBase):
@@ -51,7 +53,7 @@ class DocumentResponse(DocumentBase):
     size: str | None = None
     item_count: int | None = None
     path: list[str] = Field(default_factory=list)
-    content: str | None = None
+    content: list[DocumentBlock] = Field(default_factory=list)
 
     class Config:
         json_encoders = {

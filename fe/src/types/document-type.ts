@@ -2,6 +2,7 @@
 export type {
   DocumentItemType,
   DocumentStatus,
+  DocumentBlock,
   DocumentOwner,
   DocumentItem,
   DocumentBreadcrumb,

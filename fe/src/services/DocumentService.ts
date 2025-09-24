@@ -2,7 +2,7 @@ import axios from 'axios'
 
 import { useAuthStore } from '@/stores/authStore'
 
-import type { DocumentItem } from '../types/document-type'
+import type { DocumentItem, DocumentBlock } from '../types/document-type'
 
 const API_BASE_URL = 'https://api.systemq.qtn.ai'
 
@@ -42,7 +42,7 @@ interface ApiDocumentItem {
   size: string | null,
   item_count: number,
   path: string[],
-  content: string | null
+  content: DocumentBlock[]
 }
 
 // Transform API response to match our internal type
@@ -67,7 +67,8 @@ function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
     lastModified: apiDoc.last_modified,
     size: apiDoc.size ?? undefined,
     itemCount: apiDoc.item_count,
-    path: apiDoc.path
+    path: apiDoc.path,
+    content: apiDoc.content || []
   }
 }
 
@@ -236,7 +237,7 @@ export async function createDocument(name: string, type: 'file' | 'folder', pare
       shared: false,
       share_url: null,
       id: null,
-      content: null
+      content: []
     }
 
     const response = await api.post<ApiDocumentItem>('/documents/', payload, {
@@ -283,7 +284,7 @@ export async function renameDocument(documentId: string, newName: string): Promi
 export interface UpdateDocumentContentPayload {
   title: string
   category: string
-  content: string
+  content: DocumentBlock[]
 }
 
 // Update document content (for files only)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from app.models.document import DocumentHistory, DocumentItem, DocumentOwner
+from app.models.document import DocumentBlock, DocumentHistory, DocumentItem, DocumentOwner
 from app.schemas.document import DocumentCreate
 
 
@@ -22,6 +22,12 @@ ACTIVE_DOCUMENT = {"is_deleted": False}
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def _normalize_content(document: DocumentItem) -> None:
+    """Ensure content is never null - convert to empty array if needed."""
+    if document.content is None:
+        document.content = []
 
 
 def _serialize_document(document: DocumentItem) -> dict[str, Any]:
@@ -41,7 +47,7 @@ def _serialize_document(document: DocumentItem) -> dict[str, Any]:
         "path": document.path,
         "shared": document.shared,
         "share_url": document.share_url,
-        "content": document.content,
+        "content": document.content if document.content is not None else [],
     }
 
 
@@ -119,6 +125,8 @@ async def get_documents_by_parent(parent_id: str | None) -> list[dict[str, Any]]
             ACTIVE_DOCUMENT,
         )
     documents = await query.sort(DocumentItem.name).to_list()
+    for document in documents:
+        _normalize_content(document)
     return [_serialize_document(document) for document in documents]
 
 
@@ -136,6 +144,7 @@ async def get_document_by_id(document_id: str) -> DocumentItem:
     )
     if document is None:
         raise DocumentNotFoundError(f"Document '{document_id}' not found")
+    _normalize_content(document)
     return document
 
 
@@ -270,8 +279,9 @@ async def update_document(document_id: str, payload: dict[str, Any]) -> dict[str
         changes["share_url"] = {"old": document.share_url, "new": payload["share_url"]}
         document.share_url = payload["share_url"]
     if "content" in payload and payload["content"] != document.content:
-        changes["content"] = {"old": document.content, "new": payload["content"]}
-        document.content = payload["content"]
+        new_content = payload["content"] if payload["content"] is not None else []
+        changes["content"] = {"old": document.content, "new": new_content}
+        document.content = new_content
 
     if "parent_id" in payload and payload["parent_id"] != document.parent_id:
         new_parent_id = payload["parent_id"]

@@ -9,6 +9,16 @@ from beanie import Document
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DocumentBlock(BaseModel):
+    id: str
+    type: Literal["paragraph", "heading1", "heading2", "heading3", "bulleted-list", "numbered-list", "quote", "code", "image", "file"]
+    content: str
+    alignment: Literal["left", "center", "right"] | None = "left"
+    url: str | None = None  # For image src or file download URL
+    fileName: str | None = Field(None, alias="fileName")  # For file blocks
+    fileSize: str | None = Field(None, alias="fileSize")  # For file blocks
+
+
 def _utcnow() -> datetime:
     return datetime.now(UTC)
 
@@ -36,7 +46,7 @@ class DocumentItem(Document):
     path: list[str] = Field(default_factory=list)
     shared: bool = False
     share_url: str | None = None
-    content: str | None = None
+    content: list[DocumentBlock] | None = Field(default_factory=list)
     is_deleted: bool = False
     deleted_at: datetime | None = None
     created_at: datetime = Field(default_factory=_utcnow)

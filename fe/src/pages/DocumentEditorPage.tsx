@@ -4,10 +4,10 @@ import {
 import { useState, useEffect, useCallback, type ReactElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
-import DocumentEditor, { type DocumentBlock } from '../components/DocumentEditor'
+import DocumentEditor from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
-import { getDocumentById, getFolderPathIds, getDocumentCategories } from '../services/DocumentService'
-import type { DocumentItem } from '../types/documents'
+import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent } from '../services/DocumentService'
+import type { DocumentItem, DocumentBlock } from '../types/documents'
 
 function DocumentEditorPage(): ReactElement {
   const { fileId } = useParams<{ fileId: string }>()
@@ -166,9 +166,14 @@ function DocumentEditorPage(): ReactElement {
           setDocumentTitle(doc.title ?? doc.name) // This is the document title, fallback to file name
           setDocumentCategory(doc.category ?? '')
 
-          // Load document content (mock data for now)
-          const mockContent = getMockDocumentContent(doc.id, doc)
-          setBlocks(mockContent)
+          // Load document content - use actual content from API or fallback to mock
+          if (doc.content && doc.content.length > 0) {
+            setBlocks(doc.content)
+          } else {
+            // Fallback to mock content for existing documents without structured content
+            const mockContent = getMockDocumentContent(doc.id, doc)
+            setBlocks(mockContent)
+          }
         }
       }
       void loadDocument()
@@ -178,15 +183,63 @@ function DocumentEditorPage(): ReactElement {
 
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
     setBlocks(newBlocks)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Save to API if document exists
+    if (fileId && document) {
+      try {
+        const updatedDoc = await updateDocumentContent(fileId, {
+          title: documentTitle,
+          category: documentCategory,
+          content: newBlocks
+        })
+
+        if (updatedDoc) {
+          setDocument(updatedDoc)
+        }
+      } catch (error) {
+        console.error('Failed to save document:', error)
+        // Optionally show user feedback about save failure
+      }
+    }
   }
 
-  const handleTitleChange = (newTitle: string): void => {
+  const handleTitleChange = async (newTitle: string): Promise<void> => {
     setDocumentTitle(newTitle)
     if (document) {
       setDocument({ ...document, title: newTitle })
+    }
+
+    // Auto-save title change
+    if (fileId && document) {
+      try {
+        await updateDocumentContent(fileId, {
+          title: newTitle,
+          category: documentCategory,
+          content: blocks
+        })
+      } catch (error) {
+        console.error('Failed to save title:', error)
+      }
+    }
+  }
+
+  const handleCategoryChange = async (newCategory: string): Promise<void> => {
+    setDocumentCategory(newCategory)
+    if (document) {
+      setDocument({ ...document, category: newCategory })
+    }
+
+    // Auto-save category change
+    if (fileId && document) {
+      try {
+        await updateDocumentContent(fileId, {
+          title: documentTitle,
+          category: newCategory,
+          content: blocks
+        })
+      } catch (error) {
+        console.error('Failed to save category:', error)
+      }
     }
   }
 
@@ -254,7 +307,7 @@ function DocumentEditorPage(): ReactElement {
           <input
             type="text"
             value={documentTitle}
-            onChange={(e) => handleTitleChange(e.target.value)}
+            onChange={(e) => { void handleTitleChange(e.target.value) }}
             className="w-full text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400 mb-4"
             placeholder="Untitled Document"
           />
@@ -265,7 +318,7 @@ function DocumentEditorPage(): ReactElement {
               value={documentCategory}
               placeholder="Add Category"
               icon={Tag}
-              onSelect={setDocumentCategory}
+              onSelect={(category) => { void handleCategoryChange(category) }}
               fetchOptions={getDocumentCategories}
             />
           </div>

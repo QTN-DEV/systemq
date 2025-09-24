@@ -24,8 +24,6 @@ import {
   createDocument,
   deleteDocument,
   renameDocument,
-  updateDocumentContent,
-  type UpdateDocumentContentPayload
 } from '../services/DocumentService'
 import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'

@@ -2,6 +2,16 @@ export type DocumentItemType = 'folder' | 'file'
 
 export type DocumentStatus = 'active' | 'archived' | 'shared' | 'private'
 
+export interface DocumentBlock {
+  id: string
+  type: 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'bulleted-list' | 'numbered-list' | 'quote' | 'code' | 'image' | 'file'
+  content: string
+  alignment?: 'left' | 'center' | 'right'
+  url?: string // For image src or file download URL
+  fileName?: string // For file blocks
+  fileSize?: string // For file blocks
+}
+
 export interface DocumentOwner {
   id: string
   name: string
@@ -25,6 +35,7 @@ export interface DocumentItem {
   path: string[] // Array of folder names representing the path
   shared?: boolean
   shareUrl?: string
+  content?: DocumentBlock[] // Document content as structured blocks
 }
 
 export interface DocumentBreadcrumb {
