@@ -4,6 +4,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
+    RenewSessionRequest,
     ResetPasswordRequest,
     UserProfile,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "ForgotPasswordRequest",
     "LoginRequest",
     "MessageResponse",
+    "RenewSessionRequest",
     "ResetPasswordRequest",
     "UserProfile",
     "Employee",

@@ -44,3 +44,7 @@ class ChangePasswordRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class RenewSessionRequest(BaseModel):
+    token: str = Field(min_length=1)

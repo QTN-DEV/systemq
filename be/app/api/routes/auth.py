@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, Response, status
 
 from app.schemas.auth import (
     AuthSession,
@@ -8,10 +8,16 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
+    RenewSessionRequest,
     ResetPasswordRequest,
+    UserProfile,
 )
 from app.services import auth as auth_service
-from app.services.auth import AuthenticationError, PasswordResetError
+from app.services.auth import (
+    AuthenticationError,
+    PasswordResetError,
+    UserNotFoundError,
+)
 from app.services.email import EmailConfigurationError
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -109,3 +115,72 @@ async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     except AuthenticationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MessageResponse(message="Password updated successfully.")
+
+
+@router.post(
+    "/renew",
+    response_model=AuthSession,
+    summary="Renew an existing session token",
+    response_description="New session token and updated user payload.",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Token is invalid or expired beyond the renewal window.",
+        }
+    },
+)
+async def renew_session(payload: RenewSessionRequest) -> AuthSession:
+    """Exchange a valid session token for a fresh one."""
+
+    try:
+        session_payload = await auth_service.renew_session(payload.token)
+    except (AuthenticationError, UserNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    return AuthSession.model_validate(session_payload)
+
+
+@router.get(
+    "/me",
+    response_model=UserProfile,
+    summary="Fetch the current authenticated user's profile",
+    response_description="User profile resolved from the supplied bearer token.",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Bearer token missing or invalid.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "User account no longer exists.",
+        },
+    },
+)
+async def get_current_user(authorization: str | None = Header(default=None)) -> UserProfile:
+    """Resolve the user profile associated with the supplied bearer token."""
+
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return UserProfile.model_validate(profile_payload)
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Invalidate the active session token",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Bearer token missing or invalid.",
+        }
+    },
+)
+async def logout(authorization: str | None = Header(default=None)) -> Response:
+    """Invalidate the supplied bearer token so it can no longer be used."""
+
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        await auth_service.logout(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

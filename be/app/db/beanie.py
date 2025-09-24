@@ -11,6 +11,7 @@ from app.models import (
     DocumentItem,
     PasswordResetToken,
     Project,
+    SessionToken,
     SystemStatus,
     User,
 )
@@ -33,6 +34,7 @@ async def init_database() -> None:
             User,
             PasswordResetToken,
             Project,
+            SessionToken,
             DocumentItem,
             DocumentHistory,
         ],

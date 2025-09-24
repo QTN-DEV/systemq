@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 
@@ -10,7 +11,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models import PasswordResetToken, User
+from app.models import PasswordResetToken, SessionToken, User
 from app.services.email import EmailConfigurationError, send_email
 from constants import APP_NAME
 
@@ -22,6 +23,10 @@ class AuthenticationError(ValueError):
 
 
 class PasswordResetError(ValueError):
+    pass
+
+
+class UserNotFoundError(LookupError):
     pass
 
 
@@ -76,11 +81,45 @@ async def authenticate_user(email: str, password: str) -> User:
 async def login(email: str, password: str) -> dict[str, Any]:
     user = await authenticate_user(email, password)
     token, expires_at = generate_session_token(user_identifier=str(user.id))
+    await _persist_session_token(user, token, expires_at)
     return {
         "token": token,
         "expires_at": expires_at,
         "user": _serialize_user(user),
     }
+
+
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+async def _persist_session_token(user: User, token: str, expires_at: int) -> SessionToken:
+    expires_at_dt = datetime.fromtimestamp(expires_at / 1000, tz=timezone.utc)
+    session = SessionToken(
+        user_id=user.id,
+        token_hash=_hash_token(token),
+        expires_at=expires_at_dt,
+    )
+    await session.insert()
+    return session
+
+
+async def _load_session(token: str) -> SessionToken | None:
+    token_hash = _hash_token(token)
+    return await SessionToken.find_one(SessionToken.token_hash == token_hash)
+
+
+async def _resolve_session(token: str) -> tuple[SessionToken, User]:
+    session = await _load_session(token)
+    if session is None or session.revoked or session.is_expired:
+        raise AuthenticationError("Invalid or expired session token")
+
+    user = await User.get(session.user_id)
+    if user is None:
+        raise UserNotFoundError("User associated with the token no longer exists")
+    if not user.is_active:
+        raise AuthenticationError("Invalid or expired session token")
+    return session, user
 
 
 async def _store_reset_token(email: str, token: ResetToken) -> PasswordResetToken:
@@ -157,3 +196,41 @@ async def change_password(identifier: str, current_password: str, new_password: 
 def serialize_user(user: User) -> dict[str, Any]:
     """Public helper for routers."""
     return _serialize_user(user)
+
+
+def parse_bearer_token(authorization_header: str | None) -> str:
+    if not authorization_header:
+        raise AuthenticationError("Authorization header missing")
+    scheme, _, value = authorization_header.partition(" ")
+    if scheme.lower() != "bearer" or not value:
+        raise AuthenticationError("Invalid authorization header format")
+    token = value.strip()
+    if not token:
+        raise AuthenticationError("Invalid authorization header format")
+    return token
+
+
+async def renew_session(token: str) -> dict[str, Any]:
+    session, user = await _resolve_session(token)
+    await session.revoke()
+
+    new_token, expires_at = generate_session_token(user_identifier=str(user.id))
+    await _persist_session_token(user, new_token, expires_at)
+    return {
+        "token": new_token,
+        "expires_at": expires_at,
+        "user": _serialize_user(user),
+    }
+
+
+async def get_user_profile_from_token(token: str) -> dict[str, Any]:
+    _, user = await _resolve_session(token)
+    return _serialize_user(user)
+
+
+async def logout(token: str) -> None:
+    session = await _load_session(token)
+    if session is None or session.revoked or session.is_expired:
+        raise AuthenticationError("Invalid or expired session token")
+
+    await session.revoke()
