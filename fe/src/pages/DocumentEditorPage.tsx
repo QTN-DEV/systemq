@@ -19,7 +19,7 @@ function DocumentEditorPage(): ReactElement {
   const [fileName, setFileName] = useState('')
   const [documentCategory, setDocumentCategory] = useState<string>('')
 
-  const getMockDocumentContent = useCallback((docId: string): DocumentBlock[] => {
+  const getMockDocumentContent = useCallback((docId: string, doc?: DocumentItem | null): DocumentBlock[] => {
     // Return different mock content based on document ID
     switch (docId) {
       case 'work-arrangement':
@@ -79,7 +79,7 @@ function DocumentEditorPage(): ReactElement {
             alignment: 'left'
           }
         ]
-      
+
       case 'charter-kenamaan':
         return [
           {
@@ -137,13 +137,13 @@ function DocumentEditorPage(): ReactElement {
             alignment: 'left'
           }
         ]
-      
+
       default:
         return [
           {
             id: '1',
             type: 'heading1',
-            content: document?.title ?? document?.name ?? 'Untitled Document',
+            content: doc?.title ?? doc?.name ?? 'Untitled Document',
             alignment: 'left'
           },
           {
@@ -154,7 +154,7 @@ function DocumentEditorPage(): ReactElement {
           }
         ]
     }
-  }, [document])
+  }, [])
 
   useEffect(() => {
     if (fileId) {
@@ -167,7 +167,7 @@ function DocumentEditorPage(): ReactElement {
           setDocumentCategory(doc.category ?? '')
 
           // Load document content (mock data for now)
-          const mockContent = getMockDocumentContent(doc.id)
+          const mockContent = getMockDocumentContent(doc.id, doc)
           setBlocks(mockContent)
         }
       }
