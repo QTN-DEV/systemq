@@ -4,12 +4,12 @@ import { logger } from '@/lib/logger'
 import {
   AuthServiceError,
   fetchCurrentUser,
-  getCurrentSession,
   login as loginService,
   logout as logoutService,
   renewSession,
   type AuthenticatedUser
 } from '@/services/AuthService'
+import { useAuthStore } from '@/stores/authStore'
 
 import { UserContext } from './UserContextDefinition'
 
@@ -18,6 +18,7 @@ interface UserProviderProps {
 }
 
 export function UserProvider({ children }: UserProviderProps): ReactElement {
+  const getCurrentSession = useAuthStore((state) => state.getCurrentSession)
   const [user, setUser] = useState<AuthenticatedUser | null>(() => getCurrentSession()?.user ?? null)
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export function UserProvider({ children }: UserProviderProps): ReactElement {
     return (): void => {
       cancelled = true
     }
-  }, [])
+  }, [getCurrentSession])
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     logger.log('Login attempt:', { email })

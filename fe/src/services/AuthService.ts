@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+import { useAuthStore } from '@/stores/authStore'
+
 import type { Position, User } from '../types/user-type'
 
 export interface AuthenticatedUser extends User {
@@ -35,7 +37,6 @@ interface ApiUserProfile {
   avatar?: string | null
 }
 
-const SESSION_KEY = 'auth.session'
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.systemq.qtn.ai'
 
@@ -61,7 +62,7 @@ export class AuthServiceError extends Error {
 }
 
 api.interceptors.request.use((config) => {
-  const session = getCurrentSession()
+  const session = useAuthStore.getState().getCurrentSession()
   if (session?.token) {
     const headers = config.headers ?? {}
     headers.Authorization = `Bearer ${session.token}`
@@ -71,11 +72,11 @@ api.interceptors.request.use((config) => {
 })
 
 function saveSession(session: AuthSession): void {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  useAuthStore.getState().setSession(session)
 }
 
 function clearSession(): void {
-  localStorage.removeItem(SESSION_KEY)
+  useAuthStore.getState().clearSession()
 }
 
 function mapApiUserToUser(profile: ApiUserProfile): AuthenticatedUser {
@@ -185,18 +186,7 @@ function toAuthServiceError(error: unknown): AuthServiceError {
 }
 
 export function getCurrentSession(): AuthSession | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) return null
-    const session = JSON.parse(raw) as AuthSession
-    if (Date.now() > session.expiresAt) {
-      localStorage.removeItem(SESSION_KEY)
-      return null
-    }
-    return session
-  } catch {
-    return null
-  }
+  return useAuthStore.getState().getCurrentSession()
 }
 
 export async function login(email: string, password: string): Promise<AuthSession> {

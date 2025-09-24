@@ -16,7 +16,6 @@ import {
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { getCurrentSession } from '../services/AuthService'
 import {
   getDocumentsByParentId,
   getDocumentById,
@@ -24,12 +23,14 @@ import {
   getActualItemCount,
   createDocument
 } from '../services/DocumentService'
+import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
 function Documents(): ReactElement {
   const navigate = useNavigate()
   const { '*': currentPath } = useParams<{ '*': string }>()
-  
+  const getCurrentSession = useAuthStore((state) => state.getCurrentSession)
+
   // Parse current folder from URL path
   const pathSegments = currentPath?.split('/').filter(Boolean) ?? []
   const currentFolderId = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null
@@ -68,7 +69,7 @@ function Documents(): ReactElement {
       try {
         // Fetch current folder and items
         const [folder, items, breadcrumbsData] = await Promise.all([
-          currentFolderId ? getDocumentById(currentFolderId) : Promise.resolve(null),
+          currentFolderId ? getDocumentById(currentFolderId, null) : Promise.resolve(null),
           getDocumentsByParentId(currentFolderId),
           buildBreadcrumbs(currentFolderId ?? null)
         ])

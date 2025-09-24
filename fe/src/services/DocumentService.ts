@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+import { useAuthStore } from '@/stores/authStore'
+
 import type { DocumentItem } from '../types/document-type'
 
 const API_BASE_URL = 'https://api.systemq.qtn.ai'
@@ -9,29 +11,38 @@ const api = axios.create({
   timeout: 15000
 })
 
+// Add authentication interceptor
+api.interceptors.request.use((config) => {
+  const session = useAuthStore.getState().getCurrentSession()
+  if (session?.token) {
+    config.headers.Authorization = `Bearer ${session.token}`
+  }
+  return config
+})
+
 // Update the headers to match the API schema
 interface ApiDocumentItem {
   name: string,
-  title: string,
+  title: string | null,
   type: string,
-  category: string,
+  category: string | null,
   status: string,
-  parent_id: string,
+  parent_id: string | null,
   shared: boolean,
-  share_url: string,
+  share_url: string | null,
   id: string,
   owned_by: {
     id: string,
     name: string,
     role: string,
-    avatar: string
+    avatar: string | null
   },
   date_created: string,
   last_modified: string,
-  size: string,
+  size: string | null,
   item_count: number,
   path: string[],
-  content: string
+  content: string | null
 }
 
 // Transform API response to match our internal type
@@ -39,22 +50,22 @@ function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
   return {
     id: apiDoc.id,
     name: apiDoc.name,
-    title: apiDoc.title,
+    title: apiDoc.title ?? undefined,
     type: apiDoc.type as 'folder' | 'file',
-    category: apiDoc.category,
+    category: apiDoc.category ?? undefined,
     status: apiDoc.status as 'active' | 'archived' | 'shared' | 'private',
-    parentId: apiDoc.parent_id || undefined,
+    parentId: apiDoc.parent_id ?? undefined,
     shared: apiDoc.shared,
-    shareUrl: apiDoc.share_url,
+    shareUrl: apiDoc.share_url ?? undefined,
     ownedBy: {
       id: apiDoc.owned_by.id,
       name: apiDoc.owned_by.name,
       role: apiDoc.owned_by.role as 'admin' | 'manager' | 'employee' | 'secretary',
-      avatar: apiDoc.owned_by.avatar || undefined
+      avatar: apiDoc.owned_by.avatar ?? undefined
     },
     dateCreated: apiDoc.date_created,
     lastModified: apiDoc.last_modified,
-    size: apiDoc.size || undefined,
+    size: apiDoc.size ?? undefined,
     itemCount: apiDoc.item_count,
     path: apiDoc.path
   }
@@ -89,41 +100,27 @@ export async function getActualItemCount(folderId: string): Promise<number> {
 }
 
 // Get document by ID
-export async function getDocumentById(id: string): Promise<DocumentItem | undefined> {
+export async function getDocumentById(id: string, _parentId: string | null): Promise<DocumentItem | null> {
   try {
-    // We'll make a request to get all documents and find the one by ID
-    // In a real implementation, we would have an endpoint like /documents/{id}
-    // For now, we'll search through the root documents assuming IDs are globally unique
-    const rootDocuments = await getDocumentsByParentId(null);
-    
-    // First, check root documents
-    const foundDoc = rootDocuments.find(doc => doc.id === id);
-    if (foundDoc) {
-      return foundDoc;
-    }
-    
-    // If not found in root, we'd need to recursively search through folders
-    // For this implementation, we'll keep it simple for now
-    // In a real application, an endpoint like /documents/{id} should exist
-    
-    return undefined;
+    const response = await api.get<ApiDocumentItem>(`/documents/${encodeURIComponent(id)}`)
+    return transformApiDocument(response.data)
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error fetching document by ID:', error);
-    return undefined;
+    console.error('Error fetching document by ID:', error)
+    return null
   }
 }
 
 // Updated async version of getFolderPathIds
 export async function getFolderPathIds(folderId: string): Promise<string[]> {
-  const folder = await getDocumentById(folderId)
+  const folder = await getDocumentById(folderId, null)
   if (!folder) return []
 
   const pathIds: string[] = []
   let currentFolder: DocumentItem | null = folder
   while (currentFolder?.parentId) {
     pathIds.unshift(currentFolder.parentId)
-    currentFolder = await getDocumentById(currentFolder.parentId) ?? null
+    currentFolder = await getDocumentById(currentFolder.parentId, null)
   }
   pathIds.push(folderId)
   return pathIds
@@ -136,21 +133,21 @@ export async function buildBreadcrumbs(currentFolderId: string | null): Promise<
   ]
   if (!currentFolderId) return breadcrumbs
 
-  const currentFolder = await getDocumentById(currentFolderId)
+  const currentFolder = await getDocumentById(currentFolderId, null)
   if (!currentFolder) return breadcrumbs
 
   const pathIds: string[] = []
   let folder: DocumentItem | null = currentFolder
   while (folder?.parentId) {
     pathIds.unshift(folder.parentId)
-    const parentFolder = await getDocumentById(folder.parentId)
-    folder = parentFolder ?? null
+    const parentFolder = await getDocumentById(folder.parentId, null)
+    folder = parentFolder
   }
   pathIds.push(currentFolderId)
 
   let currentPath: string[] = []
   for (const id of pathIds) {
-    const folderDoc = await getDocumentById(id)
+    const folderDoc = await getDocumentById(id, null)
     if (folderDoc) {
       currentPath = [...currentPath, folderDoc.name]
       breadcrumbs.push({ id, name: folderDoc.name, path: currentPath.slice(0, -1) })

@@ -159,7 +159,7 @@ function DocumentEditorPage(): ReactElement {
   useEffect(() => {
     if (fileId) {
       const loadDocument = async (): Promise<void> => {
-        const doc = await getDocumentById(fileId)
+        const doc = await getDocumentById(fileId, null)
         if (doc && doc.type === 'file') {
           setDocument(doc)
           setFileName(doc.name) // This is the file name
