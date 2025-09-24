@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router as api_router
 from app.db.beanie import lifespan_context
@@ -42,5 +43,12 @@ app = FastAPI(
     version="0.1.0",
     openapi_tags=TAGS_METADATA,
     lifespan=lifespan_context,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 app.include_router(api_router)
