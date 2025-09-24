@@ -1,3 +1,5 @@
+"""Password reset token model definitions."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -7,7 +9,7 @@ from pydantic import EmailStr, Field
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(datetime.UTC)
 
 
 class PasswordResetToken(Document):
@@ -25,5 +27,5 @@ class PasswordResetToken(Document):
     def is_expired(self) -> bool:
         expiry = self.expires_at
         if expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) > expiry
+            expiry = expiry.replace(tzinfo=datetime.UTC)
+        return datetime.now(datetime.UTC) > expiry

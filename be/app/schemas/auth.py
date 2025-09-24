@@ -1,6 +1,10 @@
+"""Authentication schema definitions."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
+
+from app.models.enums import EmploymentTypeLiteral, PositionLiteral
 
 
 class UserProfile(BaseModel):
@@ -10,10 +14,11 @@ class UserProfile(BaseModel):
     title: str | None = None
     division: str | None = None
     level: str | None = None
-    position: str | None = None
+    position: PositionLiteral | None = None
     subordinates: list[str] = Field(default_factory=list)
     projects: list[str] = Field(default_factory=list)
     avatar: HttpUrl | None = None
+    employment_type: EmploymentTypeLiteral = Field(default="full-time")
 
 
 class AuthSession(BaseModel):

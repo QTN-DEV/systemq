@@ -1,3 +1,5 @@
+"""Authentication service."""
+
 from __future__ import annotations
 
 import hashlib
@@ -42,6 +44,7 @@ def _serialize_user(user: User) -> dict[str, Any]:
         "subordinates": user.subordinates,
         "projects": user.projects,
         "avatar": user.avatar,
+        "employment_type": user.employment_type,
     }
 
 
@@ -58,11 +61,12 @@ async def ensure_default_admin() -> None:
         title="System Administrator",
         division="Administration",
         level="Admin",
-        position="Administrator",
+        position="Internal Ops",
         hashed_password=hash_password("admin"),
         subordinates=[],
         projects=[],
         avatar=None,
+        employment_type="full-time",
         is_active=True,
     )
     await admin_user.insert()
@@ -94,7 +98,7 @@ def _hash_token(token: str) -> str:
 
 
 async def _persist_session_token(user: User, token: str, expires_at: int) -> SessionToken:
-    expires_at_dt = datetime.fromtimestamp(expires_at / 1000, tz=timezone.utc)
+    expires_at_dt = datetime.fromtimestamp(expires_at / 1000, tz=datetime.UTC)
     session = SessionToken(
         user_id=user.id,
         token_hash=_hash_token(token),
@@ -123,7 +127,7 @@ async def _resolve_session(token: str) -> tuple[SessionToken, User]:
 
 
 async def _store_reset_token(email: str, token: ResetToken) -> PasswordResetToken:
-    expires_at = datetime.fromtimestamp(token.expires_at / 1000, tz=timezone.utc)
+    expires_at = datetime.fromtimestamp(token.expires_at / 1000, tz=datetime.UTC)
     reset_document = PasswordResetToken(
         email=email,
         token=token.token,
@@ -162,7 +166,7 @@ async def forgot_password(email: str) -> None:
 
 async def reset_password(token_value: str, new_password: str) -> None:
     token_document = await PasswordResetToken.find_one(
-        PasswordResetToken.token == token_value
+        PasswordResetToken.token == token_value,
     )
     if token_document is None or token_document.used or token_document.is_expired:
         raise PasswordResetError("Invalid or expired reset token")

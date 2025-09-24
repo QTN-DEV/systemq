@@ -1,9 +1,11 @@
+"""Document service."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from app.models.document import DocumentHistory, DocumentItem
+from app.models.document import DocumentHistory, DocumentItem, DocumentOwner
 
 
 class DocumentAlreadyExistsError(ValueError):
@@ -18,7 +20,7 @@ ACTIVE_DOCUMENT = {"is_deleted": False}
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(datetime.UTC)
 
 
 def _serialize_document(document: DocumentItem) -> dict[str, Any]:
@@ -179,7 +181,7 @@ async def build_breadcrumbs(current_folder_id: str | None) -> list[dict[str, Any
                 "id": ancestor.document_id,
                 "name": ancestor.name,
                 "path": ancestor.path,
-            }
+            },
         )
     return breadcrumbs
 
@@ -212,7 +214,7 @@ async def get_distinct_categories(search: str | None = None) -> list[str]:
     return sorted(set(filtered))
 
 
-async def create_document(payload: dict[str, Any]) -> dict[str, Any]:
+async def create_document(payload: dict[str, Any], owner: dict[str, Any]) -> dict[str, Any]:
     document_id = payload["id"].strip()
     existing = await DocumentItem.find_one(DocumentItem.document_id == document_id)
     if existing is not None:
@@ -224,7 +226,7 @@ async def create_document(payload: dict[str, Any]) -> dict[str, Any]:
         name=payload["name"],
         title=payload.get("title"),
         type=payload["type"],
-        owned_by=payload["owned_by"],
+        owned_by=DocumentOwner(**owner),
         category=payload.get("category"),
         status=payload.get("status", "active"),
         size=payload.get("size"),
@@ -242,7 +244,12 @@ async def create_document(payload: dict[str, Any]) -> dict[str, Any]:
     await _apply_path(document)
     await document.insert()
 
-    await _record_history(document, "created", {"new": _serialize_document(document)})
+    await _record_history(
+        document,
+        "created",
+        {"new": _serialize_document(document)},
+        editor_id=owner.get("id"),
+    )
     await _refresh_item_count(document.parent_id)
 
     return _serialize_document(document)

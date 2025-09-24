@@ -1,4 +1,8 @@
+"""Project routes."""
+
 from __future__ import annotations
+
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -17,7 +21,6 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 )
 async def list_projects() -> list[Project]:
     """Return every project currently stored in the catalogue."""
-
     projects = await project_service.list_projects()
     return [Project.model_validate(project) for project in projects]
 
@@ -30,12 +33,11 @@ async def list_projects() -> list[Project]:
     responses={
         status.HTTP_404_NOT_FOUND: {
             "description": "Project with the supplied identifier does not exist.",
-        }
+        },
     },
 )
 async def get_project(project_id: str) -> Project:
     """Fetch an individual project by its identifier."""
-
     try:
         project = await project_service.get_project_by_id(project_id)
     except ProjectNotFoundError as exc:
@@ -52,12 +54,11 @@ async def get_project(project_id: str) -> Project:
     responses={
         status.HTTP_409_CONFLICT: {
             "description": "A project with that identifier already exists.",
-        }
+        },
     },
 )
 async def create_project(payload: ProjectCreate) -> Project:
     """Persist a new project derived from the provided payload."""
-
     try:
         project = await project_service.create_project(payload.id, payload.name, payload.avatar)
     except ProjectAlreadyExistsError as exc:
@@ -81,7 +82,6 @@ async def create_project(payload: ProjectCreate) -> Project:
 )
 async def update_project(project_id: str, payload: ProjectUpdate) -> Project:
     """Modify project attributes such as the display name or avatar."""
-
     if payload.name is None and payload.avatar is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -105,12 +105,11 @@ async def update_project(project_id: str, payload: ProjectUpdate) -> Project:
     responses={
         status.HTTP_404_NOT_FOUND: {
             "description": "Project with the supplied identifier does not exist.",
-        }
+        },
     },
 )
 async def delete_project(project_id: str) -> None:
     """Remove the specified project from the catalogue."""
-
     try:
         await project_service.delete_project(project_id)
     except ProjectNotFoundError as exc:

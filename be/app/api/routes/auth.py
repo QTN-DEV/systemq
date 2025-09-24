@@ -1,4 +1,8 @@
+"""Authentication routes."""
+
 from __future__ import annotations
+
+from typing import Annotated
 
 from fastapi import APIRouter, Header, HTTPException, Response, status
 
@@ -31,17 +35,22 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Invalid credentials or the account is inactive.",
-        }
+        },
     },
 )
 async def login(payload: LoginRequest) -> AuthSession:
     """Validate credentials and issue a short-lived session token."""
-
     try:
-        session_payload = await auth_service.login(payload.email, payload.password)
-    except AuthenticationError as exc:  # pragma: no cover - handled by FastAPI
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
-    return AuthSession.model_validate(session_payload)
+        result = await auth_service.login(
+            email=payload.email,
+            password=payload.password,
+        )
+    except AuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+    return AuthSession.model_validate(result)
 
 
 @router.post(
@@ -53,22 +62,19 @@ async def login(payload: LoginRequest) -> AuthSession:
     responses={
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "description": "SMTP configuration error prevented email delivery.",
-        }
+        },
     },
 )
 async def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     """Queue a password reset token and dispatch the notification email."""
-
     try:
-        await auth_service.forgot_password(payload.email)
-    except EmailConfigurationError as exc:
+        await auth_service.forgot_password(email=payload.email)
+    except (AuthenticationError, EmailConfigurationError) as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
-    return MessageResponse(
-        message="If the account exists, password reset instructions have been sent.",
-    )
+    return MessageResponse(message="Password reset request processed.")
 
 
 @router.post(
@@ -79,42 +85,38 @@ async def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     responses={
         status.HTTP_400_BAD_REQUEST: {
             "description": "Token is invalid, expired, or already used.",
-        }
+        },
     },
 )
 async def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
     """Validate the reset token and set a new password for the account."""
-
     try:
-        await auth_service.reset_password(payload.token, payload.new_password)
+        await auth_service.reset_password(
+            token_value=payload.token,
+            new_password=payload.new_password,
+        )
     except PasswordResetError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return MessageResponse(message="Password has been reset successfully.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return MessageResponse(message="Password changed successfully.")
 
 
-@router.post(
-    "/change-password",
-    response_model=MessageResponse,
-    summary="Change password for an authenticated user",
-    response_description="Confirmation that the password update completed.",
-    responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "description": "User not found or current password does not match.",
-        }
-    },
-)
 async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     """Update a user's password after verifying the supplied current password."""
-
     try:
         await auth_service.change_password(
-            payload.user_id,
-            payload.current_password,
-            payload.new_password,
+            identifier=payload.user_id,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
         )
     except AuthenticationError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return MessageResponse(message="Password updated successfully.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return MessageResponse(message="Password changed successfully.")
 
 
 @router.post(
@@ -125,62 +127,42 @@ async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Token is invalid or expired beyond the renewal window.",
-        }
+        },
     },
 )
 async def renew_session(payload: RenewSessionRequest) -> AuthSession:
     """Exchange a valid session token for a fresh one."""
-
     try:
-        session_payload = await auth_service.renew_session(payload.token)
-    except (AuthenticationError, UserNotFoundError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
-    return AuthSession.model_validate(session_payload)
+        result = await auth_service.renew_session(token=payload.token)
+    except AuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+    return AuthSession.model_validate(result)
 
 
-@router.get(
-    "/me",
-    response_model=UserProfile,
-    summary="Fetch the current authenticated user's profile",
-    response_description="User profile resolved from the supplied bearer token.",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {
-            "description": "Bearer token missing or invalid.",
-        },
-        status.HTTP_404_NOT_FOUND: {
-            "description": "User account no longer exists.",
-        },
-    },
-)
-async def get_current_user(authorization: str | None = Header(default=None)) -> UserProfile:
+async def get_current_user(authorization: Annotated[str | None, Header()]) -> UserProfile:
     """Resolve the user profile associated with the supplied bearer token."""
-
+    token = auth_service.parse_bearer_token(authorization)
     try:
-        token = auth_service.parse_bearer_token(authorization)
-        profile_payload = await auth_service.get_user_profile_from_token(token)
-    except AuthenticationError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
-    except UserNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return UserProfile.model_validate(profile_payload)
+        user_data = await auth_service.get_user_profile_from_token(token=token)
+    except (AuthenticationError, UserNotFoundError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+    return UserProfile.model_validate(user_data)
 
 
-@router.post(
-    "/logout",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Invalidate the active session token",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {
-            "description": "Bearer token missing or invalid.",
-        }
-    },
-)
-async def logout(authorization: str | None = Header(default=None)) -> Response:
+async def logout(authorization: Annotated[str | None, Header()]) -> Response:
     """Invalidate the supplied bearer token so it can no longer be used."""
-
+    token = auth_service.parse_bearer_token(authorization)
     try:
-        token = auth_service.parse_bearer_token(authorization)
-        await auth_service.logout(token)
+        await auth_service.logout(token=token)
     except AuthenticationError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

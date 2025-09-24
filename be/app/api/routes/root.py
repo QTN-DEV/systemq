@@ -1,3 +1,5 @@
+"""Root routes."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter
@@ -13,5 +15,4 @@ router = APIRouter()
 )
 async def read_root() -> dict[str, str]:
     """Return a static heartbeat payload to confirm service availability."""
-
     return {"message": "Hello, World!"}

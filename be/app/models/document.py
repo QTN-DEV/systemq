@@ -1,3 +1,5 @@
+"""Document model definitions."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -8,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(datetime.UTC)
 
 
 class DocumentOwner(BaseModel):

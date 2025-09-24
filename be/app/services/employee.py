@@ -1,8 +1,11 @@
+"""Employee service."""
+
 from __future__ import annotations
 
 from beanie.operators import In, Or
 
 from app.core.security import generate_random_password, hash_password
+from app.models.enums import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS
 from app.models.user import User
 from app.services.email import EmailConfigurationError, send_email
 from constants import APP_NAME
@@ -32,6 +35,7 @@ def _serialize(user: User) -> dict[str, object]:
         "subordinates": user.subordinates,
         "projects": user.projects,
         "avatar": user.avatar,
+        "employment_type": user.employment_type,
     }
 
 
@@ -105,13 +109,21 @@ async def create_employee(payload: dict[str, object]) -> dict[str, object]:
         raise ValueError("Employee email is required")
 
     existing = await User.find_one(
-        Or(User.employee_id == employee_id, User.email == email)
+        Or(User.employee_id == employee_id, User.email == email),
     )
     if existing is not None:
         raise EmployeeAlreadyExistsError("Employee with given id or email already exists")
 
     password = generate_random_password()
     hashed_password = hash_password(password)
+
+    position = payload.get("position")
+    if position is not None and position not in ALLOWED_POSITIONS:
+        raise ValueError("Position must be one of the supported values")
+
+    employment_type = str(payload.get("employment_type", "full-time"))
+    if employment_type not in ALLOWED_EMPLOYMENT_TYPES:
+        raise ValueError("Employment type must be one of the supported values")
 
     user = User(
         employee_id=employee_id,
@@ -120,10 +132,11 @@ async def create_employee(payload: dict[str, object]) -> dict[str, object]:
         title=payload.get("title"),
         division=payload.get("division"),
         level=payload.get("level"),
-        position=payload.get("position"),
+        position=position,
         subordinates=list(payload.get("subordinates", []) or []),
         projects=list(payload.get("projects", []) or []),
         avatar=payload.get("avatar"),
+        employment_type=employment_type,
         hashed_password=hashed_password,
         is_active=True,
     )

@@ -1,7 +1,9 @@
+"""Database initialization using Beanie ODM."""
+
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
 
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient

@@ -1,6 +1,10 @@
+"""Document routes."""
+
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from app.schemas import (
     DistinctValuesResponse,
@@ -10,9 +14,32 @@ from app.schemas import (
     DocumentUpdate,
     ItemCountResponse,
     MessageResponse,
+    UserProfile,
 )
+from app.services import auth as auth_service
 from app.services import document as document_service
+from app.services.auth import AuthenticationError, UserNotFoundError
 from app.services.document import DocumentAlreadyExistsError, DocumentNotFoundError
+
+_ALLOWED_OWNER_ROLES = {"admin", "manager", "employee", "secretary"}
+
+
+def _derive_owner_payload(profile: UserProfile) -> dict[str, Any]:
+    role: str | None = None
+    for candidate in (profile.level, profile.position):
+        if candidate and candidate.lower() in _ALLOWED_OWNER_ROLES:
+            role = candidate.lower()
+            break
+    if role is None:
+        role = "employee"
+    avatar = str(profile.avatar) if profile.avatar else None
+    return {
+        "id": profile.id,
+        "name": profile.name,
+        "role": role,
+        "avatar": avatar,
+    }
+
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -24,10 +51,10 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     response_description="Documents that belong to the requested parent folder.",
 )
 async def list_documents(
-    parent_id: str | None = Query(
-        default=None,
-        description="Parent folder identifier. Omit for root documents.",
-    ),
+    parent_id=Annotated[
+        str | None,
+        Query(description="Parent folder identifier. Omit for root documents."),
+    ],
 ) -> list[DocumentResponse]:
     documents = await document_service.get_documents_by_parent(parent_id)
     return [DocumentResponse.model_validate(doc) for doc in documents]
@@ -65,8 +92,7 @@ async def get_item_count(document_id: str) -> ItemCountResponse:
     "/{document_id}/path-ids",
     response_model=list[str],
     summary="Resolve folder ancestor identifiers",
-    response_description=
-    "Ordered identifiers of ancestor folders ending with the requested id.",
+    response_description="Ordered identifiers of ancestor folders ending with the requested id.",
     responses={
         status.HTTP_404_NOT_FOUND: {"description": "Document not found."},
     },
@@ -96,7 +122,7 @@ async def get_breadcrumbs(document_id: str) -> list[DocumentBreadcrumbSchema]:
     response_description="Distinct document types recorded in the repository.",
 )
 async def get_document_types(
-    search: str | None = Query(default=None, description="Filter values by substring."),
+    search: Annotated[str | None, Query(description="Filter values by substring.")],
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_types(search)
     return DistinctValuesResponse(values=values)
@@ -109,7 +135,7 @@ async def get_document_types(
     response_description="Distinct document categories recorded in the repository.",
 )
 async def get_document_categories(
-    search: str | None = Query(default=None, description="Filter values by substring."),
+    search: Annotated[str | None, Query(description="Filter values by substring.")],
 ) -> DistinctValuesResponse:
     values = await document_service.get_document_categories(search)
     return DistinctValuesResponse(values=values)
@@ -125,9 +151,25 @@ async def get_document_categories(
         status.HTTP_409_CONFLICT: {"description": "Document with that identifier already exists."},
     },
 )
-async def create_document(payload: DocumentCreate) -> DocumentResponse:
+async def create_document(
+    payload: DocumentCreate,
+    authorization: Annotated[str | None, Header()],
+) -> DocumentResponse:
     try:
-        document = await document_service.create_document(payload.model_dump())
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    owner_payload = _derive_owner_payload(UserProfile.model_validate(profile_payload))
+
+    try:
+        document = await document_service.create_document(
+            payload.model_dump(),
+            owner_payload,
+        )
     except DocumentAlreadyExistsError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except DocumentNotFoundError as exc:

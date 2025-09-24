@@ -1,4 +1,6 @@
-from app.schemas.auth import (
+"""App schemas package."""
+
+from .auth import (
     AuthSession,
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -8,7 +10,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     UserProfile,
 )
-from app.schemas.document import (
+from .document import (
     DistinctValuesResponse,
     DocumentBreadcrumbSchema,
     DocumentCreate,
@@ -16,27 +18,20 @@ from app.schemas.document import (
     DocumentUpdate,
     ItemCountResponse,
 )
-from app.schemas.employee import Employee, EmployeeCreate
-from app.schemas.project import Project, ProjectCreate, ProjectUpdate
 
 __all__ = [
-    "AuthSession",
-    "ChangePasswordRequest",
-    "ForgotPasswordRequest",
-    "LoginRequest",
+    "UserProfile",
+    "DocumentBreadcrumbSchema",
+    "DocumentCreate",
+    "DocumentResponse",
+    "DocumentUpdate",
+    "DistinctValuesResponse",
+    "ItemCountResponse",
     "MessageResponse",
     "RenewSessionRequest",
     "ResetPasswordRequest",
-    "UserProfile",
-    "Employee",
-    "EmployeeCreate",
-    "Project",
-    "ProjectCreate",
-    "ProjectUpdate",
-    "DocumentCreate",
-    "DocumentUpdate",
-    "DocumentResponse",
-    "DocumentBreadcrumbSchema",
-    "ItemCountResponse",
-    "DistinctValuesResponse",
+    "ChangePasswordRequest",
+    "ForgotPasswordRequest",
+    "LoginRequest",
+    "AuthSession",
 ]

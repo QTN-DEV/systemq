@@ -1,4 +1,8 @@
+"""Employee routes."""
+
 from __future__ import annotations
+
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
 
@@ -21,13 +25,14 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
     response_description="Active employees matching the optional search criteria.",
 )
 async def list_employees(
-    search: str | None = Query(
-        default=None,
-        description="Filter by id, name, title, or email.",
-    ),
+    search: Annotated[
+        str | None,
+        Query(
+            description="Filter by id, name, title, or email.",
+        ),
+    ],
 ) -> list[Employee]:
     """Return active employees, optionally filtered by a search string."""
-
     employees = await employee_service.list_employees(search)
     return [Employee.model_validate(employee) for employee in employees]
 
@@ -43,7 +48,6 @@ async def list_employees(
 )
 async def get_employee(employee_id: str) -> Employee:
     """Fetch a single employee by identifier."""
-
     try:
         employee = await employee_service.get_employee(employee_id)
     except EmployeeNotFoundError as exc:
@@ -62,7 +66,6 @@ async def get_employee(employee_id: str) -> Employee:
 )
 async def get_subordinates(employee_id: str) -> list[Employee]:
     """Return the active subordinates for the specified employee."""
-
     try:
         employees = await employee_service.get_subordinates(employee_id)
     except EmployeeNotFoundError as exc:
@@ -87,7 +90,6 @@ async def get_subordinates(employee_id: str) -> list[Employee]:
 )
 async def create_employee(payload: EmployeeCreate) -> Employee:
     """Create a new employee, provision a temporary password, and send an invitation email."""
-
     try:
         employee = await employee_service.create_employee(payload.model_dump())
     except EmployeeAlreadyExistsError as exc:
@@ -114,7 +116,6 @@ async def create_employee(payload: EmployeeCreate) -> Employee:
 )
 async def deactivate_employee(employee_id: str) -> MessageResponse:
     """Disable an employee and send a deactivation notice."""
-
     try:
         await employee_service.deactivate_employee(employee_id)
     except EmployeeNotFoundError as exc:
