@@ -6,6 +6,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router as api_router
 from app.db.beanie import lifespan_context
@@ -39,6 +40,10 @@ TAGS_METADATA = [
             "Document storage, navigation helpers, distinct metadata, and history tracking."
         ),
     },
+    {
+        "name": "Uploads",
+        "description": "File and image upload endpoints for document content."
+    },
 ]
 
 app = FastAPI(
@@ -56,3 +61,12 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 app.include_router(api_router)
+
+# Mount static files directory for uploads
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+except RuntimeError:
+    # Directory might not exist yet, create it
+    import os
+    os.makedirs("static", exist_ok=True)
+    app.mount("/static", StaticFiles(directory="static"), name="static")

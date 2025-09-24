@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { useState, useRef, useEffect, type ReactElement } from 'react'
 
+import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
+
 export interface DocumentBlock {
   id: string
   type: 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'bulleted-list' | 'numbered-list' | 'quote' | 'code' | 'image' | 'file'
@@ -93,27 +95,21 @@ function DocumentEditor({
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
   const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
 
-  // Mock upload API function
-  const mockUploadFile = async (file: File): Promise<{ url: string; fileName: string; fileSize: string }> => {
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Create mock URL (in real app, this would be from your server)
-    const mockUrl = URL.createObjectURL(file)
-    
-    // Format file size
-    const formatFileSize = (bytes: number): string => {
-      if (bytes === 0) return '0 Bytes'
-      const k = 1024
-      const sizes = ['Bytes', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
-    }
-    
-    return {
-      url: mockUrl,
-      fileName: file.name,
-      fileSize: formatFileSize(file.size)
+  // Real upload API function
+  const uploadFileToServer = async (file: File, blockType: 'image' | 'file'): Promise<{ url: string; fileName: string; fileSize: string }> => {
+    try {
+      const uploadResponse = blockType === 'image'
+        ? await uploadImage(file)
+        : await uploadFile(file)
+
+      return {
+        url: getFileUrl(uploadResponse.url),
+        fileName: uploadResponse.fileName,
+        fileSize: uploadResponse.fileSize
+      }
+    } catch (error) {
+      console.error('Upload failed:', error)
+      throw new Error(`Failed to upload ${blockType}`)
     }
   }
 
@@ -238,23 +234,30 @@ function DocumentEditor({
 
   const handleFileUpload = async (blockId: string, file: File): Promise<void> => {
     if (readOnly) return
-    
+
+    // Determine block type from the block being updated
+    const block = blocks.find(b => b.id === blockId)
+    if (!block) return
+
+    const blockType: 'image' | 'file' = block.type === 'image' ? 'image' : 'file'
+
     // Add block to uploading set
     setUploadingBlocks(prev => new Set(prev).add(blockId))
-    
+
     try {
-      const uploadResult = await mockUploadFile(file)
-      
+      const uploadResult = await uploadFileToServer(file, blockType)
+
       // Update block with upload result
       updateBlock(blockId, {
         url: uploadResult.url,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
-        content: uploadResult.fileName // For file blocks, content is the file name
+        content: blockType === 'file' ? uploadResult.fileName : file.name // For file blocks, content is the file name
       })
-    } catch {
-      // console.error('Upload failed:', error)
+    } catch (error) {
+      console.error('Upload failed:', error)
       // Handle upload error (could show toast notification)
+      // For now, just remove from uploading set
     } finally {
       // Remove block from uploading set
       setUploadingBlocks(prev => {
@@ -509,9 +512,10 @@ function DocumentEditor({
                   placeholder="Paste image URL"
                   className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2 text-center`}
                   value={block.url ?? ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
-                    updateBlock(block.id, { url: e.target.value })
-                  }
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                    const url = e.target.value
+                    updateBlock(block.id, { url })
+                  }}
                 />
               </div>
             )}
@@ -600,9 +604,10 @@ function DocumentEditor({
                     placeholder="Paste file URL"
                     className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
                     value={block.url ?? ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
-                      updateBlock(block.id, { url: e.target.value })
-                    }
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                      const url = e.target.value
+                      updateBlock(block.id, { url })
+                    }}
                     disabled={readOnly}
                   />
                 </div>
