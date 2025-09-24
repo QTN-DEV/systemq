@@ -26,8 +26,8 @@ class DocumentBase(BaseModel):
     share_url: str | None = None
 
 
-class DocumentCreate:
-    content: str | None = None
+class DocumentCreate(BaseModel):
+    name: str
     type: Literal["folder", "file"] = "file"
     parent_id: str | None = None
 
