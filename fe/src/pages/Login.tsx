@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
+import { login as loginService } from '@/services/AuthService'
+import { useAuthStore } from '@/stores/authStore'
 
 import logo from '../assets/logo.png'
-import { useAuthStore } from '@/stores/authStore'
-import { login as loginService } from '@/services/AuthService'
 
 function Login(): JSX.Element {
   const [email, setEmail] = useState('')

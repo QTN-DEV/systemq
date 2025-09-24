@@ -3,7 +3,6 @@ import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
 import { changePassword } from '@/services/AuthService'
-
 import { useAuthStore } from '@/stores/authStore'
 
 function ChangePassword(): ReactElement {

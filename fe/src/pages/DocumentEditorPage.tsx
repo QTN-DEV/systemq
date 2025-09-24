@@ -283,7 +283,7 @@ function DocumentEditorPage(): ReactElement {
                 onClick={(): void => {
                   if (document.parentId) {
                     const navigateToParent = async (): Promise<void> => {
-                      const parentPathIds = await getFolderPathIds(document.parentId!)
+                      const parentPathIds = await getFolderPathIds(document.parentId ?? null)
                       const parentPath = parentPathIds.join('/')
                       void navigate(`/documents/${parentPath}`)
                     }

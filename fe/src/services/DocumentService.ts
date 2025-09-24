@@ -113,7 +113,8 @@ export async function getDocumentById(id: string, _parentId: string | null): Pro
 }
 
 // Updated async version of getFolderPathIds
-export async function getFolderPathIds(folderId: string): Promise<string[]> {
+export async function getFolderPathIds(folderId: string | null): Promise<string[]> {
+  if (!folderId) return []
   const folder = await getDocumentById(folderId, null)
   if (!folder) return []
 
