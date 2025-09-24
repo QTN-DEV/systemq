@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from app.models.document import DocumentHistory, DocumentItem, DocumentOwner
+from be.app.schemas.document import DocumentCreate
 
 
 class DocumentAlreadyExistsError(ValueError):
@@ -214,31 +215,18 @@ async def get_distinct_categories(search: str | None = None) -> list[str]:
     return sorted(set(filtered))
 
 
-async def create_document(payload: dict[str, Any], owner: dict[str, Any]) -> dict[str, Any]:
-    document_id = payload["id"].strip()
+async def create_document(payload: DocumentCreate, owner: dict[str, Any]) -> dict[str, Any]:
+    document_id = payload.name.lower().replace(" ", "-").replace("/", "--")
     existing = await DocumentItem.find_one(DocumentItem.document_id == document_id)
     if existing is not None:
         raise DocumentAlreadyExistsError(f"Document '{document_id}' already exists")
 
-    now = _utcnow()
     document = DocumentItem(
         document_id=document_id,
-        name=payload["name"],
-        title=payload.get("title"),
-        type=payload["type"],
+        name=payload.name,
+        type=payload.type,
         owned_by=DocumentOwner(**owner),
-        category=payload.get("category"),
-        status=payload.get("status", "active"),
-        size=payload.get("size"),
-        item_count=0 if payload["type"] == "folder" else None,
-        parent_id=payload.get("parent_id"),
-        shared=payload.get("shared", False),
-        share_url=payload.get("share_url"),
-        content=payload.get("content"),
-        date_created=now,
-        last_modified=now,
-        created_at=now,
-        updated_at=now,
+        parent_id=payload.parent_id,
     )
 
     await _apply_path(document)

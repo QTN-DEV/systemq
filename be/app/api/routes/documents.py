@@ -153,7 +153,7 @@ async def create_document(
 
     try:
         document = await document_service.create_document(
-            payload.model_dump(),
+            payload,
             owner_payload,
         )
     except DocumentAlreadyExistsError as exc:
