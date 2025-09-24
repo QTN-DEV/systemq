@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from app.models.document import DocumentHistory, DocumentItem, DocumentOwner
-from be.app.schemas.document import DocumentCreate
+from app.schemas.document import DocumentCreate
 
 
 class DocumentAlreadyExistsError(ValueError):
