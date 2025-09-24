@@ -139,7 +139,7 @@ async def get_document_categories(
 )
 async def create_document(
     payload: DocumentCreate,
-    authorization: str = Header(),
+    authorization: str = Header(alias="Authorization"),
 ) -> DocumentResponse:
     try:
         token = auth_service.parse_bearer_token(authorization)

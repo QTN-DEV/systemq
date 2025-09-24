@@ -226,3 +226,33 @@ export async function getDocumentCategories(searchQuery: string = ''): Promise<s
   return filtered.length === 0 ? [searchQuery] : filtered.sort()
 }
 
+// Create new document or folder
+export async function createDocument(name: string, type: 'file' | 'folder', parentId: string | null, authToken: string): Promise<DocumentItem | null> {
+  try {
+    const payload = {
+      name,
+      title: null,
+      type,
+      category: null,
+      status: 'active',
+      parent_id: parentId,
+      shared: false,
+      share_url: null,
+      id: null,
+      content: null
+    }
+
+    const response = await api.post<ApiDocumentItem>('/documents/', payload, {
+      headers: {
+        'Authorization': authToken
+      }
+    })
+
+    return transformApiDocument(response.data)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error creating document:', error)
+    return null
+  }
+}
+

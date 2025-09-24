@@ -16,11 +16,13 @@ import {
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { 
-  getDocumentsByParentId, 
-  getDocumentById, 
+import { getCurrentSession } from '../services/AuthService'
+import {
+  getDocumentsByParentId,
+  getDocumentById,
   buildBreadcrumbs,
-  getActualItemCount 
+  getActualItemCount,
+  createDocument
 } from '../services/DocumentService'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
@@ -234,21 +236,70 @@ function Documents(): ReactElement {
   }
 
   // Form submission handlers
-  const handleCreateFolderSubmit = (e: React.FormEvent): void => {
+  const handleCreateFolderSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (newItemName.trim()) {
-      // In a real app, you would create the folder via API
-      setShowCreateFolder(false)
-      setNewItemName('')
+    if (!newItemName.trim()) return
+
+    try {
+      const session = getCurrentSession()
+      if (!session) {
+        setError('Authentication required')
+        return
+      }
+
+      const authToken = `Bearer ${session.token}`
+      const newFolder = await createDocument(newItemName.trim(), 'folder', currentFolderId, authToken)
+
+      if (newFolder) {
+        // Refresh the current items
+        const updatedItems = await getDocumentsByParentId(currentFolderId)
+        setCurrentItems(updatedItems)
+
+        // Update item counts for new folder
+        const counts = { ...itemCounts }
+        counts[newFolder.id] = 0
+        setItemCounts(counts)
+
+        setShowCreateFolder(false)
+        setNewItemName('')
+      } else {
+        setError('Failed to create folder. Please try again.')
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error creating folder:', error)
+      setError('Failed to create folder. Please try again.')
     }
   }
 
-  const handleCreateFileSubmit = (e: React.FormEvent): void => {
+  const handleCreateFileSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (newItemName.trim()) {
-      // In a real app, you would create the file via API
-      setShowCreateFile(false)
-      setNewItemName('')
+    if (!newItemName.trim()) return
+
+    try {
+      const session = getCurrentSession()
+      if (!session) {
+        setError('Authentication required')
+        return
+      }
+
+      const authToken = `Bearer ${session.token}`
+      const newFile = await createDocument(newItemName.trim(), 'file', currentFolderId, authToken)
+
+      if (newFile) {
+        // Refresh the current items
+        const updatedItems = await getDocumentsByParentId(currentFolderId)
+        setCurrentItems(updatedItems)
+
+        setShowCreateFile(false)
+        setNewItemName('')
+      } else {
+        setError('Failed to create file. Please try again.')
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error creating file:', error)
+      setError('Failed to create file. Please try again.')
     }
   }
 
@@ -701,7 +752,7 @@ function Documents(): ReactElement {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Folder</h3>
-            <form onSubmit={handleCreateFolderSubmit}>
+            <form onSubmit={(e) => { void handleCreateFolderSubmit(e) }}>
               <div className="mb-4">
                 <label htmlFor="folderName" className="block text-sm font-medium text-gray-700 mb-2">
                   Folder Name
@@ -740,7 +791,7 @@ function Documents(): ReactElement {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Create New File</h3>
-            <form onSubmit={handleCreateFileSubmit}>
+            <form onSubmit={(e) => { void handleCreateFileSubmit(e) }}>
               <div className="mb-4">
                 <label htmlFor="fileName" className="block text-sm font-medium text-gray-700 mb-2">
                   File Name
