@@ -5,9 +5,9 @@ import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { logger } from '@/lib/logger'
 
 import { getProjectsByIds as getProjectsByIdsService } from '../services/ProjectService'
-import { getAllEmployees } from '../services/UserService'
+import { createEmployee, getEmployees, updateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
 import type { Project } from '../types/project-type'
-import type { User as Employee } from '../types/user-type'
+// Using API types instead of mock User type
 
 function EmployeeManagement(): ReactElement {
   const [searchTerm, setSearchTerm] = useState('')
@@ -17,24 +17,47 @@ function EmployeeManagement(): ReactElement {
   const [showSubordinatesDropdown, setShowSubordinatesDropdown] = useState<string | null>(null)
   const [showProjectsDropdown, setShowProjectsDropdown] = useState<string | null>(null)
   const [showAddEmployeeForm, setShowAddEmployeeForm] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [showManageSubordinatesForm, setShowManageSubordinatesForm] = useState(false)
   const [isSubordinateFormAnimating, setIsSubordinateFormAnimating] = useState(false)
-  const [selectedEmployeeForSubordinates, setSelectedEmployeeForSubordinates] = useState<Employee | null>(null)
+  const [selectedEmployeeForSubordinates, setSelectedEmployeeForSubordinates] = useState<EmployeeListItem | null>(null)
   const [subordinateSearchTerm, setSubordinateSearchTerm] = useState('')
   const [newEmployee, setNewEmployee] = useState({
-    employeeId: '',
-    fullName: '',
-    emailAddress: '',
+    id: '',
+    name: '',
+    email: '',
     division: '',
     title: '',
     position: '',
     subordinates: '',
-    skillLevel: '',
-    employmentType: 'full-time' as 'full-time' | 'part-time' | 'intern'
+    level: '',
+    employment_type: 'full-time' as 'full-time' | 'part-time' | 'intern'
   })
 
-  const employees: Employee[] = getAllEmployees()
+  const [employees, setEmployees] = useState<EmployeeListItem[]>([])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await getEmployees()
+        setEmployees(data)
+      } catch (error) {
+        logger.error('Failed to load employees', error)
+      }
+    })()
+  }, [])
+
+  // Build a map of subordinateId -> managerId to prevent multi-managers
+  const subordinateToManager = useMemo(() => {
+    const map = new Map<string, string>()
+    employees.forEach((manager) => {
+      ;(manager.subordinates || []).forEach((sid) => {
+        if (!map.has(sid)) map.set(sid, manager.id)
+      })
+    })
+    return map
+  }, [employees])
 
   // Get unique positions for filter tabs
   const positions = useMemo((): string[] => {
@@ -42,7 +65,7 @@ function EmployeeManagement(): ReactElement {
   }, [])
 
   // Filter and search employees
-  const filteredEmployees = useMemo((): Employee[] => {
+  const filteredEmployees = useMemo((): EmployeeListItem[] => {
     let filtered = employees
 
     // Filter by position
@@ -55,7 +78,7 @@ function EmployeeManagement(): ReactElement {
       filtered = filtered.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (emp.title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.id.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
@@ -71,7 +94,7 @@ function EmployeeManagement(): ReactElement {
   // Helper functions
   const getProjectsByIds = (projectIds: string[]): Project[] => getProjectsByIdsService(projectIds)
 
-  const getSubordinatesByIds = (subordinateIds: string[]): Employee[] => {
+  const getSubordinatesByIds = (subordinateIds: string[]): EmployeeListItem[] => {
     return employees.filter(emp => subordinateIds.includes(emp.id))
   }
 
@@ -129,10 +152,14 @@ function EmployeeManagement(): ReactElement {
   }
 
   // Helper function to get available employees for subordinate assignment
-  const getAvailableEmployeesForSubordinate = (currentEmployeeId: string): Employee[] => {
+  const getAvailableEmployeesForSubordinate = (currentEmployeeId: string): EmployeeListItem[] => {
     return employees.filter(emp => 
       emp.id !== currentEmployeeId && 
+      emp.position !== 'CEO' &&
       !selectedEmployeeForSubordinates?.subordinates.includes(emp.id)
+    ).filter(emp =>
+      // Not already subordinate of someone else (except current manager)
+      (!subordinateToManager.has(emp.id) || subordinateToManager.get(emp.id) === currentEmployeeId)
     ).filter(emp =>
       subordinateSearchTerm === '' ||
       emp.name.toLowerCase().includes(subordinateSearchTerm.toLowerCase()) ||
@@ -142,7 +169,7 @@ function EmployeeManagement(): ReactElement {
   }
 
   // Handle manage subordinates click
-  const handleManageSubordinates = (employee: Employee): void => {
+  const handleManageSubordinates = (employee: EmployeeListItem): void => {
     setSelectedEmployeeForSubordinates(employee)
     setShowManageSubordinatesForm(true)
     setShowSubordinatesDropdown(null)
@@ -172,6 +199,23 @@ function EmployeeManagement(): ReactElement {
       }
       setSelectedEmployeeForSubordinates(updatedEmployee)
       logger.log('Removing subordinate:', subordinateId, 'from employee:', selectedEmployeeForSubordinates.id)
+    }
+  }
+
+  // Persist subordinate changes using the existing update API
+  const handleSaveSubordinateChanges = async (): Promise<void> => {
+    if (!selectedEmployeeForSubordinates) return
+    try {
+      await updateEmployee(selectedEmployeeForSubordinates.id, {
+        subordinates: selectedEmployeeForSubordinates.subordinates
+      })
+      // refresh list after save
+      const data = await getEmployees()
+      setEmployees(data)
+    } catch (error) {
+      logger.error('Failed to update subordinates', error)
+    } finally {
+      handleCloseSubordinateForm()
     }
   }
 
@@ -211,10 +255,34 @@ function EmployeeManagement(): ReactElement {
   }
 
   // Handle form submission
-  const handleSubmitEmployee = (e: React.FormEvent): void => {
+  const handleSubmitEmployee = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    // Here you would typically send the data to your backend
-    logger.log('New employee data:', newEmployee)
+    try {
+      const payload = {
+        id: newEmployee.id || undefined,
+        name: newEmployee.name,
+        email: newEmployee.email,
+        title: newEmployee.title || null,
+        division: newEmployee.division || null,
+        position: newEmployee.position || null,
+        level: newEmployee.level || null,
+        employment_type: newEmployee.employment_type,
+        subordinates: [],
+        projects: []
+      }
+      if (isEditing && newEmployee.id) {
+        const { id, ...updatePayload } = payload
+        await updateEmployee(newEmployee.id, updatePayload)
+      } else {
+        await createEmployee(payload)
+      }
+      logger.log('Employee created successfully')
+      // refresh list
+      const data = await getEmployees()
+      setEmployees(data)
+    } catch (error) {
+      logger.error('Failed to create employee', error)
+    }
 
     // Close with animation
     handleCloseForm()
@@ -225,16 +293,17 @@ function EmployeeManagement(): ReactElement {
     setIsAnimating(false)
     setTimeout(() => {
       setShowAddEmployeeForm(false)
+      setIsEditing(false)
       setNewEmployee({
-        employeeId: '',
-        fullName: '',
-        emailAddress: '',
+        id: '',
+        name: '',
+        email: '',
         division: '',
         title: '',
         position: '',
         subordinates: '',
-        skillLevel: '',
-        employmentType: 'full-time'
+        level: '',
+        employment_type: 'full-time'
       })
     }, 300)
   }
@@ -321,7 +390,7 @@ function EmployeeManagement(): ReactElement {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-gray-200 overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -342,6 +411,9 @@ function EmployeeManagement(): ReactElement {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Projects
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
               </th>
             </tr>
           </thead>
@@ -381,7 +453,7 @@ function EmployeeManagement(): ReactElement {
                     <div className="text-sm text-gray-500">{employee.division}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getPositionBadgeColor(employee.position)}`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getPositionBadgeColor(employee.position ?? '')}`}>
                       {employee.position}
                     </span>
                   </td>
@@ -404,17 +476,26 @@ function EmployeeManagement(): ReactElement {
                         </div>
                       ))}
                       <div className="relative">
-                        <span
-                          className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 px-3"
-                          onClick={(e) => handleShowSubordinates(employee.id, e)}
-                          onKeyDown={(e) => {
-                            handleShowSubordinatesKeyboard(employee.id, e)
-                          }}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          {subordinates.length > 2 ? `${subordinates.length - 2} more` : 'Manage'}
-                        </span>
+                        {employee.position === 'Team Member' ? (
+                          <span
+                            className="text-sm text-gray-400 px-3 cursor-not-allowed"
+                            aria-disabled="true"
+                          >
+                            {subordinates.length > 2 ? `${subordinates.length - 2} more` : 'Manage'}
+                          </span>
+                        ) : (
+                          <span
+                            className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 px-3"
+                            onClick={(e) => handleShowSubordinates(employee.id, e)}
+                            onKeyDown={(e) => {
+                              handleShowSubordinatesKeyboard(employee.id, e)
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            {subordinates.length > 2 ? `${subordinates.length - 2} more` : 'Manage'}
+                          </span>
+                        )}
                         {showSubordinatesDropdown === employee.id && (
                           <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                             <div className="p-2 border-b border-gray-100">
@@ -526,6 +607,28 @@ function EmployeeManagement(): ReactElement {
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      className="px-3 py-1 text-sm border border-gray-300 hover:bg-gray-50"
+                      onClick={() => {
+                        setNewEmployee({
+                          id: employee.id,
+                          name: employee.name,
+                          email: employee.email,
+                          division: employee.division ?? '',
+                          title: employee.title ?? '',
+                          position: employee.position ?? '',
+                          subordinates: '',
+                          level: employee.level ?? '',
+                          employment_type: (employee.employment_type ?? 'full-time') as 'full-time' | 'part-time' | 'intern'
+                        })
+                        setIsEditing(true)
+                        setShowAddEmployeeForm(true)
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               )
             })}
@@ -620,7 +723,7 @@ function EmployeeManagement(): ReactElement {
             <form onSubmit={handleSubmitEmployee}>
               {/* Form Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Add New Employee</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{isEditing ? 'Edit Employee' : 'Add New Employee'}</h2>
                 <button
                   type="button"
                   onClick={handleCloseForm}
@@ -640,8 +743,8 @@ function EmployeeManagement(): ReactElement {
                   <input
                     type="text"
                     id="employeeId"
-                    value={newEmployee.employeeId}
-                    onChange={(e) => handleInputChange('employeeId', e.target.value)}
+                    value={newEmployee.id}
+                    onChange={(e) => handleInputChange('id', e.target.value)}
                     placeholder="QTN-00012"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     required
@@ -656,8 +759,8 @@ function EmployeeManagement(): ReactElement {
                   <input
                     type="text"
                     id="fullName"
-                    value={newEmployee.fullName}
-                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                    value={newEmployee.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="John Doe"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     required
@@ -672,13 +775,13 @@ function EmployeeManagement(): ReactElement {
                   <input
                     type="email"
                     id="emailAddress"
-                    value={newEmployee.emailAddress}
-                    onChange={(e) => handleInputChange('emailAddress', e.target.value)}
+                    value={newEmployee.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="johndoe@email.com"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">Make sure to enter personal email</p>
+                  <p className="text-xs text-gray-500 mt-1">Make sure to enter work email</p>
                 </div>
 
                 {/* Division */}
@@ -694,6 +797,9 @@ function EmployeeManagement(): ReactElement {
                     required
                   >
                     <option value="">Select division</option>
+                    {newEmployee.division && !['Engineering','Product','Design','Marketing','Sales','HR','Finance'].includes(newEmployee.division) && (
+                      <option value={newEmployee.division}>{newEmployee.division}</option>
+                    )}
                     <option value="Engineering">Engineering</option>
                     <option value="Product">Product</option>
                     <option value="Design">Design</option>
@@ -706,17 +812,19 @@ function EmployeeManagement(): ReactElement {
 
                 {/* Title */}
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-2">
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                     Title
                   </label>
                   <select
                     id="title"
                     value={newEmployee.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed"
-                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">Select title</option>
+                    {newEmployee.title && !['CEO','CTO','Engineering Manager','Senior Developer','Developer','Junior Developer','UI/UX Designer','Product Manager','Marketing Manager','HR Manager'].includes(newEmployee.title) && (
+                      <option value={newEmployee.title}>{newEmployee.title}</option>
+                    )}
                     <option value="CEO">CEO</option>
                     <option value="CTO">CTO</option>
                     <option value="Engineering Manager">Engineering Manager</option>
@@ -743,6 +851,9 @@ function EmployeeManagement(): ReactElement {
                     required
                   >
                     <option value="">Select position</option>
+                    {newEmployee.position && !['CEO','Internal Ops','HR','PM','Div. Lead','Team Member'].includes(newEmployee.position) && (
+                      <option value={newEmployee.position}>{newEmployee.position}</option>
+                    )}
                     <option value="CEO">CEO</option>
                     <option value="Internal Ops">Internal Ops</option>
                     <option value="HR">HR</option>
@@ -771,19 +882,22 @@ function EmployeeManagement(): ReactElement {
                   </select>
                 </div>
 
-                {/* Skill Level */}
+                {/* Level */}
                 <div>
-                  <label htmlFor="skillLevel" className="block text-sm font-medium text-gray-700 mb-2">
-                    Skill Level
+                  <label htmlFor="level" className="block text-sm font-medium text-gray-700 mb-2">
+                    Level
                   </label>
                   <select
-                    id="skillLevel"
-                    value={newEmployee.skillLevel}
-                    onChange={(e) => handleInputChange('skillLevel', e.target.value)}
+                    id="level"
+                    value={newEmployee.level}
+                    onChange={(e) => handleInputChange('level', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     required
                   >
-                    <option value="">Select skill level</option>
+                    <option value="">Select level</option>
+                    {newEmployee.level && !['Entry','Junior','Mid','Senior','Lead','Principal'].includes(newEmployee.level) && (
+                      <option value={newEmployee.level}>{newEmployee.level}</option>
+                    )}
                     <option value="Entry">Entry</option>
                     <option value="Junior">Junior</option>
                     <option value="Mid">Mid</option>
@@ -800,11 +914,14 @@ function EmployeeManagement(): ReactElement {
                   </label>
                   <select
                     id="employmentType"
-                    value={newEmployee.employmentType}
-                    onChange={(e) => handleInputChange('employmentType', e.target.value as 'full-time' | 'part-time' | 'intern')}
+                    value={newEmployee.employment_type}
+                    onChange={(e) => handleInputChange('employment_type', e.target.value as 'full-time' | 'part-time' | 'intern')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     required
                   >
+                    {newEmployee.employment_type && !['full-time','part-time','intern'].includes(newEmployee.employment_type) && (
+                      <option value={newEmployee.employment_type}>{newEmployee.employment_type}</option>
+                    )}
                     <option value="full-time">Full Time</option>
                     <option value="part-time">Part Time</option>
                     <option value="intern">Intern</option>
@@ -818,7 +935,7 @@ function EmployeeManagement(): ReactElement {
                   type="submit"
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
                 >
-                  Add Employee
+                  {isEditing ? 'Save Changes' : 'Add Employee'}
                 </button>
               </div>
             </form>
@@ -960,7 +1077,7 @@ function EmployeeManagement(): ReactElement {
             {/* Form Footer */}
             <div className="p-6 border-t border-gray-200 bg-gray-50">
               <button
-                onClick={handleCloseSubordinateForm}
+                onClick={async () => { await handleSaveSubordinateChanges() }}
                 className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors font-medium"
               >
                 Save Changes

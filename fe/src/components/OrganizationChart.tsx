@@ -13,25 +13,22 @@ import {
   Position,
   BackgroundVariant,
 } from '@xyflow/react'
-import { useCallback, useMemo, type ReactElement } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react'
 import '@xyflow/react/dist/style.css'
 
-import { getAllEmployees } from '../services/UserService'
-import type { User as Employee } from '../types/user-type'
+import { getEmployees, type EmployeeListItem } from '@/services/EmployeeService'
 
 // Using shared Employee type from types/user-type
 
 interface CustomNodeData {
-  employee: Employee
+  employee: EmployeeListItem
+  hasSupervisor: boolean
 }
 
 // Custom node component for employee cards
 function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
   const { employee } = data
-  
-  // Check if this employee has a supervisor (is subordinate to someone)
-  const employees = getAllEmployees()
-  const hasSupervisor = employees.some(emp => emp.subordinates.includes(employee.id))
+  const hasSupervisor = data.hasSupervisor
   
   // Get initials from name
   const getInitials = (name: string): string => {
@@ -82,8 +79,9 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
     }
   }
 
+  const levelSafe = (employee.level ?? '').toString()
   return (
-    <div className={`rounded-lg shadow-lg border-2 min-w-[200px] max-w-[200px] hover:shadow-xl transition-all duration-200 hover:-translate-y-1 ${getLevelColor(employee.level)}`}>
+    <div className={`rounded-lg shadow-lg border-2 min-w-[200px] max-w-[200px] hover:shadow-xl transition-all duration-200 hover:-translate-y-1 ${getLevelColor(levelSafe)}`}>
       {/* Handle for incoming connections (from supervisor) - only show if employee has a supervisor */}
       {hasSupervisor && (
         <Handle
@@ -97,20 +95,21 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
         <div className="flex items-center space-x-3">
           {/* Avatar on left */}
           <div className="relative flex-shrink-0">
-            <img 
-              src={employee.avatar} 
-              alt={employee.name}
-              className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-              onError={(e) => {
-                // Fallback to initials if image fails to load
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-                const fallback = target.nextElementSibling as HTMLElement
-                if (fallback) fallback.style.display = 'flex'
-              }}
-            />
+            {employee.avatar ? (
+              <img 
+                src={employee.avatar}
+                alt={employee.name}
+                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  const fallback = target.nextElementSibling as HTMLElement
+                  if (fallback) fallback.style.display = 'flex'
+                }}
+              />
+            ) : null}
             <div 
-              className={`w-10 h-10 rounded-full ${getAvatarBgColor(employee.level)} flex items-center justify-center text-white text-xs font-bold shadow-sm hidden`}
+              className={`w-10 h-10 rounded-full ${getAvatarBgColor(levelSafe)} flex items-center justify-center text-white text-xs font-bold shadow-sm ${employee.avatar ? 'hidden' : ''}`}
             >
               {getInitials(employee.name)}
             </div>
@@ -121,7 +120,7 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
             {/* Name on top */}
             <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">{employee.name}</h3>
             {/* Role + Division on bottom */}
-            <p className="text-xs text-gray-600 leading-tight truncate">{employee.title} • {employee.division}</p>
+            <p className="text-xs text-gray-600 leading-tight truncate">{employee.title ?? ''} • {employee.division ?? ''}</p>
           </div>
         </div>
       </div>
@@ -147,7 +146,18 @@ interface OrganizationChartProps {
 }
 
 export default function OrganizationChart({ className = '' }: OrganizationChartProps): ReactElement {
-  const employees = getAllEmployees()
+  const [employees, setEmployees] = useState<EmployeeListItem[]>([])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await getEmployees()
+        setEmployees(data)
+      } catch {
+        // ignore for now
+      }
+    })()
+  }, [])
 
   // Create nodes and edges from employee data
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
@@ -155,21 +165,26 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
     const edges: Edge[] = []
     
     // Build hierarchy tree structure
-    const employeeMap = new Map<string, Employee>()
-    const rootEmployees: Employee[] = []
+    const employeeMap = new Map<string, EmployeeListItem>()
+    const rootEmployees: EmployeeListItem[] = []
     
     // Create employee map
     employees.forEach(employee => {
       employeeMap.set(employee.id, employee)
     })
     
-    // Find root employees (those who are not subordinates of anyone)
-    employees.forEach(employee => {
-      const isSubordinate = employees.some(emp => emp.subordinates.includes(employee.id))
-      if (!isSubordinate) {
-        rootEmployees.push(employee)
-      }
-    })
+    // Prefer CEO as root if present; otherwise, fall back to non-subordinate roots
+    const ceo = employees.find(emp => emp.position === 'CEO')
+    if (ceo) {
+      rootEmployees.push(ceo)
+    } else {
+      employees.forEach(employee => {
+        const isSubordinate = employees.some(emp => emp.subordinates.includes(employee.id))
+        if (!isSubordinate) {
+          rootEmployees.push(employee)
+        }
+      })
+    }
 
     // Recursive function to calculate subtree width
     const calculateSubtreeWidth = (employeeId: string): number => {
@@ -183,7 +198,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
     }
 
     // Recursive function to position nodes
-    const positionNodes = (employeeId: string, x: number, y: number, _availableWidth: number): void => {
+    const positionNodes = (employeeId: string, x: number, y: number, _availableWidth: number, rootId: string): void => {
       const employee = employeeMap.get(employeeId)
       if (!employee) return
 
@@ -192,7 +207,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
         id: employee.id,
         type: 'employee',
         position: { x: x - 100, y }, // Center the node (200px width / 2 = 100)
-        data: { employee },
+        data: { employee, hasSupervisor: employee.id !== rootId },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
       })
@@ -209,7 +224,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
           const childWidth = subordinateWidths[index]
           const childCenterX = currentX + childWidth / 2
           
-          positionNodes(subId, childCenterX, childY, childWidth)
+          positionNodes(subId, childCenterX, childY, childWidth, rootId)
           currentX += childWidth
         })
       }
@@ -225,7 +240,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
       const rootWidth = rootWidths[index]
       const rootCenterX = currentRootX + rootWidth / 2
       
-      positionNodes(rootEmployee.id, rootCenterX, 0, rootWidth)
+      positionNodes(rootEmployee.id, rootCenterX, 0, rootWidth, rootEmployee.id)
       currentRootX += rootWidth
     })
 
@@ -247,8 +262,14 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
     return { nodes, edges }
   }, [employees])
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+
+  // Keep ReactFlow state in sync when employees change
+  useEffect(() => {
+    setNodes(initialNodes)
+    setEdges(initialEdges)
+  }, [initialNodes, initialEdges, setNodes, setEdges])
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
