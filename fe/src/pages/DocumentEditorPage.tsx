@@ -158,17 +158,20 @@ function DocumentEditorPage(): ReactElement {
 
   useEffect(() => {
     if (fileId) {
-      const doc = getDocumentById(fileId)
-      if (doc && doc.type === 'file') {
-        setDocument(doc)
-        setFileName(doc.name) // This is the file name
-        setDocumentTitle(doc.title ?? doc.name) // This is the document title, fallback to file name
-        setDocumentCategory(doc.category ?? '')
-        
-        // Load document content (mock data for now)
-        const mockContent = getMockDocumentContent(doc.id)
-        setBlocks(mockContent)
+      const loadDocument = async (): Promise<void> => {
+        const doc = await getDocumentById(fileId)
+        if (doc && doc.type === 'file') {
+          setDocument(doc)
+          setFileName(doc.name) // This is the file name
+          setDocumentTitle(doc.title ?? doc.name) // This is the document title, fallback to file name
+          setDocumentCategory(doc.category ?? '')
+
+          // Load document content (mock data for now)
+          const mockContent = getMockDocumentContent(doc.id)
+          setBlocks(mockContent)
+        }
       }
+      void loadDocument()
     }
   }, [fileId, getMockDocumentContent])
 
@@ -224,9 +227,12 @@ function DocumentEditorPage(): ReactElement {
               <button
                 onClick={(): void => {
                   if (document.parentId) {
-                    const parentPathIds = getFolderPathIds(document.parentId)
-                    const parentPath = parentPathIds.join('/')
-                    void navigate(`/documents/${parentPath}`)
+                    const navigateToParent = async (): Promise<void> => {
+                      const parentPathIds = await getFolderPathIds(document.parentId)
+                      const parentPath = parentPathIds.join('/')
+                      void navigate(`/documents/${parentPath}`)
+                    }
+                    void navigateToParent()
                   }
                 }}
                 className="hover:text-gray-700 transition-colors"

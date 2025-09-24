@@ -1,4 +1,5 @@
 import axios from 'axios'
+
 import type { DocumentItem } from '../types/document-type'
 
 const API_BASE_URL = 'https://api.systemq.qtn.ai'
@@ -69,6 +70,7 @@ export async function getDocumentsByParentId(parentId: string | null | undefined
     const response = await api.get<ApiDocumentItem[]>(endpoint)
     return response.data.map(transformApiDocument)
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching documents:', error)
     return []
   }
@@ -80,6 +82,7 @@ export async function getActualItemCount(folderId: string): Promise<number> {
     const response = await api.get<ApiDocumentItem[]>(`/documents/?parent_id=${encodeURIComponent(folderId)}`)
     return response.data.length
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching item count:', error)
     return 0
   }
@@ -94,7 +97,7 @@ export async function getDocumentById(id: string): Promise<DocumentItem | undefi
     const rootDocuments = await getDocumentsByParentId(null);
     
     // First, check root documents
-    let foundDoc = rootDocuments.find(doc => doc.id === id);
+    const foundDoc = rootDocuments.find(doc => doc.id === id);
     if (foundDoc) {
       return foundDoc;
     }
@@ -105,6 +108,7 @@ export async function getDocumentById(id: string): Promise<DocumentItem | undefi
     
     return undefined;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching document by ID:', error);
     return undefined;
   }
