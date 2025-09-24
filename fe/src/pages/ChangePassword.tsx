@@ -4,14 +4,14 @@ import Swal from 'sweetalert2'
 import { logger } from '@/lib/logger'
 import { changePassword } from '@/services/AuthService'
 
-import { useUser } from '../contexts/UserContext'
+import { useAuthStore } from '@/stores/authStore'
 
 function ChangePassword(): ReactElement {
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { user } = useUser()
+  const user = useAuthStore(state => state.user)
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()

@@ -5,21 +5,23 @@ import Swal from 'sweetalert2'
 import { logger } from '@/lib/logger'
 
 import logo from '../assets/logo.png'
-import { useUser } from '../contexts/UserContext'
+import { useAuthStore } from '@/stores/authStore'
+import { login as loginService } from '@/services/AuthService'
 
 function Login(): JSX.Element {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
-  const { login } = useUser()
+  const setUser = useAuthStore(state => state.setUser)
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      await login(email, password)
+      const session = await loginService(email, password)
+      setUser(session.user)
       navigate('/dashboard')
       logger.log('Login successful')
     } catch (error) {
