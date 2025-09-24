@@ -192,11 +192,7 @@ async def get_distinct_types(search: str | None = None) -> list[str]:
     filtered = [value for value in values if isinstance(value, str)]
     if search:
         search_lower = search.lower()
-        filtered = [
-            value
-            for value in filtered
-            if search_lower in value.lower()
-        ]
+        filtered = [value for value in filtered if search_lower in value.lower()]
     return sorted(set(filtered))
 
 
@@ -205,11 +201,7 @@ async def get_distinct_categories(search: str | None = None) -> list[str]:
     filtered = [value for value in values if isinstance(value, str)]
     if search:
         search_lower = search.lower()
-        filtered = [
-            value
-            for value in filtered
-            if search_lower in value.lower()
-        ]
+        filtered = [value for value in filtered if search_lower in value.lower()]
         if not filtered:
             return [search]
     return sorted(set(filtered))
@@ -217,7 +209,13 @@ async def get_distinct_categories(search: str | None = None) -> list[str]:
 
 async def create_document(payload: DocumentCreate, owner: dict[str, Any]) -> dict[str, Any]:
     document_id = payload.name.lower().replace(" ", "-").replace("/", "--")
-    existing = await DocumentItem.find_one(DocumentItem.document_id == document_id)
+    existing = await DocumentItem.find_one(
+        {
+            "document_id": document_id,
+            "parent_id": payload.parent_id,
+            "deleted_at": None,
+        },
+    )
     if existing is not None:
         raise DocumentAlreadyExistsError(f"Document '{document_id}' already exists")
 
