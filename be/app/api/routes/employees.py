@@ -15,6 +15,18 @@ from app.services.employee import (
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
+@router.get(
+    "/inactive",
+    response_model=list[Employee],
+    summary="List inactive employees",
+    response_description="Inactive employees matching the optional search criteria.",
+)
+async def list_employees(
+    search: str | None = Query(None),
+) -> list[Employee]:
+    """Return inactive employees, optionally filtered by a search string."""
+    employees = await employee_service.list_employees_nonactive(search)
+    return [Employee.model_validate(employee) for employee in employees]
 
 @router.get(
     "/",

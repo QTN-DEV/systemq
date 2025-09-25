@@ -39,6 +39,25 @@ def _serialize(user: User) -> dict[str, object]:
         "avatar": user.avatar,
         "employment_type": user.employment_type,
     }
+    
+    
+async def list_employees_nonactive(search: str | None = None) -> list[dict[str, object]]:
+    users = [user for user in await User.find_all().to_list() if not user.is_active]
+    if not search:
+        return [_serialize(user) for user in users]
+
+    needle = search.strip().lower()
+    filtered: list[dict[str, object]] = []
+    for user in users:
+        haystack = [
+            user.name,
+            user.email,
+            user.title or "",
+            user.employee_id or "",
+        ]
+        if any(needle in value.lower() for value in haystack):
+            filtered.append(_serialize(user))
+    return filtered
 
 
 async def list_employees(search: str | None = None) -> list[dict[str, object]]:
