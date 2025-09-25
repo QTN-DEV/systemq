@@ -1,9 +1,5 @@
 import {
-  Edit2,
-  Trash2,
-  Share2,
   Folder,
-  File,
   MoreHorizontal,
   ChevronRight,
   Home,
@@ -152,9 +148,7 @@ function Documents(): ReactElement {
     return colors[role as keyof typeof colors] ?? 'bg-gray-500'
   }
 
-  const formatFileSize = (size: string | undefined): string => {
-    return size ?? '-'
-  }
+  // const formatFileSize = (size: string | undefined): string => size ?? '-'
 
   // Navigation handlers
   const handleItemClick = (item: DocumentItem): void => {

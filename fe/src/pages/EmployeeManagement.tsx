@@ -3,9 +3,9 @@ import { Search, Plus, Download, X, Edit, MoreVertical } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 
 import { logger } from '@/lib/logger'
+import { createEmployee, getEmployees, getInactiveEmployees, updateEmployee, deactivateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
 
 import { getProjectsByIds as getProjectsByIdsService } from '../services/ProjectService'
-import { createEmployee, getEmployees, getInactiveEmployees, updateEmployee, deactivateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
 import type { Project } from '../types/project-type'
 // Using API types instead of mock User type
 
@@ -717,7 +717,7 @@ function EmployeeManagement(): ReactElement {
                                   position: employee.position ?? '',
                                   subordinates: '',
                                   level: employee.level ?? '',
-                                  employment_type: (employee.employment_type ?? 'full-time') as 'full-time' | 'part-time' | 'intern'
+                                  employment_type: (employee.employment_type ?? 'full-time')
                                 })
                                 setIsEditing(true)
                                 setShowAddEmployeeForm(true)

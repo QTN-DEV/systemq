@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
-import DashboardLayout from './layouts/DashboardLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import RoleProtectedRoute from './components/RoleProtectedRoute'
+import DashboardLayout from './layouts/DashboardLayout'
 import About from './pages/About'
 import ChangePassword from './pages/ChangePassword'
 import Contact from './pages/Contact'

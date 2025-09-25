@@ -201,7 +201,7 @@ function Sidebar(): ReactElement {
           {!isCollapsed && <span>Change Password</span>}
         </Link>
         <button
-          onClick={handleLogout}
+          onClick={() => { void handleLogout() }}
           className={cn(
             'flex items-center w-full px-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors',
             isCollapsed && 'justify-center'

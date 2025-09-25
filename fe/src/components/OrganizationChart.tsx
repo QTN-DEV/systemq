@@ -272,7 +272,9 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
   }, [initialNodes, initialEdges, setNodes, setEdges])
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection): void => {
+      setEdges((eds) => addEdge(params, eds))
+    },
     [setEdges]
   )
 
@@ -310,7 +312,8 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
             const data = node.data as Partial<CustomNodeData>;
             if (!data.employee) return '#6b7280';
             const employee = data.employee;
-            switch (employee.level.toLowerCase()) {
+            const level = (employee.level ?? '').toLowerCase()
+            switch (level) {
               case 'executive': return '#ef4444'
               case 'director':
               case 'manager': return '#f97316'
