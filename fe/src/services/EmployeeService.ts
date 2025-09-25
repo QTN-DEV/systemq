@@ -2,12 +2,12 @@ import axios from 'axios'
 
 import { useAuthStore } from '@/stores/authStore'
 
-const INTERNAL_API_BASE_URL = import.meta.env.VITE_QB_INTERNAL_API as string
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
-console.log('QB base:', INTERNAL_API_BASE_URL)
+console.log('QB base:', API_BASE_URL)
 
 const api = axios.create({
-  baseURL: INTERNAL_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 30000
 })
 
@@ -52,6 +52,7 @@ export interface EmployeeListItem {
   avatar?: string | null
   level?: string | null
   employment_type?: 'full-time' | 'part-time' | 'intern'
+  is_active: boolean
 }
 
 export async function getEmployees(): Promise<EmployeeListItem[]> {
@@ -75,6 +76,21 @@ export type UpdateEmployeePayload = Partial<{
 
 export async function updateEmployee(employeeId: string, payload: UpdateEmployeePayload): Promise<EmployeeListItem> {
   const response = await api.put<EmployeeListItem>(`/employees/${employeeId}`, payload)
+  return response.data
+}
+
+export async function deactivateEmployee(employeeId: string): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>(`/employees/${employeeId}/deactivate`, {}, {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  return response.data
+}
+
+export async function getInactiveEmployees(search?: string): Promise<EmployeeListItem[]> {
+  const params = search ? { search } : {}
+  const response = await api.get<EmployeeListItem[]>('/employees/inactive', { params })
   return response.data
 }
 

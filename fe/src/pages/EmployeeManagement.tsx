@@ -1,17 +1,17 @@
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import { Search, Plus, Download, X, Edit } from 'lucide-react'
+import { Search, Plus, Download, X, Edit, MoreVertical } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 
 import { logger } from '@/lib/logger'
 
 import { getProjectsByIds as getProjectsByIdsService } from '../services/ProjectService'
-import { createEmployee, getEmployees, updateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
+import { createEmployee, getEmployees, getInactiveEmployees, updateEmployee, deactivateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
 import type { Project } from '../types/project-type'
 // Using API types instead of mock User type
 
 function EmployeeManagement(): ReactElement {
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeFilter, setActiveFilter] = useState('All Employees')
+  const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [showSubordinatesDropdown, setShowSubordinatesDropdown] = useState<string | null>(null)
@@ -23,6 +23,10 @@ function EmployeeManagement(): ReactElement {
   const [isSubordinateFormAnimating, setIsSubordinateFormAnimating] = useState(false)
   const [selectedEmployeeForSubordinates, setSelectedEmployeeForSubordinates] = useState<EmployeeListItem | null>(null)
   const [subordinateSearchTerm, setSubordinateSearchTerm] = useState('')
+  const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [employeeToDeactivate, setEmployeeToDeactivate] = useState<EmployeeListItem | null>(null)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const [newEmployee, setNewEmployee] = useState({
     id: '',
     name: '',
@@ -36,7 +40,9 @@ function EmployeeManagement(): ReactElement {
   })
 
   const [employees, setEmployees] = useState<EmployeeListItem[]>([])
+  const [inactiveEmployees, setInactiveEmployees] = useState<EmployeeListItem[]>([])
 
+  // Fetch active employees
   useEffect(() => {
     void (async () => {
       try {
@@ -47,6 +53,20 @@ function EmployeeManagement(): ReactElement {
       }
     })()
   }, [])
+
+  // Fetch inactive employees when inactive tab is selected
+  useEffect(() => {
+    if (activeTab === 'inactive') {
+      void (async () => {
+        try {
+          const data = await getInactiveEmployees(searchTerm || undefined)
+          setInactiveEmployees(data)
+        } catch (error) {
+          logger.error('Failed to fetch inactive employees', error)
+        }
+      })()
+    }
+  }, [activeTab, searchTerm])
 
   // Build a map of subordinateId -> managerId to prevent multi-managers
   const subordinateToManager = useMemo(() => {
@@ -59,32 +79,24 @@ function EmployeeManagement(): ReactElement {
     return map
   }, [employees])
 
-  // Get unique positions for filter tabs
-  const positions = useMemo((): string[] => {
-    return ['All Employees', 'CEO', 'Internal Ops', 'HR', 'PM', 'Div. Lead', 'Team Member']
-  }, [])
 
-  // Filter and search employees
+  // Filter and search employees based on active tab
   const filteredEmployees = useMemo((): EmployeeListItem[] => {
-    let filtered = employees
-
-    // Filter by position
-    if (activeFilter !== 'All Employees') {
-      filtered = filtered.filter(emp => emp.position === activeFilter)
-    }
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(emp =>
+    const sourceData = activeTab === 'active' ? employees : inactiveEmployees
+    
+    // For active tab, apply search filter locally
+    if (activeTab === 'active' && searchTerm) {
+      return sourceData.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (emp.title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.id.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
-
-    return filtered
-  }, [employees, activeFilter, searchTerm])
+    
+    // For inactive tab, search is handled by the API
+    return sourceData
+  }, [employees, inactiveEmployees, activeTab, searchTerm])
 
   // Pagination
   const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage)
@@ -219,16 +231,49 @@ function EmployeeManagement(): ReactElement {
     }
   }
 
+  // Handle deactivate employee
+  const handleDeactivateEmployee = async (): Promise<void> => {
+    if (!employeeToDeactivate) return
+    
+    try {
+      await deactivateEmployee(employeeToDeactivate.id)
+      // refresh both active and inactive lists after deactivate
+      const [activeData, inactiveData] = await Promise.all([
+        getEmployees(),
+        getInactiveEmployees()
+      ])
+      setEmployees(activeData)
+      setInactiveEmployees(inactiveData)
+      setShowDeactivateModal(false)
+      setEmployeeToDeactivate(null)
+      setNotification({ type: 'success', message: 'Employee deactivated successfully.' })
+    } catch (error) {
+      logger.error('Failed to deactivate employee', error)
+      setNotification({ type: 'error', message: 'Failed to deactivate employee.' })
+    }
+  }
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (): void => {
       setShowSubordinatesDropdown(null)
       setShowProjectsDropdown(null)
+      setShowActionsDropdown(null)
     }
 
     document.addEventListener('click', handleClickOutside)
     return (): void => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  // Auto-dismiss notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   // Trigger animation when form opens
   useEffect(() => {
@@ -334,6 +379,25 @@ function EmployeeManagement(): ReactElement {
 
   return (
     <div className="p-8">
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+          notification.type === 'success' 
+            ? 'bg-green-100 border border-green-400 text-green-700' 
+            : 'bg-red-100 border border-red-400 text-red-700'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-4 text-lg font-bold hover:opacity-70"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -350,23 +414,32 @@ function EmployeeManagement(): ReactElement {
           </button>
         </div>
 
-        {/* Filter Tabs */}
+        {/* Active/Inactive Tabs */}
         <div className="flex items-center space-x-1 mb-6 border-b">
-          {positions.map((position) => (
-            <button
-              key={position}
-              onClick={() => {
-                setActiveFilter(position)
-                setCurrentPage(1)
-              }}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeFilter === position
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              {position}
-            </button>
-          ))}
+          <button
+            onClick={() => {
+              setActiveTab('active')
+              setCurrentPage(1)
+            }}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'active'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('inactive')
+              setCurrentPage(1)
+            }}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'inactive'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            Non-Active
+          </button>
         </div>
 
         {/* Search and Export */}
@@ -423,7 +496,7 @@ function EmployeeManagement(): ReactElement {
               const subordinates = getSubordinatesByIds(employee.subordinates)
 
               return (
-                <tr key={employee.id} className="hover:bg-gray-50">
+                <tr key={employee.id} className={`hover:bg-gray-50 ${activeTab === 'inactive' ? 'opacity-60 bg-gray-50' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {employee.id}
                   </td>
@@ -476,7 +549,7 @@ function EmployeeManagement(): ReactElement {
                         </div>
                       ))}
                       <div className="relative">
-                        {employee.position === 'Team Member' ? (
+                        {employee.position === 'Team Member' || activeTab === 'inactive' ? (
                           <span
                             className="text-sm text-gray-400 px-3 cursor-not-allowed"
                             aria-disabled="true"
@@ -526,7 +599,12 @@ function EmployeeManagement(): ReactElement {
                             <div className="p-2 border-t border-gray-100 bg-gray-50">
                               <button 
                                 onClick={() => handleManageSubordinates(employee)}
-                                className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 text-xs"
+                                disabled={activeTab === 'inactive'}
+                                className={`flex items-center space-x-1 text-xs ${
+                                  activeTab === 'inactive' 
+                                    ? 'text-gray-400 cursor-not-allowed' 
+                                    : 'text-gray-600 hover:text-gray-800'
+                                }`}
                               >
                                 <Edit className="w-3 h-3" />
                                 <span>Manage Subordinate</span>
@@ -608,26 +686,60 @@ function EmployeeManagement(): ReactElement {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      className="px-3 py-1 text-sm border border-gray-300 hover:bg-gray-50"
-                      onClick={() => {
-                        setNewEmployee({
-                          id: employee.id,
-                          name: employee.name,
-                          email: employee.email,
-                          division: employee.division ?? '',
-                          title: employee.title ?? '',
-                          position: employee.position ?? '',
-                          subordinates: '',
-                          level: employee.level ?? '',
-                          employment_type: (employee.employment_type ?? 'full-time') as 'full-time' | 'part-time' | 'intern'
-                        })
-                        setIsEditing(true)
-                        setShowAddEmployeeForm(true)
-                      }}
-                    >
-                      Edit
-                    </button>
+                    <div className="relative">
+                      <button
+                        className={`p-1 rounded ${
+                          activeTab === 'inactive' 
+                            ? 'cursor-not-allowed opacity-50' 
+                            : 'hover:bg-gray-100'
+                        }`}
+                        disabled={activeTab === 'inactive'}
+                        onClick={(e) => {
+                          if (activeTab === 'inactive') return
+                          e.stopPropagation()
+                          setShowActionsDropdown(showActionsDropdown === employee.id ? null : employee.id)
+                        }}
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-500" />
+                      </button>
+                      {showActionsDropdown === employee.id && (
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                          <div className="py-1">
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                              onClick={() => {
+                                setNewEmployee({
+                                  id: employee.id,
+                                  name: employee.name,
+                                  email: employee.email,
+                                  division: employee.division ?? '',
+                                  title: employee.title ?? '',
+                                  position: employee.position ?? '',
+                                  subordinates: '',
+                                  level: employee.level ?? '',
+                                  employment_type: (employee.employment_type ?? 'full-time') as 'full-time' | 'part-time' | 'intern'
+                                })
+                                setIsEditing(true)
+                                setShowAddEmployeeForm(true)
+                                setShowActionsDropdown(null)
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                              onClick={() => {
+                                setEmployeeToDeactivate(employee)
+                                setShowDeactivateModal(true)
+                                setShowActionsDropdown(null)
+                              }}
+                            >
+                              Deactivate Employee
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
@@ -1082,6 +1194,37 @@ function EmployeeManagement(): ReactElement {
               >
                 Save Changes
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deactivate Employee Modal */}
+      {showDeactivateModal && employeeToDeactivate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Deactivate Employee</h2>
+                 <p className="text-gray-600 mb-6">
+                   Are you sure you want to deactivate {employeeToDeactivate.name} (ID: {employeeToDeactivate.id})?
+                 </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeactivateModal(false)
+                    setEmployeeToDeactivate(null)
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeactivateEmployee}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+                >
+                  Yes, Deactivate
+                </button>
+              </div>
             </div>
           </div>
         </div>
