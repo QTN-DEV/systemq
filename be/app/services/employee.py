@@ -10,7 +10,7 @@ from app.core.security import generate_random_password, hash_password
 from app.models.enums import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS
 from app.models.user import User
 from app.services.email import EmailConfigurationError, send_email
-from constants import APP_NAME
+from constants import APP_NAME, DEFAULT_PASSWORD
 
 
 class EmployeeAlreadyExistsError(ValueError):
@@ -39,8 +39,8 @@ def _serialize(user: User) -> dict[str, object]:
         "avatar": user.avatar,
         "employment_type": user.employment_type,
     }
-    
-    
+
+
 async def list_employees_nonactive(search: str | None = None) -> list[dict[str, object]]:
     users = [user for user in await User.find_all().to_list() if not user.is_active]
     if not search:
@@ -135,7 +135,7 @@ async def create_employee(payload: dict[str, object]) -> dict[str, object]:
     if existing is not None:
         raise EmployeeAlreadyExistsError("Employee with given id or email already exists")
 
-    password = generate_random_password()
+    password = DEFAULT_PASSWORD
     hashed_password = hash_password(password)
 
     position = payload.get("position")

@@ -86,6 +86,12 @@ async def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
     return MessageResponse(message="Password changed successfully.")
 
 
+@router.post(
+    "/change-password",
+    response_model=MessageResponse,
+    summary="Change password",
+    response_description="Confirmation that the password was changed.",
+)
 async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     """Update a user's password after verifying the supplied current password."""
     try:
