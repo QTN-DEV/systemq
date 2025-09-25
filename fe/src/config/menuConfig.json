@@ -14,7 +14,7 @@
       "path": "/structure-organization",
       "icon": "Building2",
       "type": "item",
-      "roles": ["employee", "hr", "internalops"]
+      "roles": ["employee", "hr", "internalops", "pm"]
     },
     {
       "id": "employee-management",

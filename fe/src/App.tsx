@@ -2,6 +2,8 @@ import type { ReactElement } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
 import DashboardLayout from './layouts/DashboardLayout'
+import ProtectedRoute from './components/ProtectedRoute'
+import RoleProtectedRoute from './components/RoleProtectedRoute'
 import About from './pages/About'
 import ChangePassword from './pages/ChangePassword'
 import Contact from './pages/Contact'
@@ -27,29 +29,39 @@ function App(): ReactElement {
       
       {/* Authenticated routes with sidebar */}
       <Route path="/dashboard" element={
-        <DashboardLayout>
-          <Dashboard />
-        </DashboardLayout>
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Dashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
       } />
       <Route path="/home" element={
-        <DashboardLayout>
-          <Home />
-        </DashboardLayout>
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Home />
+          </DashboardLayout>
+        </ProtectedRoute>
       } />
       <Route path="/about" element={
-        <DashboardLayout>
-          <About />
-        </DashboardLayout>
+        <ProtectedRoute>
+          <DashboardLayout>
+            <About />
+          </DashboardLayout>
+        </ProtectedRoute>
       } />
       <Route path="/contact" element={
-        <DashboardLayout>
-          <Contact />
-        </DashboardLayout>
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Contact />
+          </DashboardLayout>
+        </ProtectedRoute>
       } />
       <Route path="/change-password" element={
-        <DashboardLayout>
-          <ChangePassword />
-        </DashboardLayout>
+        <ProtectedRoute>
+          <DashboardLayout>
+            <ChangePassword />
+          </DashboardLayout>
+        </ProtectedRoute>
       } />
       
       {/* Placeholder routes for menu items */}
@@ -58,19 +70,31 @@ function App(): ReactElement {
       <Route path="/work-arrangement" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Work Arrangement Request</h1></div></DashboardLayout>} />
       
       {/* Core Ops */}
-      <Route path="/structure-organization" element={<DashboardLayout><StructureOrganization /></DashboardLayout>} />
-      <Route path="/employee-management" element={<DashboardLayout><EmployeeManagement /></DashboardLayout>} />
-      <Route path="/attendance-tracker" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Attendance Tracker</h1></div></DashboardLayout>} />
+      <Route path="/structure-organization" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <StructureOrganization />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/employee-management" element={
+        <RoleProtectedRoute allowed={['hr', 'internalops']}>
+          <DashboardLayout>
+            <EmployeeManagement />
+          </DashboardLayout>
+        </RoleProtectedRoute>
+      } />
+      <Route path="/attendance-tracker" element={<ProtectedRoute><DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Attendance Tracker</h1></div></DashboardLayout></ProtectedRoute>} />
       
       {/* Knowledge */}
-      <Route path="/documents" element={<DashboardLayout><Documents /></DashboardLayout>} />
-      <Route path="/documents/*" element={<DashboardLayout><Documents /></DashboardLayout>} />
-      <Route path="/documents/file/:fileId" element={<DashboardLayout><DocumentEditorPage /></DashboardLayout>} />
-      <Route path="/charter-management" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Charter Management</h1></div></DashboardLayout>} />
-      <Route path="/product-roadmap" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Product Roadmap</h1></div></DashboardLayout>} />
+      <Route path="/documents" element={<ProtectedRoute><DashboardLayout><Documents /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/documents/*" element={<ProtectedRoute><DashboardLayout><Documents /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/documents/file/:fileId" element={<ProtectedRoute><DashboardLayout><DocumentEditorPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/charter-management" element={<ProtectedRoute><DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Charter Management</h1></div></DashboardLayout></ProtectedRoute>} />
+      <Route path="/product-roadmap" element={<ProtectedRoute><DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Product Roadmap</h1></div></DashboardLayout></ProtectedRoute>} />
       
       {/* Productivity */}
-      <Route path="/project-management" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Project Management</h1></div></DashboardLayout>} />
+      <Route path="/project-management" element={<ProtectedRoute><DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Project Management</h1></div></DashboardLayout></ProtectedRoute>} />
       <Route path="/daily-startup-tracker" element={<DashboardLayout><div className="p-8"><h1 className="text-2xl font-bold">Daily Startup Tracker</h1></div></DashboardLayout>} />
       
       {/* 404 page */}

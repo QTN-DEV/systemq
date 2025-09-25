@@ -9,7 +9,8 @@ import {
   Home,
   Copy,
   Check,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -229,7 +230,22 @@ function Documents(): ReactElement {
   // Form submission handlers
   const handleCreateFolderSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (!newItemName.trim()) return
+    const name = newItemName.trim()
+    if (!name) return
+
+    // Client-side validation: invalid characters
+    const validNamePattern = /^[A-Za-z0-9 _.-]+$/
+    if (!validNamePattern.test(name)) {
+      setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
+      return
+    }
+
+    // Client-side validation: duplicate name within the same folder (case-insensitive)
+    const siblingNames = new Set(currentItems.map(i => i.name.trim().toLowerCase()))
+    if (siblingNames.has(name.toLowerCase())) {
+      setError('Duplicate name: an item with this name already exists in this folder.')
+      return
+    }
 
     try {
       const session = getCurrentSession()
@@ -239,7 +255,7 @@ function Documents(): ReactElement {
       }
 
       const authToken = `Bearer ${session.token}`
-      const newFolder = await createDocument(newItemName.trim(), 'folder', currentFolderId, authToken)
+      const newFolder = await createDocument(name, 'folder', currentFolderId, authToken)
 
       if (newFolder) {
         // Refresh the current items
@@ -253,6 +269,7 @@ function Documents(): ReactElement {
 
         setShowCreateFolder(false)
         setNewItemName('')
+        setError(null)
       } else {
         setError('Failed to create folder. Please try again.')
       }
@@ -265,7 +282,22 @@ function Documents(): ReactElement {
 
   const handleCreateFileSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (!newItemName.trim()) return
+    const name = newItemName.trim()
+    if (!name) return
+
+    // Client-side validation: invalid characters
+    const validNamePattern = /^[A-Za-z0-9 _.-]+$/
+    if (!validNamePattern.test(name)) {
+      setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
+      return
+    }
+
+    // Client-side validation: duplicate name within the same folder (case-insensitive)
+    const siblingNames = new Set(currentItems.map(i => i.name.trim().toLowerCase()))
+    if (siblingNames.has(name.toLowerCase())) {
+      setError('Duplicate name: an item with this name already exists in this folder.')
+      return
+    }
 
     try {
       const session = getCurrentSession()
@@ -275,7 +307,7 @@ function Documents(): ReactElement {
       }
 
       const authToken = `Bearer ${session.token}`
-      const newFile = await createDocument(newItemName.trim(), 'file', currentFolderId, authToken)
+      const newFile = await createDocument(name, 'file', currentFolderId, authToken)
 
       if (newFile) {
         // Refresh the current items
@@ -284,6 +316,7 @@ function Documents(): ReactElement {
 
         setShowCreateFile(false)
         setNewItemName('')
+        setError(null)
       } else {
         setError('Failed to create file. Please try again.')
       }
@@ -296,10 +329,29 @@ function Documents(): ReactElement {
 
   const handleRenameSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (!newItemName.trim() || !selectedItem) return
+    const name = newItemName.trim()
+    if (!name || !selectedItem) return
+
+    // Client-side validation: invalid characters
+    const validNamePattern = /^[A-Za-z0-9 _.-]+$/
+    if (!validNamePattern.test(name)) {
+      setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
+      return
+    }
+
+    // Client-side validation: duplicate name within the same folder (ignore the item being renamed)
+    const siblingNames = new Set(
+      currentItems
+        .filter(i => i.id !== selectedItem.id)
+        .map(i => i.name.trim().toLowerCase())
+    )
+    if (siblingNames.has(name.toLowerCase())) {
+      setError('Duplicate name: an item with this name already exists in this folder.')
+      return
+    }
 
     try {
-      const updatedItem = await renameDocument(selectedItem.id, newItemName.trim())
+      const updatedItem = await renameDocument(selectedItem.id, name)
 
       if (updatedItem) {
         // Refresh the current items after successful rename
@@ -309,6 +361,7 @@ function Documents(): ReactElement {
         setShowRenameModal(false)
         setSelectedItem(null)
         setNewItemName('')
+        setError(null)
       } else {
         setError('Failed to rename item. Please try again.')
       }
@@ -454,18 +507,11 @@ function Documents(): ReactElement {
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={handleCreateFile}
-              className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 hover:bg-gray-200 transition-colors"
-            >
-              <File className="w-4 h-4" />
-              <span>New File</span>
-            </button>
-            <button
               onClick={handleCreateFolder}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Folder className="w-4 h-4" />
-              <span>New Folder</span>
+              <Plus className="w-4 h-4" />
+              <span>Create New Folder</span>
             </button>
           </div>
         </div>
@@ -483,7 +529,7 @@ function Documents(): ReactElement {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center space-x-1 border-b">
+      <div className="flex items-center space-x-4 border-b">
         {categories.map((category) => (
           <button
             key={category}
@@ -520,190 +566,142 @@ function Documents(): ReactElement {
         </button>
       </div> */}
 
-      <div className="bg-white border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Folder/File
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Owned By
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Modified
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {isInitialLoad ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" aria-label="Loading documents" />
-                    <p className="text-gray-600">Loading documents...</p>
-                  </div>
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4" aria-label="Error indicator">
-                      <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
+      {/* Card-based layout */}
+      {isInitialLoad ? (
+        <div className="px-6 py-16 text-center bg-white border border-gray-200">
+          <div className="flex flex-col items-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" aria-label="Loading documents" />
+            <p className="text-gray-600">Loading documents...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="px-6 py-16 text-center bg-white border border-gray-200">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4" aria-label="Error indicator">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Documents</h3>
+            <p className="text-gray-500 mb-6 max-w-sm">There was an error loading your documents. Please check your connection and try again.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Reload Page</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Folders Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700">Folders</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {paginatedItems.filter(i => i.type === 'folder').map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white hover:shadow transition cursor-pointer"
+                  onClick={() => handleItemClick(item)}
+                >
+                  {/* Header gradient */}
+                  <div className="relative h-28 bg-gradient-to-br from-gray-900 via-gray-800 to-slate-600 px-4 pt-3">
+                    <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
+                      <Folder className="h-4 w-4 text-gray-700" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Documents</h3>
-                    <p className="text-gray-500 mb-6 max-w-sm">There was an error loading your documents. Please check your connection and try again.</p>
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      <span>Reload Page</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ) : paginatedItems.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <Folder className="w-8 h-8 text-gray-400" />
+                    <div className="absolute right-4 top-9 text-xs text-white/90">
+                      {(itemCounts[item.id] ?? 0)} documents
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {searchTerm || activeFilter !== 'All' ? 'No matching items found' : 'This folder is empty'}
-                    </h3>
-                    <p className="text-gray-500 mb-6 max-w-sm">
-                      {searchTerm || activeFilter !== 'All' 
-                        ? 'Try adjusting your search terms or filters to find what you\'re looking for.'
-                        : 'Get started by creating a new file or folder in this location.'
-                      }
-                    </p>
-                    {(!searchTerm && activeFilter === 'All') && (
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={handleCreateFile}
-                          className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
-                        >
-                          <File className="w-4 h-4" />
-                          <span>New File</span>
-                        </button>
-                        <button
-                          onClick={handleCreateFolder}
-                          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                        >
-                          <Folder className="w-4 h-4" />
-                          <span>New Folder</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              paginatedItems.map((item) => (
-              <tr
-                key={item.id}
-                className="hover:bg-gray-50 cursor-pointer"
-                onClick={() => handleItemClick(item)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center" aria-label={`${item.type === 'folder' ? 'Folder' : 'File'} icon`}>
-                      {item.type === 'folder' ? (
-                        <Folder className="h-8 w-8 text-blue-500" />
-                      ) : (
-                        <File className="h-8 w-8 text-gray-500" />
-                      )}
+                    <div className="mt-8 text-white font-semibold leading-snug line-clamp-2 pr-4">
+                      {item.name}
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {item.type === 'folder'
-                          ? itemCounts[item.id] !== undefined
-                            ? `${itemCounts[item.id] ?? 0} items`
-                            : 'Loading...'
-                          : formatFileSize(item.size)
-                        }
+                  </div>
+                  {/* Footer */}
+                  <div className="bg-white px-4 py-3 flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Contributor:</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-7 h-7 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
+                        {getInitials(item.ownedBy.name)}
                       </div>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8" aria-label="Owner avatar">
-                      <div
-                        className={`h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm ${getRoleColor(item.ownedBy.role)}`}
-                        role="img"
-                        aria-label={`${item.ownedBy.name}'s avatar`}
+                  {/* Actions */}
+                  <button
+                    onClick={(e) => handleShowActions(item.id, e)}
+                    className="absolute right-2 top-2 p-1 rounded hover:bg-white/10 text-white/80 opacity-0 group-hover:opacity-100 transition"
+                    aria-label={`Actions for ${item.name}`}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                  {showActionsDropdown === item.id && (
+                    <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
+                      <div className="py-1">
+                        <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                        <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Documents Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700">Documents</h2>
+              <button onClick={handleCreateFile} className="hidden sm:inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50">
+                <Plus className="w-4 h-4" />
+                <span>Add New Document</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {paginatedItems.filter(i => i.type === 'file').map((item) => (
+                <div
+                  key={item.id}
+                  className="relative rounded-lg border border-gray-200 bg-white hover:shadow transition cursor-pointer"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="text-sm font-semibold text-gray-900 line-clamp-2">
+                        {item.name}
+                      </div>
+                      <button
+                        onClick={(e) => handleShowActions(item.id, e)}
+                        className="text-gray-500 hover:text-gray-700"
+                        aria-label={`Actions for ${item.name}`}
                       >
-                        {item.ownedBy.avatar ?? getInitials(item.ownedBy.name)}
-                      </div>
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900">{item.ownedBy.name}</div>
-                      <div className="text-sm text-gray-500 capitalize">{item.ownedBy.role}</div>
+                    <div className="mt-3 h-28 bg-gray-100 rounded-md" aria-hidden="true" />
+                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(item.ownedBy.role)}`}>{getInitials(item.ownedBy.name)}</div>
+                        <span>Created by {item.ownedBy.name}</span>
+                      </div>
+                      <span>Updated {formatDate(item.lastModified)}</span>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-900">{item.category ?? '-'}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(item.lastModified)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
-                  <div className="relative">
-                    <button
-                      onClick={(e) => handleShowActions(item.id, e)}
-                      className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
-                      aria-label={`Actions for ${item.name}`}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    {showActionsDropdown === item.id && (
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
-                        <div className="py-1">
-                          <button
-                            onClick={() => handleRename(item)}
-                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            <span>Rename</span>
-                          </button>
-                          <button
-                            onClick={() => handleShare(item)}
-                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            <span>Share</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item)}
-                            className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
+                  {showActionsDropdown === item.id && (
+                    <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
+                      <div className="py-1">
+                        <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                        <button onClick={() => handleShare(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Share</button>
+                        <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                       </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )))}
-          </tbody>
-        </table>
-      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="flex items-center justify-between mt-6">
         <div className="flex items-center space-x-2">
@@ -816,18 +814,18 @@ function Documents(): ReactElement {
       {showCreateFile && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New File</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Document</h3>
             <form onSubmit={(e) => { void handleCreateFileSubmit(e) }}>
               <div className="mb-4">
                 <label htmlFor="fileName" className="block text-sm font-medium text-gray-700 mb-2">
-                  File Name
+                  Document Name
                 </label>
                 <input
                   type="text"
                   id="fileName"
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
-                  placeholder="Enter file name (e.g., document.pdf)"
+                  placeholder="Enter document name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   required
                 />
@@ -844,7 +842,7 @@ function Documents(): ReactElement {
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
-                  Create File
+                  Create Document
                 </button>
               </div>
             </form>

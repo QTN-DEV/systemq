@@ -12,6 +12,7 @@ import { useState, type ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { logger } from '@/lib/logger'
+import { logout } from '@/services/AuthService'
 import { useAuthStore } from '@/stores/authStore'
 
 import logo from '../assets/logo.png'
@@ -47,14 +48,14 @@ function Sidebar(): ReactElement {
   const initials = computedInitials.length > 0 ? computedInitials : 'EU'
   const avatarUrl = user ? getAvatarUrl(user.avatar, user.name) : null
 
-  const handleLogout = (): void => {
-    const result = navigate('/')
-    if (result) {
-      result.then(() => {
-        logger.log('Logout successful')
-      }).catch((error) => {
-        logger.error('Logout failed', error)
-      })
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await logout()
+    } catch (error) {
+      logger.error('Logout failed', error)
+    } finally {
+      void navigate('/')
+      logger.log('Logout successful')
     }
   }
 
