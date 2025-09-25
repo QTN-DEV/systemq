@@ -2,7 +2,7 @@ import axios from 'axios'
 
 import { useAuthStore } from '@/stores/authStore'
 
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.systemq.qtn.ai'
 
 console.log('QB base:', API_BASE_URL)
 
