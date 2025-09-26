@@ -7,7 +7,7 @@ from beanie import PydanticObjectId
 from bson import ObjectId
 
 from app.core.security import generate_random_password, hash_password
-from app.models.enums import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS
+from app.models.enums import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS, ALLOWED_DIVISIONS
 from app.models.user import User
 from app.services.email import EmailConfigurationError, send_email
 from constants import APP_NAME, DEFAULT_PASSWORD
@@ -139,8 +139,14 @@ async def create_employee(payload: dict[str, object]) -> dict[str, object]:
     hashed_password = hash_password(password)
 
     position = payload.get("position")
-    # if position is not None and position not in ALLOWED_POSITIONS:
-    #     raise ValueError("Position must be one of the supported values")
+    if position is not None and position not in ALLOWED_POSITIONS:
+        raise ValueError("Position must be one of the supported values")
+
+    division = payload.get("division")
+    print("MASUK DIVISION")
+    if division is not None and division not in ALLOWED_DIVISIONS:
+        print("MASUK GAGAL DIVISION")
+        raise ValueError("Division must be one of the supported values")    
 
     employment_type = str(payload.get("employment_type", "full-time"))
     if employment_type not in ALLOWED_EMPLOYMENT_TYPES:
@@ -184,8 +190,10 @@ async def deactivate_employee(employee_id: str) -> dict[str, object]:
     user.subordinates = []
 
     # Find all employees who have this employee as a subordinate and remove it
-    employees_with_subordinate = await User.find(In(User.subordinates, [employee_id])).to_list()
-
+    employees_with_subordinate = await User.find(
+        In(User.subordinates, [employee_id])
+    ).to_list()
+    
     for emp in employees_with_subordinate:
         if employee_id in emp.subordinates:
             emp.subordinates.remove(employee_id)

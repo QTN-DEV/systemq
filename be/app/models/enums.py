@@ -4,39 +4,40 @@ from typing import Final, Literal
 from collections.abc import Set
 
 
+DivisionLiteral = Literal[
+    "Marketing",
+    "Graphic Design", 
+    "Developer",
+    "UI/UX",
+    "Internal Ops",
+]
+
 PositionLiteral = Literal[
     "CEO",
     "Internal Ops",
     "HR",
-    "PM",
     "Div. Lead",
+    "PM",
     "Team Member",
 ]
 
 EmploymentTypeLiteral = Literal["full-time", "part-time", "intern"]
 
+ALLOWED_DIVISIONS: Final[set[str]] = {
+    "Marketing",
+    "Graphic Design",
+    "Developer", 
+    "UI/UX",
+    "Internal Ops",
+}
+
 ALLOWED_POSITIONS: Final[set[str]] = {
     "CEO",
     "Internal Ops",
-    "Business Development",
-    "Project Manager",
-    "Frontend Developer",
-    "Backend Developer",
-    "Full-Stack Developer",
-    "DevOps Engineer",
-    "QA Engineer",
-    "System Administrator",
-    "Security Specialist",
-    "Data Analyst",
-    "Data Scientist",
-    "Database Administrator",
-    "UI/UX Designer",
-    "Technical Writer",
-    "Sales Representative",
-    "Marketing Specialist",
-    "HR Specialist",
-    "Financial Analyst",
-    "Legal Counsel",
+    "HR",
+    "Div. Lead",
+    "PM",
+    "Team Member",
 }
 
 ALLOWED_EMPLOYMENT_TYPES: Final[set[str]] = {
@@ -47,8 +48,10 @@ ALLOWED_EMPLOYMENT_TYPES: Final[set[str]] = {
 
 
 __all__ = [
+    "ALLOWED_DIVISIONS",
     "ALLOWED_EMPLOYMENT_TYPES",
     "ALLOWED_POSITIONS", 
+    "DivisionLiteral",
     "EmploymentTypeLiteral",
     "PositionLiteral",
 ]
