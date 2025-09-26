@@ -114,6 +114,21 @@ async def deactivate_employee(employee_id: str) -> MessageResponse:
     return MessageResponse(message="Employee deactivated successfully.")
 
 
+@router.post(
+    "/{employee_id}/activate",
+    response_model=MessageResponse,
+    summary="Activate an employee",
+    response_description="Confirmation that the employee was activated.",
+)
+async def activate_employee(employee_id: str) -> MessageResponse:
+    """Enable an employee by setting is_active to true."""
+    try:
+        await employee_service.activate_employee(employee_id)
+    except EmployeeNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return MessageResponse(message="Employee activated successfully.")
+
+
 @router.put(
     "/{employee_id}",
     response_model=Employee,

@@ -180,13 +180,38 @@ async def deactivate_employee(employee_id: str) -> dict[str, object]:
     if not user.is_active:
         return _serialize(user)
 
+    # Clear subordinates list of the deactivated employee
+    user.subordinates = []
+
+    # Find all employees who have this employee as a subordinate and remove it
+    employees_with_subordinate = await User.find(In(User.subordinates, [employee_id])).to_list()
+
+    for emp in employees_with_subordinate:
+        if employee_id in emp.subordinates:
+            emp.subordinates.remove(employee_id)
+            await emp.touch()
+
     user.is_active = False
     await user.touch()
 
     try:
-        await _send_deactivation_email(user)
+        print("SEND DEACTIVATE EMAIL MASIH GAK JALAN")
+        # await _send_deactivation_email(user)
     except (EmailConfigurationError, Exception) as exc:
         raise EmployeeEmailError(str(exc)) from exc
+
+    return _serialize(user)
+
+
+async def activate_employee(employee_id: str) -> dict[str, object]:
+    user = await User.find_one(User.employee_id == employee_id)
+    if user is None:
+        raise EmployeeNotFoundError(f"Employee '{employee_id}' not found")
+    if user.is_active:
+        return _serialize(user)
+
+    user.is_active = True
+    await user.touch()
 
     return _serialize(user)
 
