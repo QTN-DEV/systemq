@@ -19,7 +19,6 @@ class DocumentOwnerSchema(BaseModel):
 
 class DocumentBase(BaseModel):
     name: str
-    title: str | None = None
     type: Literal["folder", "file"]
     category: str | None = None
     status: Literal["active", "archived", "shared", "private"] = "active"
@@ -36,7 +35,6 @@ class DocumentCreate(BaseModel):
 
 class DocumentUpdate(BaseModel):
     name: str | None = None
-    title: str | None = None
     category: str | None = None
     status: Literal["active", "archived", "shared", "private"] | None = None
     parent_id: str | None = None

@@ -34,7 +34,6 @@ def _serialize_document(document: DocumentItem) -> dict[str, Any]:
     return {
         "id": document.document_id,
         "name": document.name,
-        "title": document.title,
         "type": document.type,
         "owned_by": document.owned_by.model_dump(),
         "category": document.category,
@@ -259,9 +258,6 @@ async def update_document(document_id: str, payload: dict[str, Any]) -> dict[str
     if "name" in payload and payload["name"] and payload["name"] != document.name:
         changes["name"] = {"old": document.name, "new": payload["name"]}
         document.name = payload["name"]
-    if "title" in payload and payload["title"] != document.title:
-        changes["title"] = {"old": document.title, "new": payload["title"]}
-        document.title = payload["title"]
     if "category" in payload and payload["category"] != document.category:
         changes["category"] = {"old": document.category, "new": payload["category"]}
         document.category = payload["category"]

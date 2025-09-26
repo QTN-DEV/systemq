@@ -33,7 +33,6 @@ class DocumentOwner(BaseModel):
 class DocumentItem(Document):
     document_id: str = Field(alias="id")
     name: str
-    title: str | None = None
     type: Literal["folder", "file"]
     owned_by: DocumentOwner
     category: str | None = None
