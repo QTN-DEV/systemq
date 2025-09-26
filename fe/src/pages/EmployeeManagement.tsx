@@ -962,27 +962,14 @@ function EmployeeManagement(): ReactElement {
                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                     Title
                   </label>
-                  <select
+                  <input
+                    type="text"
                     id="title"
                     value={newEmployee.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="e.g., Engineering Manager, Product Designer"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  >
-                    <option value="">Select title</option>
-                    {newEmployee.title && !['CEO','CTO','Engineering Manager','Senior Developer','Developer','Junior Developer','UI/UX Designer','Product Manager','Marketing Manager','HR Manager'].includes(newEmployee.title) && (
-                      <option value={newEmployee.title}>{newEmployee.title}</option>
-                    )}
-                    <option value="CEO">CEO</option>
-                    <option value="CTO">CTO</option>
-                    <option value="Engineering Manager">Engineering Manager</option>
-                    <option value="Senior Developer">Senior Developer</option>
-                    <option value="Developer">Developer</option>
-                    <option value="Junior Developer">Junior Developer</option>
-                    <option value="UI/UX Designer">UI/UX Designer</option>
-                    <option value="Product Manager">Product Manager</option>
-                    <option value="Marketing Manager">Marketing Manager</option>
-                    <option value="HR Manager">HR Manager</option>
-                  </select>
+                  />
                 </div>
 
                 {/* Position */}

@@ -37,6 +37,8 @@ function Sidebar(): ReactElement {
   const user = useAuthStore((state) => state.user)
 
   const userRole = user?.role ?? 'employee'
+  const userTitle = user?.title ?? 'Employee'
+  // console.log("userTitle", userTitle)
   const rawName = user?.name?.trim()
   const displayName = rawName && rawName.length > 0 ? rawName : 'Employee User'
   const computedInitials = displayName
@@ -121,7 +123,7 @@ function Sidebar(): ReactElement {
             )}
             <div>
               <p className="text-sm font-medium text-gray-900">{displayName}</p>
-              <p className="text-xs text-gray-500">{currentRole.name}</p>
+              <p className="text-xs text-gray-500">{userTitle}</p>
             </div>
           </div>
         </div>
