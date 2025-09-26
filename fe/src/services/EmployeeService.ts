@@ -94,4 +94,13 @@ export async function getInactiveEmployees(search?: string): Promise<EmployeeLis
   return response.data
 }
 
+export async function activateEmployee(employeeId: string): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>(`/employees/${employeeId}/activate`, {}, {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  return response.data
+}
+
 

@@ -3,7 +3,7 @@ import { Search, Plus, Download, X, Edit, MoreVertical } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 
 import { logger } from '@/lib/logger'
-import { createEmployee, getEmployees, getInactiveEmployees, updateEmployee, deactivateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
+import { createEmployee, getEmployees, getInactiveEmployees, updateEmployee, deactivateEmployee, activateEmployee, type EmployeeListItem } from '@/services/EmployeeService'
 
 import { getProjectsByIds as getProjectsByIdsService } from '../services/ProjectService'
 import type { Project } from '../types/project-type'
@@ -26,6 +26,8 @@ function EmployeeManagement(): ReactElement {
   const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
   const [showDeactivateModal, setShowDeactivateModal] = useState(false)
   const [employeeToDeactivate, setEmployeeToDeactivate] = useState<EmployeeListItem | null>(null)
+  const [showActivateModal, setShowActivateModal] = useState(false)
+  const [employeeToActivate, setEmployeeToActivate] = useState<EmployeeListItem | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const [newEmployee, setNewEmployee] = useState({
     id: '',
@@ -250,6 +252,28 @@ function EmployeeManagement(): ReactElement {
     } catch (error) {
       logger.error('Failed to deactivate employee', error)
       setNotification({ type: 'error', message: 'Failed to deactivate employee.' })
+    }
+  }
+
+  // Handle activate employee
+  const handleActivateEmployee = async (): Promise<void> => {
+    if (!employeeToActivate) return
+    
+    try {
+      await activateEmployee(employeeToActivate.id)
+      // refresh both active and inactive lists after activate
+      const [activeData, inactiveData] = await Promise.all([
+        getEmployees(),
+        getInactiveEmployees()
+      ])
+      setEmployees(activeData)
+      setInactiveEmployees(inactiveData)
+      setShowActivateModal(false)
+      setEmployeeToActivate(null)
+      setNotification({ type: 'success', message: 'Employee activated successfully.' })
+    } catch (error) {
+      logger.error('Failed to activate employee', error)
+      setNotification({ type: 'error', message: 'Failed to activate employee.' })
     }
   }
 
@@ -688,14 +712,8 @@ function EmployeeManagement(): ReactElement {
                   <td className="px-6 py-4 text-right">
                     <div className="relative">
                       <button
-                        className={`p-1 rounded ${
-                          activeTab === 'inactive' 
-                            ? 'cursor-not-allowed opacity-50' 
-                            : 'hover:bg-gray-100'
-                        }`}
-                        disabled={activeTab === 'inactive'}
+                        className="p-1 rounded hover:bg-gray-100"
                         onClick={(e) => {
-                          if (activeTab === 'inactive') return
                           e.stopPropagation()
                           setShowActionsDropdown(showActionsDropdown === employee.id ? null : employee.id)
                         }}
@@ -705,37 +723,54 @@ function EmployeeManagement(): ReactElement {
                       {showActionsDropdown === employee.id && (
                         <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                           <div className="py-1">
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                              onClick={() => {
-                                setNewEmployee({
-                                  id: employee.id,
-                                  name: employee.name,
-                                  email: employee.email,
-                                  division: employee.division ?? '',
-                                  title: employee.title ?? '',
-                                  position: employee.position ?? '',
-                                  subordinates: '',
-                                  level: employee.level ?? '',
-                                  employment_type: (employee.employment_type ?? 'full-time')
-                                })
-                                setIsEditing(true)
-                                setShowAddEmployeeForm(true)
-                                setShowActionsDropdown(null)
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                              onClick={() => {
-                                setEmployeeToDeactivate(employee)
-                                setShowDeactivateModal(true)
-                                setShowActionsDropdown(null)
-                              }}
-                            >
-                              Deactivate Employee
-                            </button>
+                            {activeTab === 'active' ? (
+                              // Active employees: Edit and Deactivate options
+                              <>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                                  onClick={() => {
+                                    setNewEmployee({
+                                      id: employee.id,
+                                      name: employee.name,
+                                      email: employee.email,
+                                      division: employee.division ?? '',
+                                      title: employee.title ?? '',
+                                      position: employee.position ?? '',
+                                      subordinates: '',
+                                      level: employee.level ?? '',
+                                      employment_type: (employee.employment_type ?? 'full-time')
+                                    })
+                                    setIsEditing(true)
+                                    setShowAddEmployeeForm(true)
+                                    setShowActionsDropdown(null)
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                  onClick={() => {
+                                    setEmployeeToDeactivate(employee)
+                                    setShowDeactivateModal(true)
+                                    setShowActionsDropdown(null)
+                                  }}
+                                >
+                                  Deactivate Employee
+                                </button>
+                              </>
+                            ) : (
+                              // Inactive employees: Only Activate option
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50"
+                                onClick={() => {
+                                  setEmployeeToActivate(employee)
+                                  setShowActivateModal(true)
+                                  setShowActionsDropdown(null)
+                                }}
+                              >
+                                Activate Account
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1223,6 +1258,37 @@ function EmployeeManagement(): ReactElement {
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
                 >
                   Yes, Deactivate
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activate Employee Modal */}
+      {showActivateModal && employeeToActivate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Activate Employee</h2>
+                 <p className="text-gray-600 mb-6">
+                   Are you sure you want to activate {employeeToActivate.name} (ID: {employeeToActivate.id})?
+                 </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowActivateModal(false)
+                    setEmployeeToActivate(null)
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleActivateEmployee}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                >
+                  Yes, Activate
                 </button>
               </div>
             </div>
