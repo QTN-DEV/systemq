@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger'
 
 import DocumentEditor from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
-import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent } from '../services/DocumentService'
+import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent, renameDocument } from '../services/DocumentService'
 import type { DocumentItem, DocumentBlock } from '../types/documents'
 
 function DocumentEditorPage(): ReactElement {
@@ -17,7 +17,6 @@ function DocumentEditorPage(): ReactElement {
   
   const [document, setDocument] = useState<DocumentItem | null>(null)
   const [blocks, setBlocks] = useState<DocumentBlock[]>([])
-  const [documentTitle, setDocumentTitle] = useState('')
   const [fileName, setFileName] = useState('')
   const [documentCategory, setDocumentCategory] = useState<string>('')
 
@@ -145,7 +144,7 @@ function DocumentEditorPage(): ReactElement {
           {
             id: '1',
             type: 'heading1',
-            content: doc?.title ?? doc?.name ?? 'Untitled Document',
+            content: doc?.name ?? 'Untitled Document',
             alignment: 'left'
           },
           {
@@ -164,8 +163,7 @@ function DocumentEditorPage(): ReactElement {
         const doc = await getDocumentById(fileId, null)
         if (doc && doc.type === 'file') {
           setDocument(doc)
-          setFileName(doc.name) // This is the file name
-          setDocumentTitle(doc.title ?? doc.name) // This is the document title, fallback to file name
+          setFileName(doc.name)
           setDocumentCategory(doc.category ?? '')
 
           // Load document content - use actual content from API or fallback to mock
@@ -190,7 +188,6 @@ function DocumentEditorPage(): ReactElement {
     if (fileId && document) {
       try {
         const updatedDoc = await updateDocumentContent(fileId, {
-          title: documentTitle,
           category: documentCategory,
           content: newBlocks
         })
@@ -205,22 +202,19 @@ function DocumentEditorPage(): ReactElement {
     }
   }
 
-  const handleTitleChange = async (newTitle: string): Promise<void> => {
-    setDocumentTitle(newTitle)
+  const handleNameChange = async (newName: string): Promise<void> => {
+    setFileName(newName)
     if (document) {
-      setDocument({ ...document, title: newTitle })
+      setDocument({ ...document, name: newName })
     }
 
-    // Auto-save title change
-    if (fileId && document) {
+    // Rename file immediately
+    if (fileId) {
       try {
-        await updateDocumentContent(fileId, {
-          title: newTitle,
-          category: documentCategory,
-          content: blocks
-        })
+        const renamed = await renameDocument(fileId, newName)
+        if (renamed) setDocument(renamed)
       } catch (error) {
-        logger.error('Failed to save title:', error)
+        logger.error('Failed to rename file:', error)
       }
     }
   }
@@ -235,7 +229,6 @@ function DocumentEditorPage(): ReactElement {
     if (fileId && document) {
       try {
         await updateDocumentContent(fileId, {
-          title: documentTitle,
           category: newCategory,
           content: blocks
         })
@@ -304,12 +297,12 @@ function DocumentEditorPage(): ReactElement {
       {/* Main Content */}
       <div className="bg-white">
         <div className="px-20 py-8">
-          {/* Document Title */}
+          {/* File Name (used as title) */}
           <div className="mb-6">
           <input
             type="text"
-            value={documentTitle}
-            onChange={(e) => { void handleTitleChange(e.target.value) }}
+            value={fileName}
+            onChange={(e) => { void handleNameChange(e.target.value) }}
             className="w-full text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400 mb-4"
             placeholder="Untitled Document"
           />

@@ -23,7 +23,6 @@ api.interceptors.request.use((config) => {
 // Update the headers to match the API schema
 interface ApiDocumentItem {
   name: string,
-  title: string | null,
   type: string,
   category: string | null,
   status: string,
@@ -50,7 +49,6 @@ function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
   return {
     id: apiDoc.id,
     name: apiDoc.name,
-    title: apiDoc.title ?? undefined,
     type: apiDoc.type as 'folder' | 'file',
     category: apiDoc.category ?? undefined,
     status: apiDoc.status as 'active' | 'archived' | 'shared' | 'private',
@@ -283,7 +281,6 @@ export async function renameDocument(documentId: string, newName: string): Promi
 
 // Update document content payload interface
 export interface UpdateDocumentContentPayload {
-  title: string
   category: string
   content: DocumentBlock[]
 }
