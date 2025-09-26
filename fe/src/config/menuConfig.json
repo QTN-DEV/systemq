@@ -6,7 +6,7 @@
       "path": "/dashboard",
       "icon": "LayoutDashboard",
       "type": "item",
-      "roles": ["employee", "hr", "internalops"]
+      "roles": ["ceo", "employee", "hr", "internalops", "pm"]
     },
     {
       "id": "structure-organization",
@@ -14,7 +14,7 @@
       "path": "/structure-organization",
       "icon": "Building2",
       "type": "item",
-      "roles": ["employee", "hr", "internalops", "pm"]
+      "roles": ["ceo", "employee", "hr", "internalops", "pm"]
     },
     {
       "id": "employee-management",
@@ -30,7 +30,7 @@
       "path": "/documents",
       "icon": "FileText",
       "type": "item",
-      "roles": ["employee", "hr", "internalops"]
+      "roles": ["ceo", "employee", "hr", "internalops", "pm"]
     },
     {
       "id": "project-management",
@@ -38,10 +38,15 @@
       "path": "/project-management",
       "icon": "Folder",
       "type": "item",
-      "roles": ["internalops", "pm"]
+      "roles": ["ceo", "internalops", "pm"]
     }
   ],
   "roles": {
+    "ceo": {
+      "name": "CEO",
+      "color": "red",
+      "permissions": ["read", "create", "update", "delete", "admin"]
+    },
     "employee": {
       "name": "Employee", 
       "color": "blue",

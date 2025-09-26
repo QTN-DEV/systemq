@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import type { Position, User } from '../types/user-type'
 
 export interface AuthenticatedUser extends User {
-  role: 'employee' | 'hr' | 'internalops' | 'pm'
+  role: 'employee' | 'hr' | 'internalops' | 'pm' | 'ceo'
 }
 
 export interface AuthSession {
@@ -116,6 +116,8 @@ function derivePosition(value: string | null | undefined): Position {
 
 function deriveRole(position: Position): AuthenticatedUser['role'] {
   switch (position) {
+    case 'CEO':
+      return 'ceo'
     case 'HR':
       return 'hr'
     case 'Internal Ops':

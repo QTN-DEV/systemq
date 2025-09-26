@@ -110,6 +110,7 @@ function Sidebar(): ReactElement {
             ) : (
               <div className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
+                currentRole.color === 'red' && 'bg-red-500',
                 currentRole.color === 'pink' && 'bg-pink-500',
                 currentRole.color === 'blue' && 'bg-blue-500',
                 currentRole.color === 'green' && 'bg-green-500',
@@ -139,6 +140,7 @@ function Sidebar(): ReactElement {
           ) : (
             <div className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
+              currentRole.color === 'red' && 'bg-red-500',
               currentRole.color === 'pink' && 'bg-pink-500',
               currentRole.color === 'blue' && 'bg-blue-500', 
               currentRole.color === 'green' && 'bg-green-500',
