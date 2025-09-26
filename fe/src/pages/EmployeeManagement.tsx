@@ -944,16 +944,14 @@ function EmployeeManagement(): ReactElement {
                     required
                   >
                     <option value="">Select division</option>
-                    {newEmployee.division && !['Engineering','Product','Design','Marketing','Sales','HR','Finance'].includes(newEmployee.division) && (
+                    {newEmployee.division && !['Marketing','Graphic Design','Developer','UI/UX','Internal Ops'].includes(newEmployee.division) && (
                       <option value={newEmployee.division}>{newEmployee.division}</option>
                     )}
-                    <option value="Engineering">Engineering</option>
-                    <option value="Product">Product</option>
-                    <option value="Design">Design</option>
                     <option value="Marketing">Marketing</option>
-                    <option value="Sales">Sales</option>
-                    <option value="HR">HR</option>
-                    <option value="Finance">Finance</option>
+                    <option value="Graphic Design">Graphic Design</option>
+                    <option value="Developer">Developer</option>
+                    <option value="UI/UX">UI/UX</option>
+                    <option value="Internal Ops">Internal Ops</option>
                   </select>
                 </div>
 
