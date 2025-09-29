@@ -736,12 +736,12 @@ function Documents(): ReactElement {
                       <div className="py-1">
                         {editPermissionsMap[item.id] && (
                           <>
-                            <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                           </>
                         )}
                         <button 
-                          onClick={() => handleShare(item)} 
+                          onClick={(e) => { e.stopPropagation(); handleShare(item) }} 
                           disabled={!editPermissionsMap[item.id]}
                           className={`w-full text-left px-4 py-2 text-sm ${editPermissionsMap[item.id] ? 'hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'}`}
                         >
@@ -798,12 +798,12 @@ function Documents(): ReactElement {
                       <div className="py-1">
                         {editPermissionsMap[item.id] && (
                           <>
-                            <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                           </>
                         )}
                         <button 
-                          onClick={() => handleShare(item)} 
+                          onClick={(e) => { e.stopPropagation(); handleShare(item) }} 
                           disabled={!editPermissionsMap[item.id]}
                           className={`w-full text-left px-4 py-2 text-sm ${editPermissionsMap[item.id] ? 'hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'}`}
                         >
