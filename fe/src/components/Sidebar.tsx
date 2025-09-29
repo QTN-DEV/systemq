@@ -159,7 +159,7 @@ function Sidebar(): ReactElement {
         <nav className="space-y-1 px-2">
           {filteredMenuItems.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap]
-            const isActive = location.pathname === item.path
+            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
             
             return (
               <Link
