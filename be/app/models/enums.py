@@ -6,7 +6,7 @@ from collections.abc import Set
 
 DivisionLiteral = Literal[
     "Marketing",
-    "Graphic Design", 
+    "Graphic Design",
     "Developer",
     "UI/UX",
     "Internal Ops",
@@ -26,7 +26,7 @@ EmploymentTypeLiteral = Literal["full-time", "part-time", "intern"]
 ALLOWED_DIVISIONS: Final[set[str]] = {
     "Marketing",
     "Graphic Design",
-    "Developer", 
+    "Developer",
     "UI/UX",
     "Internal Ops",
 }
@@ -50,7 +50,7 @@ ALLOWED_EMPLOYMENT_TYPES: Final[set[str]] = {
 __all__ = [
     "ALLOWED_DIVISIONS",
     "ALLOWED_EMPLOYMENT_TYPES",
-    "ALLOWED_POSITIONS", 
+    "ALLOWED_POSITIONS",
     "DivisionLiteral",
     "EmploymentTypeLiteral",
     "PositionLiteral",

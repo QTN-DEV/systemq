@@ -79,6 +79,34 @@ async def list_employees(search: str | None = None) -> list[dict[str, object]]:
     return filtered
 
 
+async def search_employees(query: str) -> list[dict[str, object]]:
+    """Search active employees by name, email, division, or employee ID."""
+    users = [user for user in await User.find_all().to_list() if user.is_active]
+    
+    if not query or not query.strip():
+        return [_serialize(user) for user in users]
+    
+    needle = query.strip().lower()
+    filtered: list[dict[str, object]] = []
+    
+    for user in users:
+        haystack = [
+            user.name,
+            user.email,
+            user.employee_id or "",
+            user.title or "",
+            user.division or "",
+            user.level or "",
+            user.position or "",
+        ]
+        
+        # Check if query matches any field
+        if any(needle in value.lower() for value in haystack if value):
+            filtered.append(_serialize(user))
+    
+    return filtered
+
+
 async def get_employee(employee_id: str) -> dict[str, object]:
     user = await User.find_one(User.employee_id == employee_id)
     if user is None:

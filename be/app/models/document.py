@@ -30,6 +30,20 @@ class DocumentOwner(BaseModel):
     avatar: str | None = None
 
 
+class DocumentPermission(BaseModel):
+    """Individual user permission for a document."""
+    user_id: str
+    user_name: str
+    user_email: str
+    permission: Literal["viewer", "editor"]
+
+
+class DivisionPermission(BaseModel):
+    """Division-level permission for a document."""
+    division: str
+    permission: Literal["viewer", "editor"]
+
+
 class DocumentItem(Document):
     document_id: str = Field(alias="id")
     name: str
@@ -50,6 +64,9 @@ class DocumentItem(Document):
     deleted_at: datetime | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
+    # Permission fields
+    user_permissions: list[DocumentPermission] = Field(default_factory=list)
+    division_permissions: list[DivisionPermission] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 

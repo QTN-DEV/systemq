@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, status
+from typing import Literal
+from pydantic import BaseModel
 
 from app.schemas import MessageResponse
 from app.schemas.employee import Employee, EmployeeCreate, EmployeeUpdate
+from app.models.enums import ALLOWED_DIVISIONS
 from app.services import employee as employee_service
 from app.services.employee import (
     EmployeeAlreadyExistsError,
@@ -14,6 +17,62 @@ from app.services.employee import (
 )
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
+
+
+class SearchResult(BaseModel):
+    """Search result that can be either a user or division."""
+
+    type: Literal["user", "division"]
+    id: str
+    name: str
+    email: str | None = None
+    division: str | None = None
+    avatar: str | None = None
+
+
+@router.get(
+    "/search",
+    response_model=list[SearchResult],
+    summary="Search users and divisions",
+    response_description="Search active users by name/email or divisions by name.",
+)
+async def search_employees(
+    q: str = Query(..., description="Search query for name, email, or division"),
+) -> list[SearchResult]:
+    """Search active users by name/email or divisions by name."""
+    results: list[SearchResult] = []
+
+    # Search users
+    employees = await employee_service.search_employees(q)
+    for employee in employees:
+        results.append(
+            SearchResult(
+                type="user",
+                id=employee["id"],
+                name=employee["name"],
+                email=employee["email"],
+                division=employee.get("division"),
+                avatar=str(employee.get("avatar")) if employee.get("avatar") else None,
+            )
+        )
+
+    # Search divisions
+    query_lower = q.strip().lower()
+    for division in ALLOWED_DIVISIONS:
+        if query_lower in division.lower():
+            results.append(
+                SearchResult(
+                    type="division",
+                    id=division,
+                    name=division,
+                    email=None,
+                    division=division,
+                    avatar=None,
+                )
+            )
+
+    return results
+
 
 @router.get(
     "/inactive",
@@ -27,6 +86,7 @@ async def list_employees(
     """Return inactive employees, optionally filtered by a search string."""
     employees = await employee_service.list_employees_nonactive(search)
     return [Employee.model_validate(employee) for employee in employees]
+
 
 @router.get(
     "/",
@@ -70,6 +130,9 @@ async def get_subordinates(employee_id: str) -> list[Employee]:
     except EmployeeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return [Employee.model_validate(employee) for employee in employees]
+
+
+ 
 
 
 @router.post(

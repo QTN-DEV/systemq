@@ -47,6 +47,8 @@ def _serialize_document(document: DocumentItem) -> dict[str, Any]:
         "shared": document.shared,
         "share_url": document.share_url,
         "content": document.content if document.content is not None else [],
+        "user_permissions": [perm.model_dump() for perm in document.user_permissions],
+        "division_permissions": [perm.model_dump() for perm in document.division_permissions],
     }
 
 
@@ -112,7 +114,7 @@ async def _refresh_descendant_paths(document: DocumentItem) -> None:
         await _refresh_descendant_paths(child)
 
 
-async def get_documents_by_parent(parent_id: str | None) -> list[dict[str, Any]]:
+async def get_documents_by_parent(parent_id: str | None, user_id: str | None = None) -> list[dict[str, Any]]:
     if parent_id is None:
         query = DocumentItem.find(
             DocumentItem.parent_id == None,  # noqa: E711
@@ -124,6 +126,16 @@ async def get_documents_by_parent(parent_id: str | None) -> list[dict[str, Any]]
             ACTIVE_DOCUMENT,
         )
     documents = await query.sort(DocumentItem.name).to_list()
+    
+    # Filter documents based on user permissions
+    if user_id:
+        from app.services.document_permission import check_document_access
+        accessible_documents = []
+        for document in documents:
+            if await check_document_access(document.document_id, user_id, "viewer"):
+                accessible_documents.append(document)
+        documents = accessible_documents
+    
     for document in documents:
         _normalize_content(document)
     return [_serialize_document(document) for document in documents]
