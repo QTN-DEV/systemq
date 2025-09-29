@@ -1,47 +1,64 @@
-import axios from 'axios'
+import axios from "axios";
 
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from "@/stores/authStore";
 
-import type { DocumentItem, DocumentBlock } from '../types/document-type'
+import type { DocumentItem, DocumentBlock } from "../types/document-type";
+import type {
+  DocumentPermissions,
+  AddUserPermissionRequest,
+  AddDivisionPermissionRequest,
+  SearchUserResult,
+} from "../types/document-permissions";
 
-const API_BASE_URL = 'https://api.systemq.qtn.ai'
-
+const API_BASE_URL =
+  import.meta.env?.VITE_API_BASE_URL ?? "https://api.systemq.qtn.ai";
+console.log("Document API base:", API_BASE_URL);
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000
-})
+  timeout: 15000,
+});
 
 // Add authentication interceptor
 api.interceptors.request.use((config) => {
-  const session = useAuthStore.getState().getCurrentSession()
+  const session = useAuthStore.getState().getCurrentSession();
   if (session?.token) {
-    config.headers.Authorization = `Bearer ${session.token}`
+    config.headers.Authorization = `Bearer ${session.token}`;
   }
-  return config
-})
+  return config;
+});
 
 // Update the headers to match the API schema
 interface ApiDocumentItem {
-  name: string,
-  type: string,
-  category: string | null,
-  status: string,
-  parent_id: string | null,
-  shared: boolean,
-  share_url: string | null,
-  id: string,
+  name: string;
+  type: string;
+  category: string | null;
+  status: string;
+  parent_id: string | null;
+  shared: boolean;
+  share_url: string | null;
+  id: string;
   owned_by: {
-    id: string,
-    name: string,
-    role: string,
-    avatar: string | null
-  },
-  date_created: string,
-  last_modified: string,
-  size: string | null,
-  item_count: number,
-  path: string[],
-  content: DocumentBlock[]
+    id: string;
+    name: string;
+    role: string;
+    avatar: string | null;
+  };
+  date_created: string;
+  last_modified: string;
+  size: string | null;
+  item_count: number;
+  path: string[];
+  content: DocumentBlock[];
+  user_permissions?: {
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    permission: string;
+  }[];
+  division_permissions?: {
+    division: string;
+    permission: string;
+  }[];
 }
 
 // Transform API response to match our internal type
@@ -49,240 +66,294 @@ function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
   return {
     id: apiDoc.id,
     name: apiDoc.name,
-    type: apiDoc.type as 'folder' | 'file',
+    type: apiDoc.type as "folder" | "file",
     category: apiDoc.category ?? undefined,
-    status: apiDoc.status as 'active' | 'archived' | 'shared' | 'private',
+    status: apiDoc.status as "active" | "archived" | "shared" | "private",
     parentId: apiDoc.parent_id ?? undefined,
     shared: apiDoc.shared,
     shareUrl: apiDoc.share_url ?? undefined,
     ownedBy: {
       id: apiDoc.owned_by.id,
       name: apiDoc.owned_by.name,
-      role: apiDoc.owned_by.role as 'admin' | 'manager' | 'employee' | 'secretary',
-      avatar: apiDoc.owned_by.avatar ?? undefined
+      role: apiDoc.owned_by.role as
+        | "admin"
+        | "manager"
+        | "employee"
+        | "secretary",
+      avatar: apiDoc.owned_by.avatar ?? undefined,
     },
     dateCreated: apiDoc.date_created,
     lastModified: apiDoc.last_modified,
     size: apiDoc.size ?? undefined,
     itemCount: apiDoc.item_count,
     path: apiDoc.path,
-    content: apiDoc.content || []
-  }
+    content: apiDoc.content || [],
+    userPermissions: apiDoc.user_permissions?.map((perm) => ({
+      user_id: perm.user_id,
+      user_name: perm.user_name,
+      user_email: perm.user_email,
+      permission: perm.permission as "viewer" | "editor",
+    })),
+    divisionPermissions: apiDoc.division_permissions?.map((perm) => ({
+      division: perm.division,
+      permission: perm.permission as "viewer" | "editor",
+    })),
+  };
 }
 
 // Fetch documents by parent ID
-export async function getDocumentsByParentId(parentId: string | null | undefined): Promise<DocumentItem[]> {
+export async function getDocumentsByParentId(
+  parentId: string | null | undefined
+): Promise<DocumentItem[]> {
   try {
-    const endpoint = parentId 
-      ? `/documents/?parent_id=${encodeURIComponent(parentId)}` 
-      : '/documents/'
-    
-    const response = await api.get<ApiDocumentItem[]>(endpoint)
-    return response.data.map(transformApiDocument)
+    const endpoint = parentId
+      ? `/documents/?parent_id=${encodeURIComponent(parentId)}`
+      : "/documents/";
+
+    const response = await api.get<ApiDocumentItem[]>(endpoint);
+    return response.data.map(transformApiDocument);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error fetching documents:', error)
-    return []
+    console.error("Error fetching documents:", error);
+    return [];
   }
 }
 
 // Get actual item count by making a specific API call
 export async function getActualItemCount(folderId: string): Promise<number> {
   try {
-    const response = await api.get<ApiDocumentItem[]>(`/documents/?parent_id=${encodeURIComponent(folderId)}`)
-    return response.data.length
+    const response = await api.get<ApiDocumentItem[]>(
+      `/documents/?parent_id=${encodeURIComponent(folderId)}`
+    );
+    return response.data.length;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error fetching item count:', error)
-    return 0
+    console.error("Error fetching item count:", error);
+    return 0;
   }
 }
 
 // Get document by ID
-export async function getDocumentById(id: string, _parentId: string | null): Promise<DocumentItem | null> {
+export async function getDocumentById(
+  id: string,
+  _parentId: string | null
+): Promise<DocumentItem | null> {
   try {
-    const response = await api.get<ApiDocumentItem>(`/documents/${encodeURIComponent(id)}`)
-    return transformApiDocument(response.data)
+    const response = await api.get<ApiDocumentItem>(
+      `/documents/${encodeURIComponent(id)}`
+    );
+    return transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error fetching document by ID:', error)
-    return null
+    console.error("Error fetching document by ID:", error);
+    return null;
   }
 }
 
 // Updated async version of getFolderPathIds
-export async function getFolderPathIds(folderId: string | null): Promise<string[]> {
-  if (!folderId) return []
-  const folder = await getDocumentById(folderId, null)
-  if (!folder) return []
+export async function getFolderPathIds(
+  folderId: string | null
+): Promise<string[]> {
+  if (!folderId) return [];
+  const folder = await getDocumentById(folderId, null);
+  if (!folder) return [];
 
-  const pathIds: string[] = []
-  let currentFolder: DocumentItem | null = folder
+  const pathIds: string[] = [];
+  let currentFolder: DocumentItem | null = folder;
   while (currentFolder?.parentId) {
-    pathIds.unshift(currentFolder.parentId)
-    currentFolder = await getDocumentById(currentFolder.parentId, null)
+    pathIds.unshift(currentFolder.parentId);
+    currentFolder = await getDocumentById(currentFolder.parentId, null);
   }
-  pathIds.push(folderId)
-  return pathIds
+  pathIds.push(folderId);
+  return pathIds;
 }
 
 // Updated async version of buildBreadcrumbs
-export async function buildBreadcrumbs(currentFolderId: string | null): Promise<{ id: string; name: string; path: string[] }[]> {
+export async function buildBreadcrumbs(
+  currentFolderId: string | null
+): Promise<{ id: string; name: string; path: string[] }[]> {
   const breadcrumbs: { id: string; name: string; path: string[] }[] = [
-    { id: 'root', name: 'Documents', path: [] }
-  ]
-  if (!currentFolderId) return breadcrumbs
+    { id: "root", name: "Documents", path: [] },
+  ];
+  if (!currentFolderId) return breadcrumbs;
 
-  const currentFolder = await getDocumentById(currentFolderId, null)
-  if (!currentFolder) return breadcrumbs
+  const currentFolder = await getDocumentById(currentFolderId, null);
+  if (!currentFolder) return breadcrumbs;
 
-  const pathIds: string[] = []
-  let folder: DocumentItem | null = currentFolder
+  const pathIds: string[] = [];
+  let folder: DocumentItem | null = currentFolder;
   while (folder?.parentId) {
-    pathIds.unshift(folder.parentId)
-    const parentFolder = await getDocumentById(folder.parentId, null)
-    folder = parentFolder
+    pathIds.unshift(folder.parentId);
+    const parentFolder = await getDocumentById(folder.parentId, null);
+    folder = parentFolder;
   }
-  pathIds.push(currentFolderId)
+  pathIds.push(currentFolderId);
 
-  let currentPath: string[] = []
+  let currentPath: string[] = [];
   for (const id of pathIds) {
-    const folderDoc = await getDocumentById(id, null)
+    const folderDoc = await getDocumentById(id, null);
     if (folderDoc) {
-      currentPath = [...currentPath, folderDoc.name]
-      breadcrumbs.push({ id, name: folderDoc.name, path: currentPath.slice(0, -1) })
+      currentPath = [...currentPath, folderDoc.name];
+      breadcrumbs.push({
+        id,
+        name: folderDoc.name,
+        path: currentPath.slice(0, -1),
+      });
     }
   }
 
-  return breadcrumbs
+  return breadcrumbs;
 }
 
-export async function getDocumentTypes(searchQuery: string = ''): Promise<string[]> {
+export async function getDocumentTypes(
+  searchQuery: string = ""
+): Promise<string[]> {
   // Get all documents to extract existing types
   const allDocuments = await getDocumentsByParentId(null);
-  const existingTypes = Array.from(new Set(
-    allDocuments
-      .filter(doc => doc.type === 'file')
-      .map(doc => doc.category)
-      .filter(Boolean)
-  )) as string[]
+  const existingTypes = Array.from(
+    new Set(
+      allDocuments
+        .filter((doc) => doc.type === "file")
+        .map((doc) => doc.category)
+        .filter(Boolean)
+    )
+  ) as string[];
 
   const predefinedTypes = [
-    'Standard Operating Procedure',
-    'Policy Document',
-    'Charter',
-    'Meeting Notes',
-    'Template',
-    'Report',
-    'Manual',
-    'Guidelines',
-    'Contract',
-    'Proposal',
-    'Specification',
-    'Training Material'
-  ]
+    "Standard Operating Procedure",
+    "Policy Document",
+    "Charter",
+    "Meeting Notes",
+    "Template",
+    "Report",
+    "Manual",
+    "Guidelines",
+    "Contract",
+    "Proposal",
+    "Specification",
+    "Training Material",
+  ];
 
-  const allTypes = Array.from(new Set([...predefinedTypes, ...existingTypes]))
-  if (!searchQuery) return allTypes.sort()
-  const filtered = allTypes.filter(type => type.toLowerCase().includes(searchQuery.toLowerCase()))
-  return filtered.length === 0 ? [searchQuery] : filtered.sort()
+  const allTypes = Array.from(new Set([...predefinedTypes, ...existingTypes]));
+  if (!searchQuery) return allTypes.sort();
+  const filtered = allTypes.filter((type) =>
+    type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  return filtered.length === 0 ? [searchQuery] : filtered.sort();
 }
 
-export async function getDocumentCategories(searchQuery: string = ''): Promise<string[]> {
+export async function getDocumentCategories(
+  searchQuery: string = ""
+): Promise<string[]> {
   // Get all documents to extract existing categories
   const allDocuments = await getDocumentsByParentId(null);
-  const existing = Array.from(new Set(
-    allDocuments
-      .filter(doc => doc.category)
-      .map(doc => doc.category)
-      .filter(Boolean)
-  )) as string[]
+  const existing = Array.from(
+    new Set(
+      allDocuments
+        .filter((doc) => doc.category)
+        .map((doc) => doc.category)
+        .filter(Boolean)
+    )
+  ) as string[];
 
   const predefined = [
-    'Company Policies',
-    'Attendance',
-    'Charter',
-    'Meeting Notes',
-    'Templates',
-    'HR Policies',
-    'Financial',
-    'Operations',
-    'Legal',
-    'Marketing',
-    'Sales',
-    'Technical',
-    'Training',
-    'Compliance',
-    'Quality Assurance',
-    'Project Management'
-  ]
+    "Company Policies",
+    "Attendance",
+    "Charter",
+    "Meeting Notes",
+    "Templates",
+    "HR Policies",
+    "Financial",
+    "Operations",
+    "Legal",
+    "Marketing",
+    "Sales",
+    "Technical",
+    "Training",
+    "Compliance",
+    "Quality Assurance",
+    "Project Management",
+  ];
 
-  const all = Array.from(new Set([...predefined, ...existing]))
-  if (!searchQuery) return all.sort()
-  const filtered = all.filter(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
-  return filtered.length === 0 ? [searchQuery] : filtered.sort()
+  const all = Array.from(new Set([...predefined, ...existing]));
+  if (!searchQuery) return all.sort();
+  const filtered = all.filter((c) =>
+    c.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  return filtered.length === 0 ? [searchQuery] : filtered.sort();
 }
 
 // Create new document or folder
-export async function createDocument(name: string, type: 'file' | 'folder', parentId: string | null, authToken: string): Promise<DocumentItem | null> {
+export async function createDocument(
+  name: string,
+  type: "file" | "folder",
+  parentId: string | null,
+  authToken: string
+): Promise<DocumentItem | null> {
   try {
     const payload = {
       name,
       title: null,
       type,
       category: null,
-      status: 'active',
+      status: "active",
       parent_id: parentId,
       shared: false,
       share_url: null,
       id: null,
-      content: []
-    }
+      content: [],
+    };
 
-    const response = await api.post<ApiDocumentItem>('/documents/', payload, {
+    const response = await api.post<ApiDocumentItem>("/documents/", payload, {
       headers: {
-        'Authorization': authToken
-      }
-    })
+        Authorization: authToken,
+      },
+    });
 
-    return transformApiDocument(response.data)
+    return transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error creating document:', error)
-    return null
+    console.error("Error creating document:", error);
+    return null;
   }
 }
 
 // Delete document or folder
 export async function deleteDocument(documentId: string): Promise<boolean> {
   try {
-    await api.delete(`/documents/${encodeURIComponent(documentId)}`)
-    return true
+    await api.delete(`/documents/${encodeURIComponent(documentId)}`);
+    return true;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error deleting document:', error)
-    return false
+    console.error("Error deleting document:", error);
+    return false;
   }
 }
 
 // Rename document or folder
-export async function renameDocument(documentId: string, newName: string): Promise<DocumentItem | null> {
+export async function renameDocument(
+  documentId: string,
+  newName: string
+): Promise<DocumentItem | null> {
   try {
-    const response = await api.patch<ApiDocumentItem>(`/documents/${encodeURIComponent(documentId)}`, {
-      name: newName
-    })
-    return transformApiDocument(response.data)
+    const response = await api.patch<ApiDocumentItem>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      {
+        name: newName,
+      }
+    );
+    return transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error renaming document:', error)
-    return null
+    console.error("Error renaming document:", error);
+    return null;
   }
 }
 
 // Update document content payload interface
 export interface UpdateDocumentContentPayload {
-  category: string
-  content: DocumentBlock[]
+  category: string;
+  content: DocumentBlock[];
 }
 
 // Update document content (for files only)
@@ -291,12 +362,175 @@ export async function updateDocumentContent(
   payload: UpdateDocumentContentPayload
 ): Promise<DocumentItem | null> {
   try {
-    const response = await api.patch<ApiDocumentItem>(`/documents/${encodeURIComponent(documentId)}`, payload)
-    return transformApiDocument(response.data)
+    const response = await api.patch<ApiDocumentItem>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      payload
+    );
+    return transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error updating document content:', error)
-    return null
+    console.error("Error updating document content:", error);
+    return null;
   }
 }
 
+// ===== DOCUMENT PERMISSION FUNCTIONS =====
+
+// Get document permissions
+export async function getDocumentPermissions(
+  documentId: string
+): Promise<DocumentPermissions | null> {
+  try {
+    const response = await api.get<DocumentPermissions>(
+      `/documents/${encodeURIComponent(documentId)}/permissions`
+    );
+    return response.data;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error fetching document permissions:", error);
+    return null;
+  }
+}
+
+// Add user permission
+export async function addUserPermission(
+  documentId: string,
+  permission: AddUserPermissionRequest
+): Promise<boolean> {
+  try {
+    await api.post(
+      `/documents/${encodeURIComponent(documentId)}/permissions/users`,
+      permission
+    );
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error adding user permission:", error);
+    return false;
+  }
+}
+
+// Add division permission
+export async function addDivisionPermission(
+  documentId: string,
+  permission: AddDivisionPermissionRequest
+): Promise<boolean> {
+  try {
+    await api.post(
+      `/documents/${encodeURIComponent(documentId)}/permissions/divisions`,
+      permission
+    );
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error adding division permission:", error);
+    return false;
+  }
+}
+
+// Remove user permission
+export async function removeUserPermission(
+  documentId: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    await api.delete(
+      `/documents/${encodeURIComponent(
+        documentId
+      )}/permissions/users/${encodeURIComponent(userId)}`
+    );
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error removing user permission:", error);
+    return false;
+  }
+}
+
+// Remove division permission
+export async function removeDivisionPermission(
+  documentId: string,
+  division: string
+): Promise<boolean> {
+  try {
+    await api.delete(
+      `/documents/${encodeURIComponent(
+        documentId
+      )}/permissions/divisions/${encodeURIComponent(division)}`
+    );
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error removing division permission:", error);
+    return false;
+  }
+}
+
+// Combined search result interface that can be either user or division
+export interface SearchResult {
+  type: "user" | "division";
+  id: string;
+  name: string;
+  email?: string; // Only for users
+  division?: string; // Only for users
+  position?: string; // Only for users
+  avatar?: string; // Only for users
+}
+
+// Search users and divisions for permission assignment
+// The API returns both users and divisions, so we need to distinguish them
+export async function searchForPermissions(
+  query: string
+): Promise<SearchResult[]> {
+  try {
+    const response = await api.get<SearchUserResult[]>(
+      `/employees/search?q=${encodeURIComponent(query)}`
+    );
+    const results: SearchResult[] = [];
+
+    // Process each result and determine if it's a user or division
+    response.data.forEach((item) => {
+      // Check if this is a division by looking at the structure
+      // Divisions typically don't have email, position, or avatar
+      if (!item.email && !item.position && !item.avatar) {
+        // This is likely a division
+        results.push({
+          type: "division",
+          id: item.id,
+          name: item.name,
+        });
+      } else {
+        // This is a user
+        results.push({
+          type: "user",
+          id: item.id,
+          name: item.name,
+          email: item.email,
+          division: item.division,
+          position: item.position,
+          avatar: item.avatar,
+        });
+      }
+    });
+
+    return results;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error searching for permissions:", error);
+    return [];
+  }
+}
+
+// Keep the original searchUsers function for backward compatibility
+export async function searchUsers(query: string): Promise<SearchUserResult[]> {
+  try {
+    const response = await api.get<SearchUserResult[]>(
+      `/employees/search?q=${encodeURIComponent(query)}`
+    );
+    return response.data;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error searching users:", error);
+    return [];
+  }
+}

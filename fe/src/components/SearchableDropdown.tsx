@@ -8,6 +8,7 @@ interface SearchableDropdownProps {
   onSelect: (value: string) => void
   fetchOptions: (searchQuery: string) => Promise<string[]>
   className?: string
+  disabled?: boolean
 }
 
 function SearchableDropdown({
@@ -16,7 +17,8 @@ function SearchableDropdown({
   icon: Icon,
   onSelect,
   fetchOptions,
-  className = ''
+  className = '',
+  disabled = false
 }: SearchableDropdownProps): ReactElement {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -101,8 +103,13 @@ function SearchableDropdown({
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
-        onClick={handleOpen}
-        className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        onClick={disabled ? undefined : handleOpen}
+        disabled={disabled}
+        className={`flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md transition-colors ${
+          disabled 
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+            : 'hover:bg-gray-50'
+        }`}
       >
         <Icon className="w-4 h-4 text-gray-400" />
         <span className="text-sm text-gray-700">

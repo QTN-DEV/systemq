@@ -3,8 +3,6 @@ import {
   MoreHorizontal,
   ChevronRight,
   Home,
-  Copy,
-  Check,
   RefreshCw,
   Plus
 } from 'lucide-react'
@@ -19,8 +17,10 @@ import {
   createDocument,
   deleteDocument,
   renameDocument,
+  getDocumentPermissions,
 } from '../services/DocumentService'
 import { useAuthStore } from '../stores/authStore'
+import ShareDocumentModal from '../components/ShareDocumentModal'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
 function Documents(): ReactElement {
@@ -39,17 +39,16 @@ function Documents(): ReactElement {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
   const [itemCounts, setItemCounts] = useState<Record<string, number | null>>({})
+  const [editPermissionsMap, setEditPermissionsMap] = useState<Record<string, boolean>>({})
   
   // Modal states
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [showCreateFile, setShowCreateFile] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showShareModal, setShowShareModal] = useState(false)
+  const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<DocumentItem | null>(null)
   const [newItemName, setNewItemName] = useState('')
-  const [shareUrl, setShareUrl] = useState('')
-  const [urlCopied, setUrlCopied] = useState(false)
 
   // State for loading, data, and errors
   const [currentFolder, setCurrentFolder] = useState<DocumentItem | null | undefined>(null)
@@ -57,6 +56,7 @@ function Documents(): ReactElement {
   const [breadcrumbs, setBreadcrumbs] = useState<DocumentBreadcrumb[]>([])
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [allowedMap, setAllowedMap] = useState<Record<string, boolean>>({})
   
   // Fetch documents and current folder when currentFolderId changes
   useEffect(() => {
@@ -82,6 +82,103 @@ function Documents(): ReactElement {
           }
         }
         setItemCounts(counts)
+
+        // Build allowed map for current user
+        const session = getCurrentSession()
+        if (session) {
+          const currentUserId = (session.user.id ?? '').trim()
+          const currentUserEmail = (session.user.email ?? '').trim().toLowerCase()
+          const currentDivision = ((session.user as unknown as { division?: string }).division ?? '').trim()
+          // Helper: evaluate permissions available inline on item (if API embeds)
+          const isAllowedInline = (item: DocumentItem): boolean => {
+            if ((item.ownedBy?.id ?? '').trim() === currentUserId) return true
+            const hasUser = item.userPermissions?.some(p => (p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) ?? false
+            const hasDivision = currentDivision ? (item.divisionPermissions?.some(p => (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase()) ?? false) : false
+            return hasUser || hasDivision
+          }
+
+          // Helper: check descendants up to a safe depth
+          const checkDescendants = async (parentId: string, depth: number): Promise<boolean> => {
+            if (depth <= 0) return false
+            const children = await getDocumentsByParentId(parentId)
+            for (const child of children) {
+              if (isAllowedInline(child)) return true
+              // Fallback to API permissions when not embedded
+              const childPerms = await getDocumentPermissions(child.id)
+              const childUser = childPerms?.user_permissions?.some(p => (p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) ?? false
+              const childDiv = currentDivision ? (childPerms?.division_permissions?.some(p => (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase()) ?? false) : false
+              if (childUser || childDiv) return true
+              if (child.type === 'folder' && await checkDescendants(child.id, depth - 1)) return true
+            }
+            return false
+          }
+
+          const results = await Promise.all(items.map(async (item) => {
+            // Owners always allowed
+            if (item.ownedBy?.id === currentUserId) return [item.id, true] as const
+            // Try inline permissions first
+            let allowedHere = isAllowedInline(item)
+            // Fallback to explicit permission API if not decided yet
+            if (!allowedHere) {
+              const perms = await getDocumentPermissions(item.id)
+              const hasUser = perms?.user_permissions?.some(p => (p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) ?? false
+              const hasDivision = currentDivision ? (perms?.division_permissions?.some(p => (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase()) ?? false) : false
+              allowedHere = hasUser || hasDivision
+            }
+
+            // If not allowed on the folder itself, but this is a folder,
+            // check immediate children to see if any descendant grants access.
+            if (!allowedHere && item.type === 'folder') {
+              try {
+                const anyDescAllowed = await checkDescendants(item.id, 3)
+                if (anyDescAllowed) return [item.id, true] as const
+              } catch {
+                // ignore
+              }
+            }
+
+            return [item.id, allowedHere] as const
+          }))
+          setAllowedMap(Object.fromEntries(results))
+
+          // Check edit permissions for each item
+          const editResults = await Promise.all(items.map(async (item) => {
+            // Owners always have edit permissions
+            if (item.ownedBy?.id === currentUserId) return [item.id, true] as const
+            
+            // Check inline permissions for editor role
+            const isEditorInline = item.userPermissions?.some(p => 
+              ((p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) &&
+              p.permission === 'editor'
+            ) || item.divisionPermissions?.some(p => 
+              (p.division ?? '').trim().toLowerCase() === currentDivision?.toLowerCase() &&
+              p.permission === 'editor'
+            )
+
+            if (isEditorInline) return [item.id, true] as const
+
+            // Fallback to explicit permission API
+            try {
+              const perms = await getDocumentPermissions(item.id)
+              const hasUserEditor = perms?.user_permissions?.some(p => 
+                ((p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) &&
+                p.permission === 'editor'
+              ) ?? false
+              const hasDivisionEditor = currentDivision ? (perms?.division_permissions?.some(p => 
+                (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase() &&
+                p.permission === 'editor'
+              ) ?? false) : false
+              
+              return [item.id, hasUserEditor || hasDivisionEditor] as const
+            } catch {
+              return [item.id, false] as const
+            }
+          }))
+          setEditPermissionsMap(Object.fromEntries(editResults))
+        } else {
+          // No session => only owner checks will pass elsewhere, default to false
+          setAllowedMap({})
+        }
         setError(null) // Clear any previous errors
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -110,6 +207,21 @@ function Documents(): ReactElement {
   const filteredItems = useMemo((): DocumentItem[] => {
     let filtered = currentItems
 
+    // Permission filter: show only items user can access
+    const session = getCurrentSession()
+    const userId = session?.user.id
+    if (userId) {
+      filtered = filtered.filter(item => {
+        if (item.ownedBy?.id === userId) return true
+        const allowed = allowedMap[item.id]
+        // If allowedMap not computed yet, optimistically hide to avoid leakage
+        return allowed === true
+      })
+    } else {
+      // Not logged in => hide all
+      filtered = []
+    }
+
     // Filter by category
     if (activeFilter !== 'All') {
       filtered = filtered.filter(item => item.category === activeFilter)
@@ -125,7 +237,7 @@ function Documents(): ReactElement {
     }
 
     return filtered
-  }, [currentItems, activeFilter, searchTerm])
+  }, [currentItems, activeFilter, searchTerm, allowedMap])
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / rowsPerPage)
@@ -152,6 +264,10 @@ function Documents(): ReactElement {
 
   // Navigation handlers
   const handleItemClick = (item: DocumentItem): void => {
+    const session = getCurrentSession()
+    const userId = session?.user.id
+    if (!userId) return
+    if (item.ownedBy?.id !== userId && allowedMap[item.id] !== true) return
     if (item.type === 'folder') {
       const newPath = [...pathSegments, item.id].join('/')
       navigate(`/documents/${newPath}`)
@@ -201,25 +317,10 @@ function Documents(): ReactElement {
 
   const handleShare = (item: DocumentItem): void => {
     setSelectedItem(item)
-    const baseUrl = window.location.origin
-    const itemUrl = item.type === 'folder' 
-      ? `${baseUrl}/documents/${[...item.path, item.name].join('/')}`
-      : `${baseUrl}/documents/file/${item.id}`
-    setShareUrl(itemUrl)
-    setShowShareModal(true)
+    setShowPermissionModal(true)
     setShowActionsDropdown(null)
   }
 
-  const handleCopyUrl = async (): Promise<void> => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setUrlCopied(true)
-      setTimeout(() => setUrlCopied(false), 2000)
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to copy URL:', err)
-    }
-  }
 
   // Form submission handlers
   const handleCreateFolderSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -633,8 +734,19 @@ function Documents(): ReactElement {
                   {showActionsDropdown === item.id && (
                     <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                       <div className="py-1">
-                        <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                        <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                        {editPermissionsMap[item.id] && (
+                          <>
+                            <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                            <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                          </>
+                        )}
+                        <button 
+                          onClick={() => handleShare(item)} 
+                          disabled={!editPermissionsMap[item.id]}
+                          className={`w-full text-left px-4 py-2 text-sm ${editPermissionsMap[item.id] ? 'hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'}`}
+                        >
+                          Share
+                        </button>
                       </div>
                     </div>
                   )}
@@ -684,9 +796,19 @@ function Documents(): ReactElement {
                   {showActionsDropdown === item.id && (
                     <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                       <div className="py-1">
-                        <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                        <button onClick={() => handleShare(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Share</button>
-                        <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                        {editPermissionsMap[item.id] && (
+                          <>
+                            <button onClick={() => handleRename(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                            <button onClick={() => handleDelete(item)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                          </>
+                        )}
+                        <button 
+                          onClick={() => handleShare(item)} 
+                          disabled={!editPermissionsMap[item.id]}
+                          className={`w-full text-left px-4 py-2 text-sm ${editPermissionsMap[item.id] ? 'hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'}`}
+                        >
+                          Share
+                        </button>
                       </div>
                     </div>
                   )}
@@ -913,48 +1035,14 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {showShareModal && selectedItem && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Share {selectedItem.type === 'folder' ? 'Folder' : 'File'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Share &quot;{selectedItem.name}&quot; with others by copying the link below:
-            </p>
-            <div className="mb-4">
-              <label htmlFor="shareUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                Share URL
-              </label>
-              <div className="flex">
-                <input
-                  type="text"
-                  id="shareUrl"
-                  value={shareUrl}
-                  readOnly
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-gray-600"
-                />
-                <button
-                  onClick={() => { void handleCopyUrl() }}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 flex items-center"
-                >
-                  {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-              {urlCopied && (
-                <p className="text-sm text-green-600 mt-1">URL copied to clipboard!</p>
-              )}
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowShareModal(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Permission Modal */}
+      {showPermissionModal && selectedItem && (
+        <ShareDocumentModal
+          isOpen={showPermissionModal}
+          onClose={() => setShowPermissionModal(false)}
+          documentId={selectedItem.id}
+          documentName={selectedItem.name}
+        />
       )}
     </div>
   )

@@ -36,6 +36,8 @@ export interface DocumentItem {
   shared?: boolean
   shareUrl?: string
   content?: DocumentBlock[] // Document content as structured blocks
+  userPermissions?: import('./document-permissions').DocumentPermission[] // Individual user permissions
+  divisionPermissions?: import('./document-permissions').DivisionPermission[] // Division-level permissions
 }
 
 export interface DocumentBreadcrumb {

@@ -1,5 +1,7 @@
 import { 
-  Tag
+  Tag,
+  Share2,
+  MoreHorizontal
 } from 'lucide-react'
 import { useState, useEffect, useCallback, type ReactElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -8,17 +10,22 @@ import { logger } from '@/lib/logger'
 
 import DocumentEditor from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
-import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent, renameDocument } from '../services/DocumentService'
+import ShareDocumentModal from '../components/ShareDocumentModal'
+import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent, renameDocument, getDocumentPermissions } from '../services/DocumentService'
+import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBlock } from '../types/documents'
 
 function DocumentEditorPage(): ReactElement {
   const { fileId } = useParams<{ fileId: string }>()
   const navigate = useNavigate()
+  const getCurrentSession = useAuthStore((s) => s.getCurrentSession)
   
   const [document, setDocument] = useState<DocumentItem | null>(null)
   const [blocks, setBlocks] = useState<DocumentBlock[]>([])
   const [fileName, setFileName] = useState('')
   const [documentCategory, setDocumentCategory] = useState<string>('')
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
 
   const getMockDocumentContent = useCallback((docId: string, doc?: DocumentItem | null): DocumentBlock[] => {
     // Return different mock content based on document ID
@@ -158,27 +165,76 @@ function DocumentEditorPage(): ReactElement {
   }, [])
 
   useEffect(() => {
-    if (fileId) {
-      const loadDocument = async (): Promise<void> => {
-        const doc = await getDocumentById(fileId, null)
-        if (doc && doc.type === 'file') {
-          setDocument(doc)
-          setFileName(doc.name)
-          setDocumentCategory(doc.category ?? '')
+    if (!fileId) return
+    const loadDocument = async (): Promise<void> => {
+      const session = getCurrentSession()
+      if (!session) { void navigate('/login'); return }
+      const doc = await getDocumentById(fileId, null)
+      if (!doc || doc.type !== 'file') { void navigate('/documents'); return }
 
-          // Load document content - use actual content from API or fallback to mock
-          if (doc.content && doc.content.length > 0) {
-            setBlocks(doc.content)
-          } else {
-            // Fallback to mock content for existing documents without structured content
-            const mockContent = getMockDocumentContent(doc.id, doc)
-            setBlocks(mockContent)
+      // Check permissions and edit rights
+      const userId = (session.user.id ?? '').trim()
+      const userEmail = (session.user.email ?? '').trim().toLowerCase()
+      const division = ((session.user as unknown as { division?: string }).division ?? '').trim()
+      
+      // Owners always have edit permissions
+      if ((doc.ownedBy?.id ?? '').trim() === userId) {
+        setCanEdit(true)
+      } else {
+        // Check inline permissions first
+        const hasUserEditInline = doc.userPermissions?.some(p => 
+          ((p.user_id ?? '').trim() === userId || (p.user_email ?? '').trim().toLowerCase() === userEmail) &&
+          p.permission === 'editor'
+        ) || false
+
+        const hasDivisionEditInline = division ? (doc.divisionPermissions?.some(p => 
+          (p.division ?? '').trim().toLowerCase() === division.toLowerCase() &&
+          p.permission === 'editor'
+        ) || false) : false
+
+        if (hasUserEditInline || hasDivisionEditInline) {
+          setCanEdit(true)
+        } else {
+          // Fallback to API permissions
+          const perms = await getDocumentPermissions(fileId)
+          const hasUser = perms?.user_permissions?.some(p => (p.user_id ?? '').trim() === userId || (p.user_email ?? '').trim().toLowerCase() === userEmail) ?? false
+          const hasDivision = division ? (perms?.division_permissions?.some(p => (p.division ?? '').trim().toLowerCase() === division.toLowerCase()) ?? false) : false
+          
+          if (!hasUser && !hasDivision) {
+            void navigate('/documents')
+            return
           }
+
+          // Check edit permissions from API
+          const hasUserEdit = perms?.user_permissions?.some(p => 
+            ((p.user_id ?? '').trim() === userId || (p.user_email ?? '').trim().toLowerCase() === userEmail) &&
+            p.permission === 'editor'
+          ) || false
+
+          const hasDivisionEdit = division ? (perms?.division_permissions?.some(p => 
+            (p.division ?? '').trim().toLowerCase() === division.toLowerCase() &&
+            p.permission === 'editor'
+          ) || false) : false
+
+          setCanEdit(hasUserEdit || hasDivisionEdit)
         }
       }
-      void loadDocument()
+
+      setDocument(doc)
+      setFileName(doc.name)
+      setDocumentCategory(doc.category ?? '')
+
+      // Load document content - use actual content from API or fallback to mock
+      if (doc.content && doc.content.length > 0) {
+        setBlocks(doc.content)
+      } else {
+        // Fallback to mock content for existing documents without structured content
+        const mockContent = getMockDocumentContent(doc.id, doc)
+        setBlocks(mockContent)
+      }
     }
-  }, [fileId, getMockDocumentContent])
+    void loadDocument()
+  }, [fileId, getCurrentSession, getMockDocumentContent, navigate])
 
 
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
@@ -262,35 +318,54 @@ function DocumentEditorPage(): ReactElement {
     <div className="min-h-screen bg-white">
       {/* Breadcrumb Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <button
-            onClick={(): void => { void navigate('/documents') }}
-            className="hover:text-gray-700 transition-colors"
-          >
-            All Documents
-          </button>
-          <span>/</span>
-          {document?.parentId && (
-            <>
-              <button
-                onClick={(): void => {
-                  if (document.parentId) {
-                    const navigateToParent = async (): Promise<void> => {
-                      const parentPathIds = await getFolderPathIds(document.parentId ?? null)
-                      const parentPath = parentPathIds.join('/')
-                      void navigate(`/documents/${parentPath}`)
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <button
+              onClick={(): void => { void navigate('/documents') }}
+              className="hover:text-gray-700 transition-colors"
+            >
+              All Documents
+            </button>
+            <span>/</span>
+            {document?.parentId && (
+              <>
+                <button
+                  onClick={(): void => {
+                    if (document.parentId) {
+                      const navigateToParent = async (): Promise<void> => {
+                        const parentPathIds = await getFolderPathIds(document.parentId ?? null)
+                        const parentPath = parentPathIds.join('/')
+                        void navigate(`/documents/${parentPath}`)
+                      }
+                      void navigateToParent()
                     }
-                    void navigateToParent()
-                  }
-                }}
-                className="hover:text-gray-700 transition-colors"
-              >
-                {document.path.length > 0 ? document.path[document.path.length - 1] : 'Documents'}
-              </button>
-              <span>/</span>
-            </>
-          )}
-          <span className="text-gray-900 font-medium">{fileName || 'New Document'}</span>
+                  }}
+                  className="hover:text-gray-700 transition-colors"
+                >
+                  {document.path.length > 0 ? document.path[document.path.length - 1] : 'Documents'}
+                </button>
+                <span>/</span>
+              </>
+            )}
+            <span className="text-gray-900 font-medium">{fileName || 'New Document'}</span>
+          </div>
+          
+          {/* Share Button */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowShareModal(true)}
+              disabled={!canEdit}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                canEdit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
+            </button>
+            <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -299,13 +374,25 @@ function DocumentEditorPage(): ReactElement {
         <div className="px-20 py-8">
           {/* File Name (used as title) */}
           <div className="mb-6">
-          <input
-            type="text"
-            value={fileName}
-            onChange={(e) => { void handleNameChange(e.target.value) }}
-            className="w-full text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400 mb-4"
-            placeholder="Untitled Document"
-          />
+          <div className="flex items-center space-x-3 mb-4">
+            <input
+              type="text"
+              value={fileName}
+              onChange={(e) => { void handleNameChange(e.target.value) }}
+              className="flex-1 text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400"
+              placeholder="Untitled Document"
+              readOnly={!canEdit}
+            />
+            {canEdit ? (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Editor
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Viewer
+              </span>
+            )}
+          </div>
           
           {/* Category Searchable Dropdown */}
           <div className="flex items-center space-x-3 mb-6">
@@ -315,6 +402,7 @@ function DocumentEditorPage(): ReactElement {
               icon={Tag}
               onSelect={(category) => { void handleCategoryChange(category) }}
               fetchOptions={getDocumentCategories}
+              disabled={!canEdit}
             />
           </div>
           
@@ -325,11 +413,21 @@ function DocumentEditorPage(): ReactElement {
           <DocumentEditor
             initialBlocks={blocks}
             onSave={(newBlocks): void => { void handleSave(newBlocks) }}
-            readOnly={false}
+            readOnly={!canEdit}
           />
           </div>
         </div>
       </div>
+
+      {/* Share Document Modal */}
+      {fileId && (
+        <ShareDocumentModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          documentId={fileId}
+          documentName={fileName || 'Untitled Document'}
+        />
+      )}
     </div>
   )
 }
