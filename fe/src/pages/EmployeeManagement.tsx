@@ -342,8 +342,10 @@ function EmployeeManagement(): ReactElement {
       if (isEditing && newEmployee.id) {
         const { id, ...updatePayload } = payload
         await updateEmployee(newEmployee.id, updatePayload)
+        setNotification({ type: 'success', message: 'Employee updated successfully' })
       } else {
         await createEmployee(payload)
+        setNotification({ type: 'success', message: 'Employee created successfully' })
       }
       logger.log('Employee created successfully')
       // refresh list
@@ -351,6 +353,12 @@ function EmployeeManagement(): ReactElement {
       setEmployees(data)
     } catch (error) {
       logger.error('Failed to create employee', error)
+      const status = (error as any)?.response?.status
+      if (status === 409) {
+        setNotification({ type: 'error', message: 'Employee ID or Email already exists' })
+      } else {
+        setNotification({ type: 'error', message: 'Failed to save employee' })
+      }
     }
 
     // Close with animation
