@@ -3,7 +3,7 @@ import {
   Share2,
   MoreHorizontal
 } from 'lucide-react'
-import { useState, useEffect, useCallback, type ReactElement } from 'react'
+import { useState, useEffect, type ReactElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { logger } from '@/lib/logger'
@@ -26,143 +26,6 @@ function DocumentEditorPage(): ReactElement {
   const [documentCategory, setDocumentCategory] = useState<string>('')
   const [showShareModal, setShowShareModal] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
-
-  const getMockDocumentContent = useCallback((docId: string, doc?: DocumentItem | null): DocumentBlock[] => {
-    // Return different mock content based on document ID
-    switch (docId) {
-      case 'work-arrangement':
-        return [
-          {
-            id: '1',
-            type: 'heading1',
-            content: 'Work Arrangement Request Form',
-            alignment: 'left'
-          },
-          {
-            id: '2',
-            type: 'paragraph',
-            content: 'This document outlines the process and requirements for submitting work arrangement requests within our organization.',
-            alignment: 'left'
-          },
-          {
-            id: '3',
-            type: 'heading2',
-            content: 'Purpose',
-            alignment: 'left'
-          },
-          {
-            id: '4',
-            type: 'paragraph',
-            content: 'To provide employees with flexible work options while maintaining operational efficiency and team collaboration.',
-            alignment: 'left'
-          },
-          {
-            id: '5',
-            type: 'heading2',
-            content: 'Available Arrangements',
-            alignment: 'left'
-          },
-          {
-            id: '6',
-            type: 'bulleted-list',
-            content: 'Remote work (full-time or hybrid)',
-            alignment: 'left'
-          },
-          {
-            id: '7',
-            type: 'bulleted-list',
-            content: 'Flexible hours',
-            alignment: 'left'
-          },
-          {
-            id: '8',
-            type: 'bulleted-list',
-            content: 'Compressed workweek',
-            alignment: 'left'
-          },
-          {
-            id: '9',
-            type: 'bulleted-list',
-            content: 'Job sharing',
-            alignment: 'left'
-          }
-        ]
-
-      case 'charter-kenamaan':
-        return [
-          {
-            id: '1',
-            type: 'heading1',
-            content: 'Charter Kenamaan - P/KEN/2504/006',
-            alignment: 'center'
-          },
-          {
-            id: '2',
-            type: 'paragraph',
-            content: 'Official charter document establishing the operational framework and guidelines for the Kenamaan project initiative.',
-            alignment: 'center'
-          },
-          {
-            id: '3',
-            type: 'heading2',
-            content: 'Project Overview',
-            alignment: 'left'
-          },
-          {
-            id: '4',
-            type: 'paragraph',
-            content: 'This charter defines the scope, objectives, and governance structure for the Kenamaan project, ensuring alignment with organizational goals and regulatory requirements.',
-            alignment: 'left'
-          },
-          {
-            id: '5',
-            type: 'heading2',
-            content: 'Key Stakeholders',
-            alignment: 'left'
-          },
-          {
-            id: '6',
-            type: 'numbered-list',
-            content: 'Project Sponsor: Executive Leadership Team',
-            alignment: 'left'
-          },
-          {
-            id: '7',
-            type: 'numbered-list',
-            content: 'Project Manager: Grace Maron',
-            alignment: 'left'
-          },
-          {
-            id: '8',
-            type: 'numbered-list',
-            content: 'Technical Lead: Development Team',
-            alignment: 'left'
-          },
-          {
-            id: '9',
-            type: 'quote',
-            content: 'Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill',
-            alignment: 'left'
-          }
-        ]
-
-      default:
-        return [
-          {
-            id: '1',
-            type: 'heading1',
-            content: doc?.name ?? 'Untitled Document',
-            alignment: 'left'
-          },
-          {
-            id: '2',
-            type: 'paragraph',
-            content: 'Start writing your content here...',
-            alignment: 'left'
-          }
-        ]
-    }
-  }, [])
 
   useEffect(() => {
     if (!fileId) return
@@ -224,17 +87,16 @@ function DocumentEditorPage(): ReactElement {
       setFileName(doc.name)
       setDocumentCategory(doc.category ?? '')
 
-      // Load document content - use actual content from API or fallback to mock
+      // Load document content - use actual content from API or leave empty
       if (doc.content && doc.content.length > 0) {
         setBlocks(doc.content)
       } else {
-        // Fallback to mock content for existing documents without structured content
-        const mockContent = getMockDocumentContent(doc.id, doc)
-        setBlocks(mockContent)
+        // No structured content available; editor will initialize with a blank block
+        setBlocks([])
       }
     }
     void loadDocument()
-  }, [fileId, getCurrentSession, getMockDocumentContent, navigate])
+  }, [fileId, getCurrentSession, navigate])
 
 
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
