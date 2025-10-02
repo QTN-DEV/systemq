@@ -1,4 +1,4 @@
-import { 
+import {
   Tag,
   Share2,
   MoreHorizontal
@@ -11,7 +11,14 @@ import { logger } from '@/lib/logger'
 import DocumentEditor from '../components/DocumentEditor'
 import SearchableDropdown from '../components/SearchableDropdown'
 import ShareDocumentModal from '../components/ShareDocumentModal'
-import { getDocumentById, getFolderPathIds, getDocumentCategories, updateDocumentContent, renameDocument, getDocumentPermissions } from '../services/DocumentService'
+import {
+  getDocumentById,
+  getFolderPathIds,
+  getDocumentCategories,
+  updateDocumentContent,
+  renameDocument,
+} from '../services/DocumentService'
+import { getDocumentAccess } from '../services/DocumentService' // <-- ADD
 import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBlock } from '../types/documents'
 
@@ -19,7 +26,7 @@ function DocumentEditorPage(): ReactElement {
   const { fileId } = useParams<{ fileId: string }>()
   const navigate = useNavigate()
   const getCurrentSession = useAuthStore((s) => s.getCurrentSession)
-  
+
   const [document, setDocument] = useState<DocumentItem | null>(null)
   const [blocks, setBlocks] = useState<DocumentBlock[]>([])
   const [fileName, setFileName] = useState('')
@@ -32,90 +39,46 @@ function DocumentEditorPage(): ReactElement {
     const loadDocument = async (): Promise<void> => {
       const session = getCurrentSession()
       if (!session) { void navigate('/login'); return }
-      const doc = await getDocumentById(fileId, null)
+
+      // 1) Ambil dokumen — backend /documents/{id} sudah enforce can_view (403 kalau tidak boleh)
+      const doc = await getDocumentById(fileId, null).catch(() => null)
       if (!doc || doc.type !== 'file') { void navigate('/documents'); return }
 
-      // Check permissions and edit rights
-      const userId = (session.user.id ?? '').trim()
-      const userEmail = (session.user.email ?? '').trim().toLowerCase()
-      const division = ((session.user as unknown as { division?: string }).division ?? '').trim()
-      
-      // Owners always have edit permissions
-      if ((doc.ownedBy?.id ?? '').trim() === userId) {
-        setCanEdit(true)
-      } else {
-        // Check inline permissions first
-        const hasUserEditInline = doc.userPermissions?.some(p => 
-          ((p.user_id ?? '').trim() === userId || (p.user_email ?? '').trim().toLowerCase() === userEmail) &&
-          p.permission === 'editor'
-        ) || false
-
-        const hasDivisionEditInline = division ? (doc.divisionPermissions?.some(p => 
-          (p.division ?? '').trim().toLowerCase() === division.toLowerCase() &&
-          p.permission === 'editor'
-        ) || false) : false
-
-        if (hasUserEditInline || hasDivisionEditInline) {
-          setCanEdit(true)
-        } else {
-          // Fallback to API permissions
-          const perms = await getDocumentPermissions(fileId)
-          const hasUser = perms?.user_permissions?.some(p => (p.user_id ?? '').trim() === userId || (p.user_email ?? '').trim().toLowerCase() === userEmail) ?? false
-          const hasDivision = division ? (perms?.division_permissions?.some(p => (p.division ?? '').trim().toLowerCase() === division.toLowerCase()) ?? false) : false
-          
-          if (!hasUser && !hasDivision) {
-            void navigate('/documents')
-            return
-          }
-
-          // Check edit permissions from API
-          const hasUserEdit = perms?.user_permissions?.some(p => 
-            ((p.user_id ?? '').trim() === userId || (p.user_email ?? '').trim().toLowerCase() === userEmail) &&
-            p.permission === 'editor'
-          ) || false
-
-          const hasDivisionEdit = division ? (perms?.division_permissions?.some(p => 
-            (p.division ?? '').trim().toLowerCase() === division.toLowerCase() &&
-            p.permission === 'editor'
-          ) || false) : false
-
-          setCanEdit(hasUserEdit || hasDivisionEdit)
-        }
+      // 2) Tanya akses efektif (viewer/editor) — termasuk inherited
+      const access = await getDocumentAccess(fileId).catch(() => null)
+      if (!access || !access.can_view) { // tidak punya akses lihat
+        void navigate('/documents')
+        return
       }
+      setCanEdit(!!access.can_edit)
 
+      // 3) Set state lain
       setDocument(doc)
       setFileName(doc.name)
       setDocumentCategory(doc.category ?? '')
 
-      // Load document content - use actual content from API or leave empty
       if (doc.content && doc.content.length > 0) {
         setBlocks(doc.content)
       } else {
-        // No structured content available; editor will initialize with a blank block
         setBlocks([])
       }
     }
     void loadDocument()
   }, [fileId, getCurrentSession, navigate])
 
-
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
     setBlocks(newBlocks)
-
-    // Save to API if document exists
     if (fileId && document) {
       try {
         const updatedDoc = await updateDocumentContent(fileId, {
           category: documentCategory,
           content: newBlocks
         })
-
         if (updatedDoc) {
           setDocument(updatedDoc)
         }
       } catch (error) {
         logger.error('Failed to save document:', error)
-        // Optionally show user feedback about save failure
       }
     }
   }
@@ -125,8 +88,6 @@ function DocumentEditorPage(): ReactElement {
     if (document) {
       setDocument({ ...document, name: newName })
     }
-
-    // Rename file immediately
     if (fileId) {
       try {
         const renamed = await renameDocument(fileId, newName)
@@ -142,8 +103,6 @@ function DocumentEditorPage(): ReactElement {
     if (document) {
       setDocument({ ...document, category: newCategory })
     }
-
-    // Auto-save category change
     if (fileId && document) {
       try {
         await updateDocumentContent(fileId, {
@@ -155,8 +114,6 @@ function DocumentEditorPage(): ReactElement {
       }
     }
   }
-
-
 
   if (!document || document.type !== 'file') {
     return (
@@ -174,7 +131,6 @@ function DocumentEditorPage(): ReactElement {
       </div>
     )
   }
-
 
   return (
     <div className="min-h-screen bg-white">
@@ -195,9 +151,13 @@ function DocumentEditorPage(): ReactElement {
                   onClick={(): void => {
                     if (document.parentId) {
                       const navigateToParent = async (): Promise<void> => {
-                        const parentPathIds = await getFolderPathIds(document.parentId ?? null)
-                        const parentPath = parentPathIds.join('/')
-                        void navigate(`/documents/${parentPath}`)
+                        try {
+                          const parentPathIds = await getFolderPathIds(document.parentId ?? null)
+                          const parentPath = parentPathIds.join('/')
+                          void navigate(`/documents/${parentPath}`)
+                        } catch {
+                          // jika parent tidak bisa diakses, biarkan tetap di halaman ini
+                        }
                       }
                       void navigateToParent()
                     }
@@ -211,15 +171,14 @@ function DocumentEditorPage(): ReactElement {
             )}
             <span className="text-gray-900 font-medium">{fileName || 'New Document'}</span>
           </div>
-          
+
           {/* Share Button */}
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowShareModal(true)}
               disabled={!canEdit}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                canEdit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              }`}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${canEdit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
             >
               <Share2 className="w-4 h-4" />
               <span>Share</span>
@@ -236,47 +195,47 @@ function DocumentEditorPage(): ReactElement {
         <div className="px-20 py-8">
           {/* File Name (used as title) */}
           <div className="mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <input
-              type="text"
-              value={fileName}
-              onChange={(e) => { void handleNameChange(e.target.value) }}
-              className="flex-1 text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400"
-              placeholder="Untitled Document"
+            <div className="flex items-center space-x-3 mb-4">
+              <input
+                type="text"
+                value={fileName}
+                onChange={(e) => { void handleNameChange(e.target.value) }}
+                className="flex-1 text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400"
+                placeholder="Untitled Document"
+                readOnly={!canEdit}
+              />
+              {canEdit ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Editor
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Viewer
+                </span>
+              )}
+            </div>
+
+            {/* Category Searchable Dropdown */}
+            <div className="flex items-center space-x-3 mb-6">
+              <SearchableDropdown
+                value={documentCategory}
+                placeholder="Add Category"
+                icon={Tag}
+                onSelect={(category) => { void handleCategoryChange(category) }}
+                fetchOptions={getDocumentCategories}
+                disabled={!canEdit}
+              />
+            </div>
+
+            {/* HR Line */}
+            <hr className="border-gray-200 mb-6" />
+
+            {/* Document Editor */}
+            <DocumentEditor
+              initialBlocks={blocks}
+              onSave={(newBlocks): void => { void handleSave(newBlocks) }}
               readOnly={!canEdit}
             />
-            {canEdit ? (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Editor
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                Viewer
-              </span>
-            )}
-          </div>
-          
-          {/* Category Searchable Dropdown */}
-          <div className="flex items-center space-x-3 mb-6">
-            <SearchableDropdown
-              value={documentCategory}
-              placeholder="Add Category"
-              icon={Tag}
-              onSelect={(category) => { void handleCategoryChange(category) }}
-              fetchOptions={getDocumentCategories}
-              disabled={!canEdit}
-            />
-          </div>
-          
-          {/* HR Line */}
-          <hr className="border-gray-200 mb-6" />
-          
-          {/* Document Editor */}
-          <DocumentEditor
-            initialBlocks={blocks}
-            onSave={(newBlocks): void => { void handleSave(newBlocks) }}
-            readOnly={!canEdit}
-          />
           </div>
         </div>
       </div>

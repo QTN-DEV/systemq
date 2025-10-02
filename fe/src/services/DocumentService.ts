@@ -109,8 +109,11 @@ export async function getDocumentsByParentId(
     const endpoint = parentId
       ? `/documents/?parent_id=${encodeURIComponent(parentId)}`
       : "/documents/";
-
-    const response = await api.get<ApiDocumentItem[]>(endpoint);
+    // Ensure Authorization header present for new BE requirement
+    const session = useAuthStore.getState().getCurrentSession();
+    const response = await api.get<ApiDocumentItem[]>(endpoint, {
+      headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
+    });
     return response.data.map(transformApiDocument);
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -122,8 +125,11 @@ export async function getDocumentsByParentId(
 // Get actual item count by making a specific API call
 export async function getActualItemCount(folderId: string): Promise<number> {
   try {
+    // Ensure Authorization header present for new BE requirement
+    const session = useAuthStore.getState().getCurrentSession();
     const response = await api.get<ApiDocumentItem[]>(
-      `/documents/?parent_id=${encodeURIComponent(folderId)}`
+      `/documents/?parent_id=${encodeURIComponent(folderId)}`,
+      { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
     );
     return response.data.length;
   } catch (error) {
@@ -139,8 +145,11 @@ export async function getDocumentById(
   _parentId: string | null
 ): Promise<DocumentItem | null> {
   try {
+    // Ensure Authorization header present for new BE requirement
+    const session = useAuthStore.getState().getCurrentSession();
     const response = await api.get<ApiDocumentItem>(
-      `/documents/${encodeURIComponent(id)}`
+      `/documents/${encodeURIComponent(id)}`,
+      { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
     );
     return transformApiDocument(response.data);
   } catch (error) {
@@ -532,5 +541,47 @@ export async function searchUsers(query: string): Promise<SearchUserResult[]> {
     // eslint-disable-next-line no-console
     console.error("Error searching users:", error);
     return [];
+  }
+}
+
+export interface DocumentAccess {
+  can_view: boolean
+  can_edit: boolean
+  // opsional kalau backend ikut mengirim detail
+  detail?: {
+    viewer?: { direct: boolean; inherited: boolean }
+    editor?: { direct: boolean; inherited: boolean }
+  }
+}
+
+export async function getDocumentAccess(
+  documentId: string
+): Promise<DocumentAccess> {
+  try {
+    const endpoint = `/documents/${encodeURIComponent(documentId)}/access`
+    const session = useAuthStore.getState().getCurrentSession()
+
+    const res = await api.get<DocumentAccess>(endpoint, {
+      headers: session?.token
+        ? { Authorization: `Bearer ${session.token}` }
+        : undefined,
+    })
+
+    // fallback aman kalau BE tidak mengirim field
+    return {
+      can_view: !!res.data?.can_view,
+      can_edit: !!res.data?.can_edit,
+      detail: res.data?.detail,
+    }
+  } catch (error: any) {
+    // 401/403: treat as no access
+    const status = error?.response?.status
+    if (status === 401 || status === 403) {
+      return { can_view: false, can_edit: false }
+    }
+    // log error lain, tetap fail-safe no access
+    // eslint-disable-next-line no-console
+    console.error('Error fetching document access:', error)
+    return { can_view: false, can_edit: false }
   }
 }

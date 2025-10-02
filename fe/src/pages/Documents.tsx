@@ -4,7 +4,8 @@ import {
   ChevronRight,
   Home,
   RefreshCw,
-  Plus
+  Plus,
+  Share2, // <-- ADD
 } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -17,8 +18,8 @@ import {
   createDocument,
   deleteDocument,
   renameDocument,
-  getDocumentPermissions,
 } from '../services/DocumentService'
+import { getDocumentAccess } from '../services/DocumentService' // <-- ADD
 import { useAuthStore } from '../stores/authStore'
 import ShareDocumentModal from '../components/ShareDocumentModal'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
@@ -31,7 +32,7 @@ function Documents(): ReactElement {
   // Parse current folder from URL path
   const pathSegments = currentPath?.split('/').filter(Boolean) ?? []
   const currentFolderId = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null
-  
+
   // State management
   const [searchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
@@ -39,8 +40,7 @@ function Documents(): ReactElement {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
   const [itemCounts, setItemCounts] = useState<Record<string, number | null>>({})
-  const [editPermissionsMap, setEditPermissionsMap] = useState<Record<string, boolean>>({})
-  
+
   // Modal states
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [showCreateFile, setShowCreateFile] = useState(false)
@@ -56,8 +56,8 @@ function Documents(): ReactElement {
   const [breadcrumbs, setBreadcrumbs] = useState<DocumentBreadcrumb[]>([])
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [allowedMap, setAllowedMap] = useState<Record<string, boolean>>({})
-  
+  const [canEditFolder, setCanEditFolder] = useState(false) // <-- ADD
+
   // Fetch documents and current folder when currentFolderId changes
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
@@ -67,13 +67,21 @@ function Documents(): ReactElement {
         const [folder, items, breadcrumbsData] = await Promise.all([
           currentFolderId ? getDocumentById(currentFolderId, null) : Promise.resolve(null),
           getDocumentsByParentId(currentFolderId),
-          buildBreadcrumbs(currentFolderId ?? null)
+          buildBreadcrumbs(currentFolderId ?? null),
         ])
-        
+
         setCurrentFolder(folder)
         setCurrentItems(items)
         setBreadcrumbs(breadcrumbsData)
-        
+
+        // Fetch effective access for folder (enable/disable Share button)
+        if (currentFolderId) {
+          const access = await getDocumentAccess(currentFolderId).catch(() => null)
+          setCanEditFolder(!!access?.can_edit)
+        } else {
+          setCanEditFolder(false)
+        }
+
         // Fetch item counts for each folder
         const counts: Record<string, number> = {}
         for (const item of items) {
@@ -83,102 +91,6 @@ function Documents(): ReactElement {
         }
         setItemCounts(counts)
 
-        // Build allowed map for current user
-        const session = getCurrentSession()
-        if (session) {
-          const currentUserId = (session.user.id ?? '').trim()
-          const currentUserEmail = (session.user.email ?? '').trim().toLowerCase()
-          const currentDivision = ((session.user as unknown as { division?: string }).division ?? '').trim()
-          // Helper: evaluate permissions available inline on item (if API embeds)
-          const isAllowedInline = (item: DocumentItem): boolean => {
-            if ((item.ownedBy?.id ?? '').trim() === currentUserId) return true
-            const hasUser = item.userPermissions?.some(p => (p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) ?? false
-            const hasDivision = currentDivision ? (item.divisionPermissions?.some(p => (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase()) ?? false) : false
-            return hasUser || hasDivision
-          }
-
-          // Helper: check descendants up to a safe depth
-          const checkDescendants = async (parentId: string, depth: number): Promise<boolean> => {
-            if (depth <= 0) return false
-            const children = await getDocumentsByParentId(parentId)
-            for (const child of children) {
-              if (isAllowedInline(child)) return true
-              // Fallback to API permissions when not embedded
-              const childPerms = await getDocumentPermissions(child.id)
-              const childUser = childPerms?.user_permissions?.some(p => (p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) ?? false
-              const childDiv = currentDivision ? (childPerms?.division_permissions?.some(p => (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase()) ?? false) : false
-              if (childUser || childDiv) return true
-              if (child.type === 'folder' && await checkDescendants(child.id, depth - 1)) return true
-            }
-            return false
-          }
-
-          const results = await Promise.all(items.map(async (item) => {
-            // Owners always allowed
-            if (item.ownedBy?.id === currentUserId) return [item.id, true] as const
-            // Try inline permissions first
-            let allowedHere = isAllowedInline(item)
-            // Fallback to explicit permission API if not decided yet
-            if (!allowedHere) {
-              const perms = await getDocumentPermissions(item.id)
-              const hasUser = perms?.user_permissions?.some(p => (p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) ?? false
-              const hasDivision = currentDivision ? (perms?.division_permissions?.some(p => (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase()) ?? false) : false
-              allowedHere = hasUser || hasDivision
-            }
-
-            // If not allowed on the folder itself, but this is a folder,
-            // check immediate children to see if any descendant grants access.
-            if (!allowedHere && item.type === 'folder') {
-              try {
-                const anyDescAllowed = await checkDescendants(item.id, 3)
-                if (anyDescAllowed) return [item.id, true] as const
-              } catch {
-                // ignore
-              }
-            }
-
-            return [item.id, allowedHere] as const
-          }))
-          setAllowedMap(Object.fromEntries(results))
-
-          // Check edit permissions for each item
-          const editResults = await Promise.all(items.map(async (item) => {
-            // Owners always have edit permissions
-            if (item.ownedBy?.id === currentUserId) return [item.id, true] as const
-            
-            // Check inline permissions for editor role
-            const isEditorInline = item.userPermissions?.some(p => 
-              ((p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) &&
-              p.permission === 'editor'
-            ) || item.divisionPermissions?.some(p => 
-              (p.division ?? '').trim().toLowerCase() === currentDivision?.toLowerCase() &&
-              p.permission === 'editor'
-            )
-
-            if (isEditorInline) return [item.id, true] as const
-
-            // Fallback to explicit permission API
-            try {
-              const perms = await getDocumentPermissions(item.id)
-              const hasUserEditor = perms?.user_permissions?.some(p => 
-                ((p.user_id ?? '').trim() === currentUserId || (p.user_email ?? '').trim().toLowerCase() === currentUserEmail) &&
-                p.permission === 'editor'
-              ) ?? false
-              const hasDivisionEditor = currentDivision ? (perms?.division_permissions?.some(p => 
-                (p.division ?? '').trim().toLowerCase() === currentDivision.toLowerCase() &&
-                p.permission === 'editor'
-              ) ?? false) : false
-              
-              return [item.id, hasUserEditor || hasDivisionEditor] as const
-            } catch {
-              return [item.id, false] as const
-            }
-          }))
-          setEditPermissionsMap(Object.fromEntries(editResults))
-        } else {
-          // No session => only owner checks will pass elsewhere, default to false
-          setAllowedMap({})
-        }
         setError(null) // Clear any previous errors
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -188,12 +100,13 @@ function Documents(): ReactElement {
         setCurrentItems([])
         setBreadcrumbs([{ id: 'root', name: 'Documents', path: [] }])
         setItemCounts({})
+        setCanEditFolder(false)
         setError('Failed to load documents. Please try again.')
       } finally {
         setIsInitialLoad(false)
       }
     }
-    
+
     void fetchData()
   }, [currentFolderId])
 
@@ -203,24 +116,9 @@ function Documents(): ReactElement {
     return ['All', ...uniqueCategories]
   }, [currentItems])
 
-  // Filter and search documents
+  // Filter and search documents (permissions enforced by backend)
   const filteredItems = useMemo((): DocumentItem[] => {
     let filtered = currentItems
-
-    // Permission filter: show only items user can access
-    const session = getCurrentSession()
-    const userId = session?.user.id
-    if (userId) {
-      filtered = filtered.filter(item => {
-        if (item.ownedBy?.id === userId) return true
-        const allowed = allowedMap[item.id]
-        // If allowedMap not computed yet, optimistically hide to avoid leakage
-        return allowed === true
-      })
-    } else {
-      // Not logged in => hide all
-      filtered = []
-    }
 
     // Filter by category
     if (activeFilter !== 'All') {
@@ -237,7 +135,7 @@ function Documents(): ReactElement {
     }
 
     return filtered
-  }, [currentItems, activeFilter, searchTerm, allowedMap])
+  }, [currentItems, activeFilter, searchTerm])
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / rowsPerPage)
@@ -249,30 +147,22 @@ function Documents(): ReactElement {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 
-
   const getRoleColor = (role: string): string => {
     const colors = {
-      'admin': 'bg-purple-500',
-      'manager': 'bg-green-500',
-      'employee': 'bg-blue-500',
-      'secretary': 'bg-pink-500'
+      admin: 'bg-purple-500',
+      manager: 'bg-green-500',
+      employee: 'bg-blue-500',
+      secretary: 'bg-pink-500',
     }
     return colors[role as keyof typeof colors] ?? 'bg-gray-500'
   }
 
-  // const formatFileSize = (size: string | undefined): string => size ?? '-'
-
   // Navigation handlers
   const handleItemClick = (item: DocumentItem): void => {
-    const session = getCurrentSession()
-    const userId = session?.user.id
-    if (!userId) return
-    if (item.ownedBy?.id !== userId && allowedMap[item.id] !== true) return
     if (item.type === 'folder') {
       const newPath = [...pathSegments, item.id].join('/')
       navigate(`/documents/${newPath}`)
     } else {
-      // For files, navigate to a file viewer page
       navigate(`/documents/file/${item.id}`)
     }
   }
@@ -321,21 +211,18 @@ function Documents(): ReactElement {
     setShowActionsDropdown(null)
   }
 
-
   // Form submission handlers
   const handleCreateFolderSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     const name = newItemName.trim()
     if (!name) return
 
-    // Client-side validation: invalid characters
     const validNamePattern = /^[A-Za-z0-9 _.-]+$/
     if (!validNamePattern.test(name)) {
       setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
       return
     }
 
-    // Client-side validation: duplicate name within the same folder (case-insensitive)
     const siblingNames = new Set(currentItems.map(i => i.name.trim().toLowerCase()))
     if (siblingNames.has(name.toLowerCase())) {
       setError('Duplicate name: an item with this name already exists in this folder.')
@@ -353,15 +240,11 @@ function Documents(): ReactElement {
       const newFolder = await createDocument(name, 'folder', currentFolderId, authToken)
 
       if (newFolder) {
-        // Refresh the current items
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
-
-        // Update item counts for new folder
         const counts = { ...itemCounts }
         counts[newFolder.id] = 0
         setItemCounts(counts)
-
         setShowCreateFolder(false)
         setNewItemName('')
         setError(null)
@@ -380,14 +263,12 @@ function Documents(): ReactElement {
     const name = newItemName.trim()
     if (!name) return
 
-    // Client-side validation: invalid characters
     const validNamePattern = /^[A-Za-z0-9 _.-]+$/
     if (!validNamePattern.test(name)) {
       setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
       return
     }
 
-    // Client-side validation: duplicate name within the same folder (case-insensitive)
     const siblingNames = new Set(currentItems.map(i => i.name.trim().toLowerCase()))
     if (siblingNames.has(name.toLowerCase())) {
       setError('Duplicate name: an item with this name already exists in this folder.')
@@ -405,10 +286,8 @@ function Documents(): ReactElement {
       const newFile = await createDocument(name, 'file', currentFolderId, authToken)
 
       if (newFile) {
-        // Refresh the current items
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
-
         setShowCreateFile(false)
         setNewItemName('')
         setError(null)
@@ -427,18 +306,16 @@ function Documents(): ReactElement {
     const name = newItemName.trim()
     if (!name || !selectedItem) return
 
-    // Client-side validation: invalid characters
     const validNamePattern = /^[A-Za-z0-9 _.-]+$/
     if (!validNamePattern.test(name)) {
       setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
       return
     }
 
-    // Client-side validation: duplicate name within the same folder (ignore the item being renamed)
     const siblingNames = new Set(
       currentItems
         .filter(i => i.id !== selectedItem.id)
-        .map(i => i.name.trim().toLowerCase())
+        .map(i => i.name.trim().toLowerCase()),
     )
     if (siblingNames.has(name.toLowerCase())) {
       setError('Duplicate name: an item with this name already exists in this folder.')
@@ -447,12 +324,9 @@ function Documents(): ReactElement {
 
     try {
       const updatedItem = await renameDocument(selectedItem.id, name)
-
       if (updatedItem) {
-        // Refresh the current items after successful rename
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
-
         setShowRenameModal(false)
         setSelectedItem(null)
         setNewItemName('')
@@ -469,22 +343,16 @@ function Documents(): ReactElement {
 
   const handleDeleteConfirm = async (): Promise<void> => {
     if (!selectedItem) return
-
     try {
       const success = await deleteDocument(selectedItem.id)
-
       if (success) {
-        // Refresh the current items after successful deletion
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
-
-        // Remove from item counts if it was a folder
         if (selectedItem.type === 'folder') {
           const newCounts = { ...itemCounts }
           delete newCounts[selectedItem.id]
           setItemCounts(newCounts)
         }
-
         setShowDeleteModal(false)
         setSelectedItem(null)
       } else {
@@ -500,40 +368,17 @@ function Documents(): ReactElement {
   // Helper function to format dates in a user-friendly way
   const formatDate = (dateString: string): string => {
     try {
-      // Server returns UTC time, so we need to parse it as UTC
-      // If the dateString doesn't end with 'Z', assume it's UTC and add 'Z'
       const utcString = dateString.endsWith('Z') ? dateString : `${dateString}Z`
       const date = new Date(utcString)
-
-      // Verify the date is valid
-      if (isNaN(date.getTime())) {
-        return dateString
-      }
-
+      if (isNaN(date.getTime())) return dateString
       const now = new Date()
       const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-
-      if (diffInSeconds < 0) {
-        return 'In the future'
-      } else if (diffInSeconds < 60) {
-        return 'Just now'
-      } else if (diffInSeconds < 3600) {
-        const minutes = Math.floor(diffInSeconds / 60)
-        return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
-      } else if (diffInSeconds < 86400) {
-        const hours = Math.floor(diffInSeconds / 3600)
-        return `${hours} hour${hours !== 1 ? 's' : ''} ago`
-      } else if (diffInSeconds < 604800) {
-        const days = Math.floor(diffInSeconds / 86400)
-        return `${days} day${days !== 1 ? 's' : ''} ago`
-      } else {
-        // For older dates, show in user's local timezone
-        return date.toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        })
-      }
+      if (diffInSeconds < 0) return 'In the future'
+      if (diffInSeconds < 60) return 'Just now'
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minute${Math.floor(diffInSeconds / 60) !== 1 ? 's' : ''} ago`
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hour${Math.floor(diffInSeconds / 3600) !== 1 ? 's' : ''} ago`
+      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} day${Math.floor(diffInSeconds / 86400) !== 1 ? 's' : ''} ago`
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
     } catch {
       return dateString
     }
@@ -544,7 +389,6 @@ function Documents(): ReactElement {
     const handleClickOutside = (): void => {
       setShowActionsDropdown(null)
     }
-
     document.addEventListener('click', handleClickOutside)
     return (): void => document.removeEventListener('click', handleClickOutside)
   }, [])
@@ -553,18 +397,28 @@ function Documents(): ReactElement {
     <div className="p-8">
       {breadcrumbs.length > 1 && (
         <div className="flex items-center space-x-2 mb-6 text-sm text-gray-600">
-          {breadcrumbs.map((breadcrumb, index) => (
-            <div key={breadcrumb.id} className="flex items-center space-x-2">
-              {index > 0 && <ChevronRight className="w-4 h-4" />}
-              <button
-                onClick={() => handleBreadcrumbClick(breadcrumb)}
-                className="hover:text-blue-600 transition-colors flex items-center space-x-1"
-              >
-                {index === 0 && <Home className="w-4 h-4" />}
-                <span>{breadcrumb.name}</span>
-              </button>
-            </div>
-          ))}
+          {breadcrumbs.map((breadcrumb, index) => {
+            const isLast = index === breadcrumbs.length - 1
+            return (
+              <div key={breadcrumb.id} className="flex items-center space-x-2">
+                {index > 0 && <ChevronRight className="w-4 h-4" />}
+                {isLast ? (
+                  <span className="text-gray-900 font-semibold flex items-center space-x-1">
+                    {index === 0 && <Home className="w-4 h-4" />}
+                    <span>{breadcrumb.name}</span>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleBreadcrumbClick(breadcrumb)}
+                    className="hover:text-blue-600 transition-colors flex items-center space-x-1"
+                  >
+                    {index === 0 && <Home className="w-4 h-4" />}
+                    <span>{breadcrumb.name}</span>
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -601,6 +455,23 @@ function Documents(): ReactElement {
             )}
           </div>
           <div className="flex items-center space-x-3">
+            {currentFolder && (
+              <button
+                onClick={() => {
+                  if (!currentFolder) return
+                  setSelectedItem(currentFolder)
+                  setShowPermissionModal(true)
+                }}
+                disabled={!canEditFolder}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${canEditFolder
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+            )}
             <button
               onClick={handleCreateFolder}
               className="flex items-center space-x-2 px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
@@ -633,33 +504,14 @@ function Documents(): ReactElement {
               setCurrentPage(1)
             }}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeFilter === category
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             {category}
           </button>
         ))}
       </div>
-
-      {/* Search and Export */}
-      {/* <div className="flex items-center justify-between mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none w-64"
-            aria-label="Search documents"
-          />
-        </div>
-        <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 px-4 py-2 border border-gray-300 hover:bg-gray-50 transition-colors">
-          <Download className="w-4 h-4" />
-          <span>Export</span>
-        </button>
-      </div> */}
 
       {/* Card-based layout */}
       {isInitialLoad ? (
@@ -734,16 +586,11 @@ function Documents(): ReactElement {
                   {showActionsDropdown === item.id && (
                     <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                       <div className="py-1">
-                        {editPermissionsMap[item.id] && (
-                          <>
-                            <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
-                          </>
-                        )}
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleShare(item) }} 
-                          disabled={!editPermissionsMap[item.id]}
-                          className={`w-full text-left px-4 py-2 text-sm ${editPermissionsMap[item.id] ? 'hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'}`}
+                        <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleShare(item) }}
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                         >
                           Share
                         </button>
@@ -796,16 +643,11 @@ function Documents(): ReactElement {
                   {showActionsDropdown === item.id && (
                     <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                       <div className="py-1">
-                        {editPermissionsMap[item.id] && (
-                          <>
-                            <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
-                          </>
-                        )}
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleShare(item) }} 
-                          disabled={!editPermissionsMap[item.id]}
-                          className={`w-full text-left px-4 py-2 text-sm ${editPermissionsMap[item.id] ? 'hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'}`}
+                        <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleShare(item) }}
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                         >
                           Share
                         </button>
@@ -1013,9 +855,9 @@ function Documents(): ReactElement {
               Delete {selectedItem.type === 'folder' ? 'Folder' : 'File'}
             </h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete &quot;{selectedItem.name}&quot;? 
-              {selectedItem.type === 'folder' && ' This will also delete all items inside this folder.'}
-              {' '}This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedItem.name}&quot;?
+              {selectedItem.type === 'folder' && ' This will also delete all items inside this folder.'}{' '}
+              This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
