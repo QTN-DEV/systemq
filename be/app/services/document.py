@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, Iterable
 
 from app.models.document import DocumentBlock, DocumentHistory, DocumentItem, DocumentOwner
+from app.models.user import User  # NEW
 from app.schemas.document import DocumentCreate
 
 
@@ -114,7 +115,32 @@ async def _refresh_descendant_paths(document: DocumentItem) -> None:
         await _refresh_descendant_paths(child)
 
 
-async def get_documents_by_parent(parent_id: str | None, user_id: str | None = None) -> list[dict[str, Any]]:
+def _uniq_by_id(items: Iterable[DocumentItem]) -> list[DocumentItem]:
+    seen: set[str] = set()
+    out: list[DocumentItem] = []
+    for it in items:
+        if it.document_id not in seen:
+            seen.add(it.document_id)
+            out.append(it)
+    return out
+
+
+async def get_documents_by_parent(
+    parent_id: str | None, user_id: str | None = None
+) -> list[dict[str, Any]]:
+    """
+    - Jika parent_id None: tampilkan anak-anak root YANG diizinkan,
+      lalu suntikkan juga dokumen/folder yang user punya AKSES LANGSUNG
+      (owner/user/division) tetapi tidak mendapatkan akses dari ancestor folder (agar tidak duplikat).
+    - Jika parent_id ada: tampilkan anak-anak folder itu seperti biasa, disaring oleh access checker.
+    """
+    from app.services.document_permission import (
+        check_document_access,
+        has_direct_document_access,
+        has_ancestor_folder_access,
+    )
+
+    # Base query: children of the requested parent (or root children)
     if parent_id is None:
         query = DocumentItem.find(
             DocumentItem.parent_id == None,  # noqa: E711
@@ -125,19 +151,81 @@ async def get_documents_by_parent(parent_id: str | None, user_id: str | None = N
             DocumentItem.parent_id == parent_id,
             ACTIVE_DOCUMENT,
         )
+
     documents = await query.sort(DocumentItem.name).to_list()
-    
-    # Filter documents based on user permissions
+
+    # Access-filter untuk listing normal
     if user_id:
-        from app.services.document_permission import check_document_access
-        accessible_documents = []
+        from app.services.document_permission import (
+            check_document_access,
+            has_direct_document_access,
+            has_ancestor_folder_access,
+        )
+
+        filtered: list[DocumentItem] = []
         for document in documents:
             if await check_document_access(document.document_id, user_id, "viewer"):
-                accessible_documents.append(document)
-        documents = accessible_documents
-    
+                filtered.append(document)
+        documents = filtered
+
+        # === Virtual root injection (hanya saat root listing) ===
+        if parent_id is None:
+            user = await User.find_one(User.employee_id == user_id)
+            if user and user.is_active:
+                virtuals: list[DocumentItem] = []
+
+                # Cari dokumen/folder non-root yang user adalah owner OR
+                # punya direct user permission OR punya division permission.
+                # (Kami mencari parent_id != None agar memang bukan already-root)
+                print("user:", user_id, user.division)
+                candidates = await DocumentItem.find(
+                    {
+                        "is_deleted": False,
+                        "parent_id": {"$ne": None},
+                        "$or": [
+                            {"owned_by.id": user_id},
+                            {"user_permissions": {"$elemMatch": {"user_id": user_id}}},
+                            {
+                                "division_permissions": {
+                                    "$elemMatch": {
+                                        "division": user.division if user.division else "__NO_DIV__"
+                                    }
+                                }
+                            },
+                        ],
+                    }
+                ).to_list()
+
+                # Dedup candidates (by document_id)
+                unique_candidates = _uniq_by_id(candidates)
+
+                print(unique_candidates)
+
+                # Keep only those with *direct* access and WITHOUT ancestor-folder inheritance.
+                # This selects both files and folders that were shared directly to the user.
+                for doc in unique_candidates:
+                    direct_ok = await has_direct_document_access(doc.document_id, user_id, "viewer")
+                    if not direct_ok:
+                        continue
+                    # if the doc is already visible via some shared ancestor folder, skip it
+                    inherited_ok = await has_ancestor_folder_access(
+                        doc.document_id, user_id, "viewer"
+                    )
+                    if inherited_ok:
+                        continue
+                    # dedupe against documents already in the listing
+                    if all(d.document_id != doc.document_id for d in documents):
+                        virtuals.append(doc)
+
+                if virtuals:
+                    # append virtuals and dedup in case of overlap
+                    documents = _uniq_by_id(documents + virtuals)
+
+    # Normalize & serialize
     for document in documents:
         _normalize_content(document)
+    # Sort by name for stable order
+    documents.sort(key=lambda d: (d.name or "").lower())
     return [_serialize_document(document) for document in documents]
 
 

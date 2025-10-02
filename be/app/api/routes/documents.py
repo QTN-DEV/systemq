@@ -20,6 +20,7 @@ from app.services import auth as auth_service
 from app.services import document as document_service
 from app.services.auth import AuthenticationError, UserNotFoundError
 from app.services.document import DocumentAlreadyExistsError, DocumentNotFoundError
+from app.services.document_permission import check_document_access  # NEW
 
 _ALLOWED_OWNER_ROLES = {"admin", "manager", "employee", "secretary"}
 
@@ -52,8 +53,19 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 )
 async def list_documents(
     parent_id: str | None = Query(None),
+    authorization: str = Header(alias="Authorization"),
 ) -> list[DocumentResponse]:
-    documents = await document_service.get_documents_by_parent(parent_id)
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    owner_payload = _derive_owner_payload(UserProfile.model_validate(profile_payload))
+
+    documents = await document_service.get_documents_by_parent(parent_id, owner_payload["id"])
     return [DocumentResponse.model_validate(doc) for doc in documents]
 
 
@@ -63,7 +75,25 @@ async def list_documents(
     summary="Retrieve a document",
     response_description="Full metadata for the requested document.",
 )
-async def get_document(document_id: str) -> DocumentResponse:
+async def get_document(
+    document_id: str,
+    authorization: str = Header(alias="Authorization"),
+) -> DocumentResponse:
+    # Enforce access (direct or inherited from ancestor folders)
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    user = UserProfile.model_validate(profile_payload)
+
+    allowed = await check_document_access(document_id, user.id, "viewer")
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
     try:
         document = await document_service.get_document_payload(document_id)
     except DocumentNotFoundError as exc:
@@ -194,3 +224,48 @@ async def delete_document(document_id: str) -> MessageResponse:
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return MessageResponse(message="Document deleted successfully.")
+
+
+@router.get(
+    "/{document_id}/access",
+    summary="Get effective access for current user",
+    response_description="Effective can_view/can_edit considering direct and inherited permissions.",
+)
+async def get_my_access(
+    document_id: str,
+    authorization: str = Header(alias="Authorization"),
+) -> dict:
+    from app.services.document_permission import (
+        has_direct_document_access,
+        has_ancestor_folder_access,
+    )
+
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    user = UserProfile.model_validate(profile_payload)
+
+    # viewer
+    v_direct = await has_direct_document_access(document_id, user.id, "viewer")
+    v_inherit = await has_ancestor_folder_access(document_id, user.id, "viewer")
+    can_view = v_direct or v_inherit
+
+    # editor
+    e_direct = await has_direct_document_access(document_id, user.id, "editor")
+    e_inherit = await has_ancestor_folder_access(document_id, user.id, "editor")
+    can_edit = e_direct or e_inherit
+
+    # optional detail; FE pakai can_view/can_edit saja
+    return {
+        "can_view": can_view,
+        "can_edit": can_edit,
+        "detail": {
+            "viewer": {"direct": v_direct, "inherited": v_inherit},
+            "editor": {"direct": e_direct, "inherited": e_inherit},
+        },
+    }
