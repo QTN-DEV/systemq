@@ -21,6 +21,7 @@ from app.services import document as document_service
 from app.services.auth import AuthenticationError, UserNotFoundError
 from app.services.document import DocumentAlreadyExistsError, DocumentNotFoundError
 from app.services.document_permission import check_document_access  # NEW
+from app.models.document import DocumentItem  # NEW
 
 _ALLOWED_OWNER_ROLES = {"admin", "manager", "employee", "secretary"}
 
@@ -67,6 +68,90 @@ async def list_documents(
 
     documents = await document_service.get_documents_by_parent(parent_id, owner_payload["id"])
     return [DocumentResponse.model_validate(doc) for doc in documents]
+
+
+# -----------------------------
+# NEW: Search across accessible
+# -----------------------------
+@router.get(
+    "/search",
+    response_model=list[DocumentResponse],
+    summary="Search accessible documents",
+    response_description="All documents/folders matching query that the current user can access.",
+)
+async def search_documents(
+    q: str = Query(..., min_length=1, description="Text to search in name/category"),
+    types: list[str] | None = Query(
+        None,
+        description="Repeat param for multiple types, e.g. ?types=file&types=folder",
+    ),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    authorization: str = Header(alias="Authorization"),
+) -> list[DocumentResponse]:
+    """
+    Find docs/folders by name/category (case-insensitive) that the caller can view.
+    - Respects direct & inherited access via `check_document_access`
+    - Filters by types=['file','folder'] if provided
+    - Paginates using limit+offset *after* access filtering (keeps code simple)
+    """
+    # Auth -> user
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    user = UserProfile.model_validate(profile_payload)
+
+    # Validate type filter
+    allowed_types = {"file", "folder"}
+    type_filter: list[str] | None = None
+    if types:
+        type_filter = [t for t in types if t in allowed_types]
+        if not type_filter:
+            type_filter = None
+
+    # Build simple regex query on name/category + not deleted
+    base_query: dict[str, Any] = {
+        "is_deleted": False,
+        "$or": [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"category": {"$regex": q, "$options": "i"}},
+        ],
+    }
+    if type_filter:
+        base_query["type"] = {"$in": type_filter}
+
+    # Fetch candidates (broad), then access-filter
+    candidates = await DocumentItem.find(base_query).to_list()
+
+    accessible: list[dict[str, Any]] = []
+    for doc in candidates:
+        try:
+            # viewer access (direct or inherited, assuming your check does inherited)
+            if await check_document_access(doc.document_id, user.id, "viewer"):
+                # service ensures content normalization + shape
+                accessible.append(document_service._serialize_document(doc))  # type: ignore[attr-defined]
+        except Exception:
+            # silently skip inaccessible/broken docs (consistent with listing semantics)
+            continue
+
+    # Sort newest modified first (fallbacks if missing)
+    def _sort_key(d: dict[str, Any]):
+        # d keys follow _serialize_document shape
+        return d.get("last_modified") or d.get("date_created") or ""
+
+    accessible.sort(key=_sort_key, reverse=True)
+
+    # Pagination after access-filter
+    sliced = accessible[offset : offset + limit]
+    return [DocumentResponse.model_validate(item) for item in sliced]
+
+
+# -----------------------------
 
 
 @router.get(

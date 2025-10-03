@@ -177,7 +177,7 @@ async def get_documents_by_parent(
                 # Cari dokumen/folder non-root yang user adalah owner OR
                 # punya direct user permission OR punya division permission.
                 # (Kami mencari parent_id != None agar memang bukan already-root)
-                print("user:", user_id, user.division)
+                # print("user:", user_id, user.division)
                 candidates = await DocumentItem.find(
                     {
                         "is_deleted": False,
@@ -199,7 +199,7 @@ async def get_documents_by_parent(
                 # Dedup candidates (by document_id)
                 unique_candidates = _uniq_by_id(candidates)
 
-                print(unique_candidates)
+                # print(unique_candidates)
 
                 # Keep only those with *direct* access and WITHOUT ancestor-folder inheritance.
                 # This selects both files and folders that were shared directly to the user.
