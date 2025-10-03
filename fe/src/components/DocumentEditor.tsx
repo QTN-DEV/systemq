@@ -29,7 +29,6 @@ import {
 } from 'react'
 
 import { logger } from '@/lib/logger'
-
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
 
 export interface DocumentBlock {
@@ -47,9 +46,9 @@ export interface DocumentBlock {
   | 'file'
   content: string
   alignment?: 'left' | 'center' | 'right'
-  url?: string // For image src or file download URL
-  fileName?: string // For file blocks
-  fileSize?: string // For file blocks
+  url?: string
+  fileName?: string
+  fileSize?: string
 }
 
 interface DocumentEditorProps {
@@ -60,6 +59,18 @@ interface DocumentEditorProps {
   onTitleChange?: (title: string) => void
 }
 
+/** Global CSS for contentEditable placeholder */
+const PlaceholderStyles = () => (
+  <style>{`
+  .ce-editable[contenteditable="true"]:empty:before {
+    content: attr(data-placeholder);
+    color: #9ca3af; /* tailwind gray-400 */
+    pointer-events: none;
+    opacity: 0.9;
+  }
+`}</style>
+)
+
 /** Type Menu (supports drop-down / drop-up via `placement`) */
 const TypeMenu = ({
   blockId,
@@ -67,10 +78,7 @@ const TypeMenu = ({
   placement = 'bottom',
 }: {
   blockId: string
-  onChangeBlockType: (
-    blockId: string,
-    newType: DocumentBlock['type'],
-  ) => void
+  onChangeBlockType: (blockId: string, newType: DocumentBlock['type']) => void
   placement?: 'bottom' | 'top'
 }): ReactElement => (
   <div
@@ -120,9 +128,7 @@ function DocumentEditor({
   const [showGripMenu, setShowGripMenu] = useState<string | null>(null)
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null)
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null)
-  const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(
-    new Set(),
-  )
+  const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(new Set())
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
 
   // Refs
@@ -139,25 +145,18 @@ function DocumentEditor({
   // Menu refs + placement
   const gripMenuRef = useRef<HTMLDivElement | null>(null)
   const typeMenuRef = useRef<HTMLDivElement | null>(null)
-  const [gripMenuPlacement, setGripMenuPlacement] = useState<'bottom' | 'top'>(
-    'bottom',
-  )
-  const [typeMenuPlacement, setTypeMenuPlacement] = useState<'bottom' | 'top'>(
-    'bottom',
-  )
+  const [gripMenuPlacement, setGripMenuPlacement] = useState<'bottom' | 'top'>('bottom')
+  const [typeMenuPlacement, setTypeMenuPlacement] = useState<'bottom' | 'top'>('bottom')
 
   // Floating text formatting toolbar
   const [showTextToolbar, setShowTextToolbar] = useState(false)
-  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  })
+  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [toolbarBlockId, setToolbarBlockId] = useState<string | null>(null)
-  const [formatState, setFormatState] = useState<{
-    bold: boolean
-    italic: boolean
-    underline: boolean
-  }>({ bold: false, italic: false, underline: false })
+  const [formatState, setFormatState] = useState<{ bold: boolean; italic: boolean; underline: boolean }>({
+    bold: false,
+    italic: false,
+    underline: false,
+  })
 
   /** ---------- Selection helpers (caret preservation) ---------- */
   const getSelectionOffsets = (
@@ -178,7 +177,6 @@ function DocumentEditor({
     preRangeEnd.setEnd(range.endContainer, range.endOffset)
     const end = preRangeEnd.toString().length
 
-    // selection direction
     let backward = false
     try {
       if (sel.anchorNode && sel.focusNode) {
@@ -186,7 +184,7 @@ function DocumentEditor({
           backward = sel.anchorOffset > sel.focusOffset
         } else {
           const pos = sel.anchorNode.compareDocumentPosition(sel.focusNode)
-          backward = Boolean(pos & Node.DOCUMENT_POSITION_PRECEDING)
+          backward = !!(pos & Node.DOCUMENT_POSITION_PRECEDING)
         }
       }
     } catch { }
@@ -199,7 +197,6 @@ function DocumentEditor({
     end: number,
     backward = false,
   ): void => {
-    // Traverse to find start/end nodes
     let charIndex = 0
     let startNode: Text | null = null
     let startOffsetInNode = 0
@@ -252,7 +249,6 @@ function DocumentEditor({
     if (!host) return
     const sel = window.getSelection()
     if (!sel) return
-    // Only persist collapsed caret positions (biar nggak “makan” selection user)
     if (!sel.isCollapsed) return
     const offsets = getSelectionOffsets(host)
     if (offsets && offsets.start === offsets.end) {
@@ -263,14 +259,12 @@ function DocumentEditor({
   /** ---------- Autosave ---------- */
   useEffect((): (() => void) | void => {
     if (onSave) {
-      const timeoutId = setTimeout(() => {
-        onSave(blocks)
-      }, 1000)
-      return () => clearTimeout(timeoutId)
+      const tid = setTimeout(() => onSave(blocks), 1000)
+      return () => clearTimeout(tid)
     }
   }, [blocks, onSave])
 
-  /** ---------- Outside click + Esc for menus (without overlay) ---------- */
+  /** ---------- Outside click + Esc (no overlay; page still scrolls) ---------- */
   useEffect(() => {
     const onDocMouseDown = (e: MouseEvent): void => {
       const t = e.target as Node
@@ -318,7 +312,7 @@ function DocumentEditor({
   useLayoutEffect(() => {
     if (!savedSelectionRef.current) return
     const { blockId, start, end, backward } = savedSelectionRef.current
-    if (start !== end) return // only restore for caret (not range)
+    if (start !== end) return
     const el = blockRefs.current[blockId]
     if (!el) return
     const sel = window.getSelection()
@@ -365,10 +359,7 @@ function DocumentEditor({
   }
 
   /** ---------- Blocks ops ---------- */
-  const addBlock = (
-    afterId: string,
-    type: DocumentBlock['type'] = 'paragraph',
-  ): void => {
+  const addBlock = (afterId: string, type: DocumentBlock['type'] = 'paragraph'): void => {
     const newBlock: DocumentBlock = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type,
@@ -386,7 +377,6 @@ function DocumentEditor({
     setBlocks(newBlocks)
     setActiveBlockId(newBlock.id)
 
-    // Focus new block
     setTimeout(() => {
       const element = blockRefs.current[newBlock.id]
       if (element) element.focus()
@@ -395,15 +385,11 @@ function DocumentEditor({
 
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
     const el = blockRefs.current[id] || null
-    const isContentUpdate = Object.prototype.hasOwnProperty.call(
-      updates,
-      'content',
-    )
-    if (isContentUpdate && el && document.activeElement === el && (el).isContentEditable) {
-      const offsets = getSelectionOffsets(el)
+    const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
+    if (isContentUpdate && el && document.activeElement === el && (el as HTMLElement).isContentEditable) {
+      const offsets = getSelectionOffsets(el as HTMLElement)
       if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
     }
-
     setBlocks(blocks.map((block) => (block.id === id ? { ...block, ...updates } : block)))
   }
 
@@ -444,9 +430,7 @@ function DocumentEditor({
   const handleDragOver = (e: React.DragEvent, blockId: string): void => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    if (draggedBlockId !== blockId) {
-      setDragOverBlockId(blockId)
-    }
+    if (draggedBlockId !== blockId) setDragOverBlockId(blockId)
   }
 
   const handleDragLeave = (e: React.DragEvent): void => {
@@ -516,14 +500,6 @@ function DocumentEditor({
     }
   }
 
-  const changeBlockType = (
-    blockId: string,
-    newType: DocumentBlock['type'],
-  ): void => {
-    updateBlock(blockId, { type: newType })
-    setShowTypeMenu(null)
-  }
-
   /** ---------- UI helpers ---------- */
   const getBlockPlaceholder = (type: DocumentBlock['type']): string => {
     switch (type) {
@@ -579,9 +555,10 @@ function DocumentEditor({
                 }
               }
             }}
-            className={`w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
+            className={`ce-editable w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
             contentEditable={!readOnly}
             suppressContentEditableWarning
+            data-placeholder={getBlockPlaceholder(block.type)}
             onFocus={(): void => {
               setActiveBlockId(block.id)
               saveSelectionForBlock(block.id)
@@ -616,7 +593,7 @@ function DocumentEditor({
               const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
               if (!range) return
               const container = blockRefs.current[block.id]
-              if (!container?.contains(range.commonAncestorContainer)) {
+              if (!container || !container.contains(range.commonAncestorContainer)) {
                 setShowTextToolbar(false)
                 setToolbarBlockId(null)
                 return
@@ -689,9 +666,10 @@ function DocumentEditor({
                   }
                 }
               }}
-              className="flex-1 w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
+              className="ce-editable flex-1 w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
               contentEditable={!readOnly}
               suppressContentEditableWarning
+              data-placeholder={getBlockPlaceholder(block.type)}
               onFocus={(): void => {
                 setActiveBlockId(block.id)
                 saveSelectionForBlock(block.id)
@@ -726,7 +704,7 @@ function DocumentEditor({
                 const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
                 if (!range) return
                 const container = blockRefs.current[block.id]
-                if (!container?.contains(range.commonAncestorContainer)) {
+                if (!container || !container.contains(range.commonAncestorContainer)) {
                   setShowTextToolbar(false)
                   setToolbarBlockId(null)
                   return
@@ -783,9 +761,7 @@ function DocumentEditor({
                 {hoveredImageId === block.id && (
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 -translate-y-2 bg-white rounded-lg shadow-lg border border-gray-200 px-2 py-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'left'
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'text-gray-600'
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'left' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
                         }`}
                       onClick={() => updateBlock(block.id, { alignment: 'left' })}
                       title="Align left"
@@ -793,9 +769,7 @@ function DocumentEditor({
                       <AlignLeft className="w-4 h-4" />
                     </button>
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'center'
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'text-gray-600'
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'center' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
                         }`}
                       onClick={() => updateBlock(block.id, { alignment: 'center' })}
                       title="Align center"
@@ -803,9 +777,7 @@ function DocumentEditor({
                       <AlignCenter className="w-4 h-4" />
                     </button>
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'right'
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'text-gray-600'
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'right' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
                         }`}
                       onClick={() => updateBlock(block.id, { alignment: 'right' })}
                       title="Align right"
@@ -841,9 +813,7 @@ function DocumentEditor({
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
-                        if (file) {
-                          void handleFileUpload(block.id, file)
-                        }
+                        if (file) void handleFileUpload(block.id, file)
                       }}
                       disabled={readOnly}
                     />
@@ -914,9 +884,7 @@ function DocumentEditor({
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
-                        if (file) {
-                          void handleFileUpload(block.id, file)
-                        }
+                        if (file) void handleFileUpload(block.id, file)
                       }}
                       disabled={readOnly}
                     />
@@ -952,7 +920,7 @@ function DocumentEditor({
       }
 
       default:
-        // paragraph (contentEditable)
+        // paragraph (contentEditable) — uses data-placeholder instead of invalid placeholder prop
         return (
           <div
             ref={(el): void => {
@@ -966,10 +934,10 @@ function DocumentEditor({
                 }
               }
             }}
-            className="w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
+            className="ce-editable w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
             contentEditable={!readOnly}
             suppressContentEditableWarning
-            placeholder={getBlockPlaceholder(block.type)}
+            data-placeholder={getBlockPlaceholder(block.type)}
             onFocus={(): void => {
               setActiveBlockId(block.id)
               saveSelectionForBlock(block.id)
@@ -993,7 +961,6 @@ function DocumentEditor({
             }}
             onMouseUp={(): void => {
               if (readOnly) return
-              // Save caret/range
               saveSelectionForBlock(block.id)
               isSelectingRef.current = false
               const sel = window.getSelection()
@@ -1005,7 +972,7 @@ function DocumentEditor({
               const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
               if (!range) return
               const container = blockRefs.current[block.id]
-              if (!container?.contains(range.commonAncestorContainer)) {
+              if (!container || !container.contains(range.commonAncestorContainer)) {
                 setShowTextToolbar(false)
                 setToolbarBlockId(null)
                 return
@@ -1035,6 +1002,8 @@ function DocumentEditor({
 
   return (
     <div className="w-full">
+      <PlaceholderStyles />
+
       {/* Blocks */}
       <div className="space-y-2">
         {blocks.map((block) => (
@@ -1077,7 +1046,7 @@ function DocumentEditor({
                     <GripVertical className="w-4 h-4" />
                   </button>
 
-                  {/* Grip Menu (NO overlay, page can scroll) */}
+                  {/* Grip Menu (no overlay; page can scroll) */}
                   {showGripMenu === block.id && (
                     <div
                       ref={gripMenuRef}
@@ -1103,7 +1072,7 @@ function DocumentEditor({
                           key={type}
                           className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
                           onClick={() => {
-                            changeBlockType(block.id, type)
+                            updateBlock(block.id, { type })
                             setShowGripMenu(null)
                           }}
                         >
@@ -1121,12 +1090,15 @@ function DocumentEditor({
             <div className="relative">
               {getBlockElement(block)}
 
-              {/* Type Menu (NO overlay, auto flip) */}
+              {/* Type Menu (no overlay; auto flip) */}
               {showTypeMenu === block.id && (
                 <div ref={typeMenuRef} className="relative">
                   <TypeMenu
                     blockId={block.id}
-                    onChangeBlockType={changeBlockType}
+                    onChangeBlockType={(id, t) => {
+                      updateBlock(id, { type: t })
+                      setShowTypeMenu(null)
+                    }}
                     placement={typeMenuPlacement}
                   />
                 </div>
@@ -1153,23 +1125,16 @@ function DocumentEditor({
       {!readOnly && showTextToolbar && toolbarBlockId && (
         <div
           className="fixed z-20 bg-white border border-gray-200 shadow-lg rounded-md px-1 py-0.5 flex items-center space-x-0.5"
-          style={{
-            left: toolbarPos.x,
-            top: toolbarPos.y,
-            transform: 'translate(-50%, -100%)',
-          }}
+          style={{ left: toolbarPos.x, top: toolbarPos.y, transform: 'translate(-50%, -100%)' }}
           onMouseDown={(e) => e.preventDefault()}
         >
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-              }`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
             title="Bold"
             onClick={() => {
-              try {
-                document.execCommand('bold')
-              } catch { }
+              try { document.execCommand('bold') } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
@@ -1182,15 +1147,12 @@ function DocumentEditor({
             <Bold className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-              }`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
             title="Italic"
             onClick={() => {
-              try {
-                document.execCommand('italic')
-              } catch { }
+              try { document.execCommand('italic') } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
@@ -1203,15 +1165,12 @@ function DocumentEditor({
             <Italic className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-              }`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
             title="Underline"
             onClick={() => {
-              try {
-                document.execCommand('underline')
-              } catch { }
+              try { document.execCommand('underline') } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
