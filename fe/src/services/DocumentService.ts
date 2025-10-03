@@ -2,13 +2,13 @@ import axios from "axios";
 
 import { useAuthStore } from "@/stores/authStore";
 
-import type { DocumentItem, DocumentBlock } from "../types/document-type";
 import type {
   DocumentPermissions,
   AddUserPermissionRequest,
   AddDivisionPermissionRequest,
   SearchUserResult,
 } from "../types/document-permissions";
+import type { DocumentItem, DocumentBlock } from "../types/document-type";
 
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ?? "https://api.systemq.qtn.ai";
@@ -602,8 +602,8 @@ export async function getDocumentAccess(
 
     // fallback aman kalau BE tidak mengirim field
     return {
-      can_view: !!res.data?.can_view,
-      can_edit: !!res.data?.can_edit,
+      can_view: Boolean(res.data?.can_view),
+      can_edit: Boolean(res.data?.can_edit),
       detail: res.data?.detail,
     }
   } catch (error: any) {

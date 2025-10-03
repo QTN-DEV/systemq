@@ -13,6 +13,7 @@ import {
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import ShareDocumentModal from '../components/ShareDocumentModal'
 import {
   getDocumentsByParentId,
   getDocumentById,
@@ -25,7 +26,6 @@ import {
 } from '../services/DocumentService'
 import { getDocumentAccess, searchDocuments } from '../services/DocumentService' // <-- ADD
 import { useAuthStore } from '../stores/authStore'
-import ShareDocumentModal from '../components/ShareDocumentModal'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
 function Documents(): ReactElement {
@@ -88,7 +88,7 @@ function Documents(): ReactElement {
         // Fetch effective access for folder (enable/disable Share button)
         if (currentFolderId) {
           const access = await getDocumentAccess(currentFolderId).catch(() => null)
-          setCanEditFolder(!!access?.can_edit)
+          setCanEditFolder(Boolean(access?.can_edit))
         } else {
           setCanEditFolder(false)
         }
@@ -620,8 +620,7 @@ function Documents(): ReactElement {
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="p-4">
+                  <div className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="text-sm font-semibold text-gray-900 line-clamp-2">
                           {item.name}
@@ -639,7 +638,6 @@ function Documents(): ReactElement {
                         <span>{item.path?.join(' / ') ?? '—'}</span>
                       </div>
                     </div>
-                  </>
                 )}
               </div>
             ))}

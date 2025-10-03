@@ -29,6 +29,7 @@ import {
 } from 'react'
 
 import { logger } from '@/lib/logger'
+
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
 
 export interface DocumentBlock {
@@ -185,7 +186,7 @@ function DocumentEditor({
           backward = sel.anchorOffset > sel.focusOffset
         } else {
           const pos = sel.anchorNode.compareDocumentPosition(sel.focusNode)
-          backward = !!(pos & Node.DOCUMENT_POSITION_PRECEDING)
+          backward = Boolean(pos & Node.DOCUMENT_POSITION_PRECEDING)
         }
       }
     } catch { }
@@ -398,8 +399,8 @@ function DocumentEditor({
       updates,
       'content',
     )
-    if (isContentUpdate && el && document.activeElement === el && (el as HTMLElement).isContentEditable) {
-      const offsets = getSelectionOffsets(el as HTMLElement)
+    if (isContentUpdate && el && document.activeElement === el && (el).isContentEditable) {
+      const offsets = getSelectionOffsets(el)
       if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
     }
 
@@ -615,7 +616,7 @@ function DocumentEditor({
               const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
               if (!range) return
               const container = blockRefs.current[block.id]
-              if (!container || !container.contains(range.commonAncestorContainer)) {
+              if (!container?.contains(range.commonAncestorContainer)) {
                 setShowTextToolbar(false)
                 setToolbarBlockId(null)
                 return
@@ -725,7 +726,7 @@ function DocumentEditor({
                 const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
                 if (!range) return
                 const container = blockRefs.current[block.id]
-                if (!container || !container.contains(range.commonAncestorContainer)) {
+                if (!container?.contains(range.commonAncestorContainer)) {
                   setShowTextToolbar(false)
                   setToolbarBlockId(null)
                   return
@@ -1004,7 +1005,7 @@ function DocumentEditor({
               const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
               if (!range) return
               const container = blockRefs.current[block.id]
-              if (!container || !container.contains(range.commonAncestorContainer)) {
+              if (!container?.contains(range.commonAncestorContainer)) {
                 setShowTextToolbar(false)
                 setToolbarBlockId(null)
                 return
@@ -1168,7 +1169,7 @@ function DocumentEditor({
                 document.execCommand('bold')
               } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
@@ -1189,7 +1190,7 @@ function DocumentEditor({
                 document.execCommand('italic')
               } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
@@ -1210,7 +1211,7 @@ function DocumentEditor({
                 document.execCommand('underline')
               } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),

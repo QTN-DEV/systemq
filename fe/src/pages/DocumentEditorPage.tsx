@@ -46,11 +46,11 @@ function DocumentEditorPage(): ReactElement {
 
       // 2) Tanya akses efektif (viewer/editor) — termasuk inherited
       const access = await getDocumentAccess(fileId).catch(() => null)
-      if (!access || !access.can_view) { // tidak punya akses lihat
+      if (!access?.can_view) { // tidak punya akses lihat
         void navigate('/documents')
         return
       }
-      setCanEdit(!!access.can_edit)
+      setCanEdit(Boolean(access.can_edit))
 
       // 3) Set state lain
       setDocument(doc)

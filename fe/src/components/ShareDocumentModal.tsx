@@ -291,7 +291,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
               />
               {isSearching && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
                 </div>
               )}
             </div>
