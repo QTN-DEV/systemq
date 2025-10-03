@@ -14,9 +14,12 @@ import {
   FileText,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Bold,
+  Italic,
+  Underline
 } from 'lucide-react'
-import { useState, useRef, useEffect, type ReactElement } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, type ReactElement } from 'react'
 
 import { logger } from '@/lib/logger'
 
@@ -96,6 +99,139 @@ function DocumentEditor({
   const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(new Set())
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
   const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
+  const savedSelectionRef = useRef<{ blockId: string; start: number; end: number; backward: boolean } | null>(null)
+  const isSelectingRef = useRef(false)
+  const prevContentRef = useRef<{ [key: string]: string }>({})
+  const saveSelectionForBlock = (blockId: string): void => {
+    const host = blockRefs.current[blockId]
+    if (!host) return
+    const sel = window.getSelection()
+    if (!sel) return
+    // Only persist collapsed caret positions to avoid overriding range selections
+    if (!sel.isCollapsed) return
+    const offsets = getSelectionOffsets(host)
+    if (offsets && offsets.start === offsets.end) {
+      savedSelectionRef.current = { blockId, ...offsets }
+    }
+  }
+
+  // Utilities to get and restore caret selection within a contentEditable element
+  const getSelectionOffsets = (element: HTMLElement): { start: number; end: number; backward: boolean } | null => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return null
+    const range = sel.getRangeAt(0)
+    if (!element.contains(range.commonAncestorContainer)) return null
+
+    const preRangeStart = range.cloneRange()
+    preRangeStart.selectNodeContents(element)
+    preRangeStart.setEnd(range.startContainer, range.startOffset)
+    const start = preRangeStart.toString().length
+
+    const preRangeEnd = range.cloneRange()
+    preRangeEnd.selectNodeContents(element)
+    preRangeEnd.setEnd(range.endContainer, range.endOffset)
+    const end = preRangeEnd.toString().length
+    // Determine selection direction
+    let backward = false
+    try {
+      if (sel.anchorNode && sel.focusNode) {
+        if (sel.anchorNode === sel.focusNode) {
+          backward = sel.anchorOffset > sel.focusOffset
+        } else {
+          const pos = sel.anchorNode.compareDocumentPosition(sel.focusNode)
+          backward = !!(pos & Node.DOCUMENT_POSITION_PRECEDING)
+        }
+      }
+    } catch {}
+    return { start, end, backward }
+  }
+
+  const setSelectionOffsets = (
+    element: HTMLElement,
+    start: number,
+    end: number,
+    backward = false
+  ): void => {
+    // Traverse to find start/end nodes
+    let charIndex = 0
+    let startNode: Text | null = null
+    let startOffsetInNode = 0
+    let endNode: Text | null = null
+    let endOffsetInNode = 0
+
+    const stack: Node[] = [element]
+    let node: Node | undefined
+    while ((node = stack.pop())) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node as Text
+        const nextChar = charIndex + text.length
+        if (!startNode && start >= charIndex && start <= nextChar) {
+          startNode = text
+          startOffsetInNode = Math.max(0, Math.min(text.length, start - charIndex))
+        }
+        if (!endNode && end >= charIndex && end <= nextChar) {
+          endNode = text
+          endOffsetInNode = Math.max(0, Math.min(text.length, end - charIndex))
+        }
+        charIndex = nextChar
+        if (startNode && endNode) break
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const children = (node as Element).childNodes
+        for (let i = children.length - 1; i >= 0; i--) stack.push(children[i])
+      }
+    }
+
+    const sel = window.getSelection()
+    if (!sel) return
+    sel.removeAllRanges()
+    try {
+      if (sel.setBaseAndExtent && startNode && endNode) {
+        if (backward) sel.setBaseAndExtent(endNode, endOffsetInNode, startNode, startOffsetInNode)
+        else sel.setBaseAndExtent(startNode, startOffsetInNode, endNode, endOffsetInNode)
+        return
+      }
+    } catch {}
+
+    const range = document.createRange()
+    if (startNode) range.setStart(startNode, startOffsetInNode)
+    else range.setStart(element, 0)
+    if (endNode) range.setEnd(endNode, endOffsetInNode)
+    else range.setEnd(element, element.childNodes.length)
+    sel.addRange(range)
+  }
+
+  // Inline formatting toolbar state for paragraph blocks
+  const [showTextToolbar, setShowTextToolbar] = useState(false)
+  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [toolbarBlockId, setToolbarBlockId] = useState<string | null>(null)
+  const [formatState, setFormatState] = useState<{ bold: boolean; italic: boolean; underline: boolean }>({ bold: false, italic: false, underline: false })
+
+  // Reposition toolbar only on scroll/resize; show toolbar on mouseup inside block
+  useEffect(() => {
+    if (readOnly) return
+    const handleScrollOrResize = (): void => {
+      if (!showTextToolbar || !toolbarBlockId) return
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) return
+      const range = sel.getRangeAt(0)
+      const container = blockRefs.current[toolbarBlockId]
+      if (!container || !container.contains(range.commonAncestorContainer)) return
+      let rect = range.getBoundingClientRect()
+      if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
+        const rects = range.getClientRects()
+        if (rects && rects.length > 0) rect = rects[0]
+      }
+      const x = rect.left + rect.width / 2
+      const y = rect.top - 8
+      setToolbarPos({ x, y })
+    }
+    window.addEventListener('scroll', handleScrollOrResize, true)
+    window.addEventListener('resize', handleScrollOrResize)
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true)
+      window.removeEventListener('resize', handleScrollOrResize)
+    }
+  }, [readOnly, showTextToolbar, toolbarBlockId])
 
   // Real upload API function
   const uploadFileToServer = async (file: File, blockType: 'image' | 'file'): Promise<{ url: string; fileName: string; fileSize: string }> => {
@@ -154,10 +290,45 @@ function DocumentEditor({
   }
 
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
-    setBlocks(blocks.map(block => 
-      block.id === id ? { ...block, ...updates } : block
-    ))
+    // Preserve caret selection when editing contentEditable paragraph
+    const current = blocks.find(b => b.id === id)
+    const el = blockRefs.current[id] || null
+    const isParagraph = current?.type === 'paragraph'
+    const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
+    if (isParagraph && isContentUpdate && el && document.activeElement === el) {
+      const offsets = getSelectionOffsets(el)
+      if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
+    }
+
+    setBlocks(blocks.map(block => (block.id === id ? { ...block, ...updates } : block)))
   }
+
+  // After any render, restore caret selection if saved (handles autosave-triggered re-renders)
+  useLayoutEffect(() => {
+    if (!savedSelectionRef.current) return
+    const { blockId, start, end, backward } = savedSelectionRef.current
+    if (start !== end) return // only restore for collapsed caret
+    const el = blockRefs.current[blockId]
+    if (!el) return
+    const sel = window.getSelection()
+    if (!sel) return
+    // If there is an active selection in this element, do not override
+    if (sel.rangeCount > 0) {
+      const r = sel.getRangeAt(0)
+      if (!sel.isCollapsed && el.contains(r.commonAncestorContainer)) return
+    }
+    try {
+      if (document.activeElement !== el) el.focus()
+      setSelectionOffsets(el, start, end, backward)
+    } catch {}
+  }, [blocks])
+
+  // Ensure selection end is detected even if mouseup happens outside the element
+  useEffect(() => {
+    const handleUp = (): void => { isSelectingRef.current = false }
+    document.addEventListener('mouseup', handleUp)
+    return () => { document.removeEventListener('mouseup', handleUp) }
+  }, [])
 
   const deleteBlock = (id: string): void => {
     if (blocks.length === 1) return // Don't delete the last block
@@ -620,16 +791,72 @@ function DocumentEditor({
       }
       default:
         return (
-          <textarea
-            {...commonProps}
-            className={`${commonProps.className} text-gray-900`}
-            rows={1}
-            style={{ resize: 'none' }}
-            onInput={(e): void => {
-              const target = e.target as HTMLTextAreaElement
-              target.style.height = 'auto'
-              target.style.height = `${target.scrollHeight}px`
+          <div
+            ref={(el): void => {
+              blockRefs.current[block.id] = el
+              if (!el) return
+              // Only sync DOM from state when not focused to avoid caret reset
+              if (document.activeElement !== el) {
+                const next = block.content || ''
+                if (prevContentRef.current[block.id] !== next) {
+                  el.innerHTML = next
+                  prevContentRef.current[block.id] = next
+                }
+              }
             }}
+            className={`w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none`}
+            dir="ltr"
+            contentEditable={!readOnly}
+            suppressContentEditableWarning
+            onFocus={(): void => { setActiveBlockId(block.id); saveSelectionForBlock(block.id) }}
+            onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
+            onKeyUp={() => saveSelectionForBlock(block.id)}
+            onClick={() => saveSelectionForBlock(block.id)}
+            onKeyDown={(e): void => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
+              }
+            }}
+            onInput={(e): void => {
+              const html = (e.currentTarget as HTMLDivElement).innerHTML
+              prevContentRef.current[block.id] = html
+              updateBlock(block.id, { content: html })
+            }}
+            onMouseUp={(): void => {
+              if (readOnly) return
+              // Save selection (caret or range) on mouse up
+              saveSelectionForBlock(block.id)
+              isSelectingRef.current = false
+              const sel = window.getSelection()
+              if (!sel || sel.isCollapsed) {
+                setShowTextToolbar(false)
+                setToolbarBlockId(null)
+                return
+              }
+              const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
+              if (!range) return
+              const container = blockRefs.current[block.id]
+              if (!container || !container.contains(range.commonAncestorContainer)) {
+                setShowTextToolbar(false)
+                setToolbarBlockId(null)
+                return
+              }
+              const rect = range.getBoundingClientRect()
+              const x = rect.left + rect.width / 2
+              const y = rect.top - 8
+              setToolbarPos({ x, y })
+              setToolbarBlockId(block.id)
+              setShowTextToolbar(true)
+              try {
+                setFormatState({
+                  bold: document.queryCommandState('bold'),
+                  italic: document.queryCommandState('italic'),
+                  underline: document.queryCommandState('underline')
+                })
+              } catch {}
+            }}
+            // innerHTML is set via ref when not focused; avoid dangerouslySetInnerHTML to preserve caret
           />
         )
     }
@@ -772,6 +999,77 @@ function DocumentEditor({
           </div>
         ))}
       </div>
+
+      {/* Floating text formatting toolbar */}
+      {!readOnly && showTextToolbar && toolbarBlockId && (
+        <div
+          className="fixed z-20 bg-white border border-gray-200 shadow-lg rounded-md px-1 py-0.5 flex items-center space-x-0.5"
+          style={{ left: toolbarPos.x, top: toolbarPos.y, transform: 'translate(-50%, -100%)' }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <button
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            title="Bold"
+            onClick={() => {
+              try { document.execCommand('bold') } catch {}
+              const el = blockRefs.current[toolbarBlockId]
+              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              try {
+                setFormatState({
+                  bold: document.queryCommandState('bold'),
+                  italic: document.queryCommandState('italic'),
+                  underline: document.queryCommandState('underline')
+                })
+              } catch {}
+            }}
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+          <button
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            title="Italic"
+            onClick={() => {
+              try { document.execCommand('italic') } catch {}
+              const el = blockRefs.current[toolbarBlockId]
+              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              try {
+                setFormatState({
+                  bold: document.queryCommandState('bold'),
+                  italic: document.queryCommandState('italic'),
+                  underline: document.queryCommandState('underline')
+                })
+              } catch {}
+            }}
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+          <button
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            title="Underline"
+            onClick={() => {
+              try { document.execCommand('underline') } catch {}
+              const el = blockRefs.current[toolbarBlockId]
+              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              try {
+                setFormatState({
+                  bold: document.queryCommandState('bold'),
+                  italic: document.queryCommandState('italic'),
+                  underline: document.queryCommandState('underline')
+                })
+              } catch {}
+            }}
+          >
+            <Underline className="w-4 h-4" />
+          </button>
+          <button
+            className="p-1 rounded hover:bg-gray-100 text-gray-700"
+            title="Close"
+            onClick={() => setShowTextToolbar(false)}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Add Block at End */}
       {!readOnly && (
