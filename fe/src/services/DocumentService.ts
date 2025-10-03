@@ -101,6 +101,39 @@ function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
   };
 }
 
+/**
+ * Search all accessible documents/folders for current user.
+ * @param q query string (min 1 char; BE handle regex i)
+ * @param types optional ['file','folder']
+ * @param limit default 50
+ * @param offset default 0
+ */
+export async function searchDocuments(
+  q: string,
+  types?: Array<'file' | 'folder'>,
+  limit = 50,
+  offset = 0
+): Promise<DocumentItem[]> {
+  try {
+    const params = new URLSearchParams()
+    params.set('q', q)
+    params.set('limit', String(limit))
+    params.set('offset', String(offset))
+    types?.forEach(t => params.append('types', t))
+
+    const endpoint = `/documents/search?${params.toString()}`
+    const session = useAuthStore.getState().getCurrentSession()
+    const headers = session?.token ? { Authorization: `Bearer ${session.token}` } : undefined
+
+    const res = await api.get<ApiDocumentItem[]>(endpoint, { headers })
+    return res.data.map(transformApiDocument)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('searchDocuments error:', err)
+    return []
+  }
+}
+
 // Fetch documents by parent ID
 export async function getDocumentsByParentId(
   parentId: string | null | undefined
