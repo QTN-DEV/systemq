@@ -1,10 +1,11 @@
-import { 
-  List, 
-  ListOrdered, 
-  Quote, 
-  Code, 
-  Heading1, 
-  Heading2, 
+// src/components/DocumentEditor.tsx
+import {
+  List,
+  ListOrdered,
+  Quote,
+  Code,
+  Heading1,
+  Heading2,
   Heading3,
   Type,
   Plus,
@@ -17,17 +18,32 @@ import {
   AlignRight,
   Bold,
   Italic,
-  Underline
+  Underline,
 } from 'lucide-react'
-import { useState, useRef, useEffect, useLayoutEffect, type ReactElement } from 'react'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  type ReactElement,
+} from 'react'
 
 import { logger } from '@/lib/logger'
-
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
 
 export interface DocumentBlock {
   id: string
-  type: 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'bulleted-list' | 'numbered-list' | 'quote' | 'code' | 'image' | 'file'
+  type:
+  | 'paragraph'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'bulleted-list'
+  | 'numbered-list'
+  | 'quote'
+  | 'code'
+  | 'image'
+  | 'file'
   content: string
   alignment?: 'left' | 'center' | 'right'
   url?: string // For image src or file download URL
@@ -43,18 +59,27 @@ interface DocumentEditorProps {
   onTitleChange?: (title: string) => void
 }
 
-const TypeMenu = ({ 
-  blockId, 
-  onChangeBlockType 
-}: { 
+/** Type Menu (supports drop-down / drop-up via `placement`) */
+const TypeMenu = ({
+  blockId,
+  onChangeBlockType,
+  placement = 'bottom',
+}: {
   blockId: string
-  onChangeBlockType: (blockId: string, newType: DocumentBlock['type']) => void
+  onChangeBlockType: (
+    blockId: string,
+    newType: DocumentBlock['type'],
+  ) => void
+  placement?: 'bottom' | 'top'
 }): ReactElement => (
-  <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px]">
+  <div
+    className={`absolute z-10 ${placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+      } bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[220px]`}
+  >
     <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
       Basic blocks
     </div>
-    
+
     {[
       { type: 'paragraph' as const, icon: Type, label: 'Text' },
       { type: 'heading1' as const, icon: Heading1, label: 'Heading 1' },
@@ -65,7 +90,7 @@ const TypeMenu = ({
       { type: 'quote' as const, icon: Quote, label: 'Quote' },
       { type: 'code' as const, icon: Code, label: 'Code' },
       { type: 'image' as const, icon: Image, label: 'Image' },
-      { type: 'file' as const, icon: FileText, label: 'File' }
+      { type: 'file' as const, icon: FileText, label: 'File' },
     ].map(({ type, icon: Icon, label }) => (
       <button
         key={type}
@@ -73,50 +98,70 @@ const TypeMenu = ({
         onClick={() => onChangeBlockType(blockId, type)}
       >
         <Icon className="w-5 h-5 text-gray-400" />
-        <div>
-          <div className="text-sm font-medium text-gray-900">{label}</div>
-        </div>
+        <div className="text-sm font-medium text-gray-900">{label}</div>
       </button>
     ))}
   </div>
 )
 
-function DocumentEditor({ 
-  initialBlocks = [], 
-  onSave, 
-  readOnly = false
+function DocumentEditor({
+  initialBlocks = [],
+  onSave,
+  readOnly = false,
 }: DocumentEditorProps): ReactElement {
   const [blocks, setBlocks] = useState<DocumentBlock[]>(
-    initialBlocks.length > 0 
-      ? initialBlocks 
-      : [{ id: '1', type: 'paragraph', content: '', alignment: 'left' }]
+    initialBlocks.length > 0
+      ? initialBlocks
+      : [{ id: '1', type: 'paragraph', content: '', alignment: 'left' }],
   )
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
   const [showTypeMenu, setShowTypeMenu] = useState<string | null>(null)
   const [showGripMenu, setShowGripMenu] = useState<string | null>(null)
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null)
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null)
-  const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(new Set())
+  const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(
+    new Set(),
+  )
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
-  const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
-  const savedSelectionRef = useRef<{ blockId: string; start: number; end: number; backward: boolean } | null>(null)
-  const isSelectingRef = useRef(false)
-  const prevContentRef = useRef<{ [key: string]: string }>({})
-  const saveSelectionForBlock = (blockId: string): void => {
-    const host = blockRefs.current[blockId]
-    if (!host) return
-    const sel = window.getSelection()
-    if (!sel) return
-    // Only persist collapsed caret positions to avoid overriding range selections
-    if (!sel.isCollapsed) return
-    const offsets = getSelectionOffsets(host)
-    if (offsets && offsets.start === offsets.end) {
-      savedSelectionRef.current = { blockId, ...offsets }
-    }
-  }
 
-  // Utilities to get and restore caret selection within a contentEditable element
-  const getSelectionOffsets = (element: HTMLElement): { start: number; end: number; backward: boolean } | null => {
+  // Refs
+  const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
+  const prevContentRef = useRef<{ [key: string]: string }>({})
+  const savedSelectionRef = useRef<{
+    blockId: string
+    start: number
+    end: number
+    backward: boolean
+  } | null>(null)
+  const isSelectingRef = useRef(false)
+
+  // Menu refs + placement
+  const gripMenuRef = useRef<HTMLDivElement | null>(null)
+  const typeMenuRef = useRef<HTMLDivElement | null>(null)
+  const [gripMenuPlacement, setGripMenuPlacement] = useState<'bottom' | 'top'>(
+    'bottom',
+  )
+  const [typeMenuPlacement, setTypeMenuPlacement] = useState<'bottom' | 'top'>(
+    'bottom',
+  )
+
+  // Floating text formatting toolbar
+  const [showTextToolbar, setShowTextToolbar] = useState(false)
+  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  })
+  const [toolbarBlockId, setToolbarBlockId] = useState<string | null>(null)
+  const [formatState, setFormatState] = useState<{
+    bold: boolean
+    italic: boolean
+    underline: boolean
+  }>({ bold: false, italic: false, underline: false })
+
+  /** ---------- Selection helpers (caret preservation) ---------- */
+  const getSelectionOffsets = (
+    element: HTMLElement,
+  ): { start: number; end: number; backward: boolean } | null => {
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return null
     const range = sel.getRangeAt(0)
@@ -131,7 +176,8 @@ function DocumentEditor({
     preRangeEnd.selectNodeContents(element)
     preRangeEnd.setEnd(range.endContainer, range.endOffset)
     const end = preRangeEnd.toString().length
-    // Determine selection direction
+
+    // selection direction
     let backward = false
     try {
       if (sel.anchorNode && sel.focusNode) {
@@ -142,7 +188,7 @@ function DocumentEditor({
           backward = !!(pos & Node.DOCUMENT_POSITION_PRECEDING)
         }
       }
-    } catch {}
+    } catch { }
     return { start, end, backward }
   }
 
@@ -150,7 +196,7 @@ function DocumentEditor({
     element: HTMLElement,
     start: number,
     end: number,
-    backward = false
+    backward = false,
   ): void => {
     // Traverse to find start/end nodes
     let charIndex = 0
@@ -190,7 +236,7 @@ function DocumentEditor({
         else sel.setBaseAndExtent(startNode, startOffsetInNode, endNode, endOffsetInNode)
         return
       }
-    } catch {}
+    } catch { }
 
     const range = document.createRange()
     if (startNode) range.setStart(startNode, startOffsetInNode)
@@ -200,119 +246,82 @@ function DocumentEditor({
     sel.addRange(range)
   }
 
-  // Inline formatting toolbar state for paragraph blocks
-  const [showTextToolbar, setShowTextToolbar] = useState(false)
-  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
-  const [toolbarBlockId, setToolbarBlockId] = useState<string | null>(null)
-  const [formatState, setFormatState] = useState<{ bold: boolean; italic: boolean; underline: boolean }>({ bold: false, italic: false, underline: false })
-
-  // Reposition toolbar only on scroll/resize; show toolbar on mouseup inside block
-  useEffect(() => {
-    if (readOnly) return
-    const handleScrollOrResize = (): void => {
-      if (!showTextToolbar || !toolbarBlockId) return
-      const sel = window.getSelection()
-      if (!sel || sel.rangeCount === 0) return
-      const range = sel.getRangeAt(0)
-      const container = blockRefs.current[toolbarBlockId]
-      if (!container || !container.contains(range.commonAncestorContainer)) return
-      let rect = range.getBoundingClientRect()
-      if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
-        const rects = range.getClientRects()
-        if (rects && rects.length > 0) rect = rects[0]
-      }
-      const x = rect.left + rect.width / 2
-      const y = rect.top - 8
-      setToolbarPos({ x, y })
-    }
-    window.addEventListener('scroll', handleScrollOrResize, true)
-    window.addEventListener('resize', handleScrollOrResize)
-    return () => {
-      window.removeEventListener('scroll', handleScrollOrResize, true)
-      window.removeEventListener('resize', handleScrollOrResize)
-    }
-  }, [readOnly, showTextToolbar, toolbarBlockId])
-
-  // Real upload API function
-  const uploadFileToServer = async (file: File, blockType: 'image' | 'file'): Promise<{ url: string; fileName: string; fileSize: string }> => {
-    try {
-      const uploadResponse = blockType === 'image'
-        ? await uploadImage(file)
-        : await uploadFile(file)
-
-      return {
-        url: getFileUrl(uploadResponse.url),
-        fileName: uploadResponse.fileName,
-        fileSize: uploadResponse.fileSize
-      }
-    } catch (error) {
-      logger.error('Upload failed:', error)
-      throw new Error(`Failed to upload ${blockType}`)
+  const saveSelectionForBlock = (blockId: string): void => {
+    const host = blockRefs.current[blockId]
+    if (!host) return
+    const sel = window.getSelection()
+    if (!sel) return
+    // Only persist collapsed caret positions (biar nggak “makan” selection user)
+    if (!sel.isCollapsed) return
+    const offsets = getSelectionOffsets(host)
+    if (offsets && offsets.start === offsets.end) {
+      savedSelectionRef.current = { blockId, ...offsets }
     }
   }
 
+  /** ---------- Autosave ---------- */
   useEffect((): (() => void) | void => {
     if (onSave) {
       const timeoutId = setTimeout(() => {
         onSave(blocks)
-      }, 1000) // Auto-save after 1 second of inactivity
-
+      }, 1000)
       return () => clearTimeout(timeoutId)
     }
   }, [blocks, onSave])
 
-
-  const addBlock = (afterId: string, type: DocumentBlock['type'] = 'paragraph'): void => {
-    const newBlock: DocumentBlock = {
-      id: Date.now().toString(),
-      type,
-      content: '',
-      alignment: 'left'
+  /** ---------- Outside click + Esc for menus (without overlay) ---------- */
+  useEffect(() => {
+    const onDocMouseDown = (e: MouseEvent): void => {
+      const t = e.target as Node
+      if (showGripMenu && !gripMenuRef.current?.contains(t)) setShowGripMenu(null)
+      if (showTypeMenu && !typeMenuRef.current?.contains(t)) setShowTypeMenu(null)
     }
-
-    const afterIndex = blocks.findIndex(block => block.id === afterId)
-    const newBlocks = [
-      ...blocks.slice(0, afterIndex + 1),
-      newBlock,
-      ...blocks.slice(afterIndex + 1)
-    ]
-
-    setBlocks(newBlocks)
-    setActiveBlockId(newBlock.id)
-
-    // Focus the new block
-    setTimeout(() => {
-      const element = blockRefs.current[newBlock.id]
-      if (element) {
-        element.focus()
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setShowGripMenu(null)
+        setShowTypeMenu(null)
       }
-    }, 0)
-  }
-
-  const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
-    // Preserve caret selection when editing contentEditable paragraph
-    const current = blocks.find(b => b.id === id)
-    const el = blockRefs.current[id] || null
-    const isParagraph = current?.type === 'paragraph'
-    const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
-    if (isParagraph && isContentUpdate && el && document.activeElement === el) {
-      const offsets = getSelectionOffsets(el)
-      if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
     }
+    window.addEventListener('mousedown', onDocMouseDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onDocMouseDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [showGripMenu, showTypeMenu])
 
-    setBlocks(blocks.map(block => (block.id === id ? { ...block, ...updates } : block)))
-  }
+  /** ---------- Auto-flip menus when near viewport edge ---------- */
+  useEffect(() => {
+    if (!showGripMenu) return
+    requestAnimationFrame(() => {
+      const el = gripMenuRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const needsFlip = rect.bottom > window.innerHeight && rect.top > 0
+      setGripMenuPlacement(needsFlip ? 'top' : 'bottom')
+    })
+  }, [showGripMenu])
 
-  // After any render, restore caret selection if saved (handles autosave-triggered re-renders)
+  useEffect(() => {
+    if (!showTypeMenu) return
+    requestAnimationFrame(() => {
+      const el = typeMenuRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const needsFlip = rect.bottom > window.innerHeight && rect.top > 0
+      setTypeMenuPlacement(needsFlip ? 'top' : 'bottom')
+    })
+  }, [showTypeMenu])
+
+  /** ---------- Keep caret on re-render ---------- */
   useLayoutEffect(() => {
     if (!savedSelectionRef.current) return
     const { blockId, start, end, backward } = savedSelectionRef.current
-    if (start !== end) return // only restore for collapsed caret
+    if (start !== end) return // only restore for caret (not range)
     const el = blockRefs.current[blockId]
     if (!el) return
     const sel = window.getSelection()
     if (!sel) return
-    // If there is an active selection in this element, do not override
     if (sel.rangeCount > 0) {
       const r = sel.getRangeAt(0)
       if (!sel.isCollapsed && el.contains(r.commonAncestorContainer)) return
@@ -320,49 +329,111 @@ function DocumentEditor({
     try {
       if (document.activeElement !== el) el.focus()
       setSelectionOffsets(el, start, end, backward)
-    } catch {}
+    } catch { }
   }, [blocks])
 
-  // Ensure selection end is detected even if mouseup happens outside the element
+  /** ---------- Selection end guard ---------- */
   useEffect(() => {
-    const handleUp = (): void => { isSelectingRef.current = false }
+    const handleUp = (): void => {
+      isSelectingRef.current = false
+    }
     document.addEventListener('mouseup', handleUp)
-    return () => { document.removeEventListener('mouseup', handleUp) }
+    return () => {
+      document.removeEventListener('mouseup', handleUp)
+    }
   }, [])
 
+  /** ---------- Upload ---------- */
+  const uploadFileToServer = async (
+    file: File,
+    blockType: 'image' | 'file',
+  ): Promise<{ url: string; fileName: string; fileSize: string }> => {
+    try {
+      const uploadResponse =
+        blockType === 'image' ? await uploadImage(file) : await uploadFile(file)
+
+      return {
+        url: getFileUrl(uploadResponse.url),
+        fileName: uploadResponse.fileName,
+        fileSize: uploadResponse.fileSize,
+      }
+    } catch (error) {
+      logger.error('Upload failed:', error)
+      throw new Error(`Failed to upload ${blockType}`)
+    }
+  }
+
+  /** ---------- Blocks ops ---------- */
+  const addBlock = (
+    afterId: string,
+    type: DocumentBlock['type'] = 'paragraph',
+  ): void => {
+    const newBlock: DocumentBlock = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      type,
+      content: '',
+      alignment: 'left',
+    }
+
+    const afterIndex = blocks.findIndex((block) => block.id === afterId)
+    const newBlocks = [
+      ...blocks.slice(0, afterIndex + 1),
+      newBlock,
+      ...blocks.slice(afterIndex + 1),
+    ]
+
+    setBlocks(newBlocks)
+    setActiveBlockId(newBlock.id)
+
+    // Focus new block
+    setTimeout(() => {
+      const element = blockRefs.current[newBlock.id]
+      if (element) element.focus()
+    }, 0)
+  }
+
+  const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
+    const el = blockRefs.current[id] || null
+    const isContentUpdate = Object.prototype.hasOwnProperty.call(
+      updates,
+      'content',
+    )
+    if (isContentUpdate && el && document.activeElement === el && (el as HTMLElement).isContentEditable) {
+      const offsets = getSelectionOffsets(el as HTMLElement)
+      if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
+    }
+
+    setBlocks(blocks.map((block) => (block.id === id ? { ...block, ...updates } : block)))
+  }
+
   const deleteBlock = (id: string): void => {
-    if (blocks.length === 1) return // Don't delete the last block
-    
-    const blockIndex = blocks.findIndex(block => block.id === id)
-    const newBlocks = blocks.filter(block => block.id !== id)
+    if (blocks.length === 1) return
+    const blockIndex = blocks.findIndex((block) => block.id === id)
+    const newBlocks = blocks.filter((block) => block.id !== id)
     setBlocks(newBlocks)
 
-    // Focus the previous block or the next one
     const focusIndex = blockIndex > 0 ? blockIndex - 1 : 0
     if (newBlocks[focusIndex]) {
       setActiveBlockId(newBlocks[focusIndex].id)
       setTimeout(() => {
         const element = blockRefs.current[newBlocks[focusIndex].id]
-        if (element) {
-          element.focus()
-        }
+        if (element) element.focus()
       }, 0)
     }
   }
 
   const moveBlock = (fromId: string, toId: string): void => {
-    const fromIndex = blocks.findIndex(block => block.id === fromId)
-    const toIndex = blocks.findIndex(block => block.id === toId)
-    
+    const fromIndex = blocks.findIndex((block) => block.id === fromId)
+    const toIndex = blocks.findIndex((block) => block.id === toId)
     if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
-    
+
     const newBlocks = [...blocks]
     const [movedBlock] = newBlocks.splice(fromIndex, 1)
     newBlocks.splice(toIndex, 0, movedBlock)
-    
     setBlocks(newBlocks)
   }
 
+  /** ---------- DnD ---------- */
   const handleDragStart = (e: React.DragEvent, blockId: string): void => {
     setDraggedBlockId(blockId)
     e.dataTransfer.effectAllowed = 'move'
@@ -378,11 +449,8 @@ function DocumentEditor({
   }
 
   const handleDragLeave = (e: React.DragEvent): void => {
-    // Only clear drag over if we're actually leaving the block area
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX
-    const y = e.clientY
-    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const { clientX: x, clientY: y } = e
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       setDragOverBlockId(null)
     }
@@ -391,11 +459,7 @@ function DocumentEditor({
   const handleDrop = (e: React.DragEvent, blockId: string): void => {
     e.preventDefault()
     const draggedId = e.dataTransfer.getData('text/plain')
-    
-    if (draggedId && draggedId !== blockId) {
-      moveBlock(draggedId, blockId)
-    }
-    
+    if (draggedId && draggedId !== blockId) moveBlock(draggedId, blockId)
     setDraggedBlockId(null)
     setDragOverBlockId(null)
   }
@@ -405,54 +469,45 @@ function DocumentEditor({
     setDragOverBlockId(null)
   }
 
+  /** ---------- Upload handlers ---------- */
   const handleFileUpload = async (blockId: string, file: File): Promise<void> => {
     if (readOnly) return
-
-    // Determine block type from the block being updated
-    const block = blocks.find(b => b.id === blockId)
+    const block = blocks.find((b) => b.id === blockId)
     if (!block) return
-
     const blockType: 'image' | 'file' = block.type === 'image' ? 'image' : 'file'
-
-    // Add block to uploading set
-    setUploadingBlocks(prev => new Set(prev).add(blockId))
-
+    setUploadingBlocks((prev) => new Set(prev).add(blockId))
     try {
       const uploadResult = await uploadFileToServer(file, blockType)
-
-      // Update block with upload result
       updateBlock(blockId, {
         url: uploadResult.url,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
-        content: blockType === 'file' ? uploadResult.fileName : file.name // For file blocks, content is the file name
+        content: blockType === 'file' ? uploadResult.fileName : file.name,
       })
     } catch (error) {
       logger.error('Upload failed:', error)
-      // Handle upload error (could show toast notification)
-      // For now, just remove from uploading set
     } finally {
-      // Remove block from uploading set
-      setUploadingBlocks(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(blockId)
-        return newSet
+      setUploadingBlocks((prev) => {
+        const next = new Set(prev)
+        next.delete(blockId)
+        return next
       })
     }
   }
 
+  /** ---------- Keyboard ---------- */
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       addBlock(blockId)
     } else if (e.key === 'Backspace') {
-      const block = blocks.find(b => b.id === blockId)
+      const block = blocks.find((b) => b.id === blockId)
       if (block && block.content === '' && blocks.length > 1) {
         e.preventDefault()
         deleteBlock(blockId)
       }
     } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-      const block = blocks.find(b => b.id === blockId)
+      const block = blocks.find((b) => b.id === blockId)
       if (block && block.content === '') {
         e.preventDefault()
         setShowTypeMenu(blockId)
@@ -460,182 +515,297 @@ function DocumentEditor({
     }
   }
 
-  const changeBlockType = (blockId: string, newType: DocumentBlock['type']): void => {
+  const changeBlockType = (
+    blockId: string,
+    newType: DocumentBlock['type'],
+  ): void => {
     updateBlock(blockId, { type: newType })
     setShowTypeMenu(null)
   }
 
+  /** ---------- UI helpers ---------- */
   const getBlockPlaceholder = (type: DocumentBlock['type']): string => {
     switch (type) {
-      case 'heading1': return 'Heading 1'
-      case 'heading2': return 'Heading 2'
-      case 'heading3': return 'Heading 3'
-      case 'bulleted-list': return 'Bulleted list'
-      case 'numbered-list': return 'Numbered list'
-      case 'quote': return 'Quote'
-      case 'code': return 'Code block'
-      case 'image': return 'Enter image URL or upload an image'
-      case 'file': return 'Enter file name or upload a file'
-      default: return 'Type \'/\' for commands'
+      case 'heading1':
+        return 'Heading 1'
+      case 'heading2':
+        return 'Heading 2'
+      case 'heading3':
+        return 'Heading 3'
+      case 'bulleted-list':
+        return 'Bulleted list'
+      case 'numbered-list':
+        return 'Numbered list'
+      case 'quote':
+        return 'Quote'
+      case 'code':
+        return 'Code block'
+      case 'image':
+        return 'Enter image URL or upload an image'
+      case 'file':
+        return 'Enter file name or upload a file'
+      default:
+        return "Type '/' for commands"
     }
   }
 
+  /** ---------- Render a block ---------- */
   const getBlockElement = (block: DocumentBlock): ReactElement => {
-    const commonProps = {
-      ref: (el: HTMLElement | null): void => { blockRefs.current[block.id] = el },
-      className: `w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5em] ${
-        block.alignment === 'center' ? 'text-center' : 
-        block.alignment === 'right' ? 'text-right' : 'text-left'
-      }`,
-      placeholder: getBlockPlaceholder(block.type),
-      value: block.content,
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => 
-        updateBlock(block.id, { content: e.target.value }),
-      onFocus: (): void => setActiveBlockId(block.id),
-      onKeyDown: (e: React.KeyboardEvent): void => handleKeyDown(e, block.id),
-      disabled: readOnly
-    }
-
     switch (block.type) {
       case 'heading1':
-        return (
-          <input
-            {...commonProps}
-            className={`${commonProps.className} text-3xl font-bold text-gray-900`}
-          />
-        )
       case 'heading2':
-        return ( 
-          <input
-            {...commonProps}
-            className={`${commonProps.className} text-2xl font-semibold text-gray-900`}
-          />
-        )
       case 'heading3':
+      case 'quote': {
+        const typeClass =
+          block.type === 'heading1'
+            ? 'text-3xl font-bold'
+            : block.type === 'heading2'
+              ? 'text-2xl font-semibold'
+              : block.type === 'heading3'
+                ? 'text-xl font-medium'
+                : 'border-l-4 border-gray-300 pl-4 italic bg-gray-50'
+
         return (
-          <input
-            {...commonProps}
-            className={`${commonProps.className} text-xl font-medium text-gray-900`}
-          />
-        )
-      case 'quote':
-        return (
-          <textarea
-            {...commonProps}
-            className={`${commonProps.className} border-l-4 border-gray-300 pl-4 italic text-gray-700 bg-gray-50`}
-            rows={1}
-            style={{ resize: 'none' }}
+          <div
+            ref={(el): void => {
+              blockRefs.current[block.id] = el
+              if (!el) return
+              if (document.activeElement !== el) {
+                const next = block.content || ''
+                if (prevContentRef.current[block.id] !== next) {
+                  el.innerHTML = next
+                  prevContentRef.current[block.id] = next
+                }
+              }
+            }}
+            className={`w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
+            contentEditable={!readOnly}
+            suppressContentEditableWarning
+            onFocus={(): void => {
+              setActiveBlockId(block.id)
+              saveSelectionForBlock(block.id)
+            }}
+            onMouseDown={(): void => {
+              setActiveBlockId(block.id)
+              isSelectingRef.current = true
+            }}
+            onKeyUp={() => saveSelectionForBlock(block.id)}
+            onClick={() => saveSelectionForBlock(block.id)}
+            onKeyDown={(e): void => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
+              }
+            }}
             onInput={(e): void => {
-              const target = e.target as HTMLTextAreaElement
-              target.style.height = 'auto'
-              target.style.height = `${target.scrollHeight}px`
+              const html = (e.currentTarget as HTMLDivElement).innerHTML
+              prevContentRef.current[block.id] = html
+              updateBlock(block.id, { content: html })
+            }}
+            onMouseUp={(): void => {
+              if (readOnly) return
+              saveSelectionForBlock(block.id)
+              isSelectingRef.current = false
+              const sel = window.getSelection()
+              if (!sel || sel.isCollapsed) {
+                setShowTextToolbar(false)
+                setToolbarBlockId(null)
+                return
+              }
+              const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
+              if (!range) return
+              const container = blockRefs.current[block.id]
+              if (!container || !container.contains(range.commonAncestorContainer)) {
+                setShowTextToolbar(false)
+                setToolbarBlockId(null)
+                return
+              }
+              let rect = range.getBoundingClientRect()
+              if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
+                const rects = range.getClientRects()
+                if (rects && rects.length > 0) rect = rects[0]
+              }
+              const x = rect.left + rect.width / 2
+              const y = rect.top - 8
+              setToolbarPos({ x, y })
+              setToolbarBlockId(block.id)
+              setShowTextToolbar(true)
+              try {
+                setFormatState({
+                  bold: document.queryCommandState('bold'),
+                  italic: document.queryCommandState('italic'),
+                  underline: document.queryCommandState('underline'),
+                })
+              } catch { }
             }}
           />
         )
+      }
+
       case 'code':
         return (
           <textarea
-            {...commonProps}
-            className={`${commonProps.className} font-mono text-sm bg-gray-100 p-3 rounded`}
+            className="w-full font-mono text-sm bg-gray-100 p-3 rounded outline-none"
             rows={1}
-            style={{ resize: 'none' }}
+            placeholder={getBlockPlaceholder(block.type)}
+            value={block.content}
+            disabled={readOnly}
+            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            onKeyDown={(e) => handleKeyDown(e, block.id)}
             onInput={(e): void => {
-              const target = e.target as HTMLTextAreaElement
+              const target = e.currentTarget
               target.style.height = 'auto'
               target.style.height = `${target.scrollHeight}px`
             }}
           />
         )
+
       case 'bulleted-list':
-        return (
-          <div className="flex items-start space-x-2">
-            <span className="text-gray-500">•</span>
-            <textarea
-              {...commonProps}
-              className={`${commonProps.className} flex-1`}
-              rows={1}
-              style={{ resize: 'none' }}
-              onInput={(e): void => {
-                const target = e.target as HTMLTextAreaElement
-                target.style.height = 'auto'
-                target.style.height = `${target.scrollHeight}px`
-              }}
-            />
-          </div>
-        )
       case 'numbered-list': {
-        const listIndex = blocks.filter((b, i) => 
-          i <= blocks.findIndex(b => b.id === block.id) && b.type === 'numbered-list'
-        ).length
+        const isNumbered = block.type === 'numbered-list'
+        const listIndex = isNumbered
+          ? blocks.filter(
+            (b, i) =>
+              i <= blocks.findIndex((b) => b.id === block.id) &&
+              b.type === 'numbered-list',
+          ).length
+          : null
+
         return (
           <div className="flex items-start space-x-2">
-            <span className="text-gray-500">{listIndex}.</span>
-            <textarea
-              {...commonProps}
-              className={`${commonProps.className} flex-1`}
-              rows={1}
-              style={{ resize: 'none' }}
+            <span className="text-gray-500 select-none">
+              {isNumbered ? `${listIndex}.` : '•'}
+            </span>
+            <div
+              ref={(el): void => {
+                blockRefs.current[block.id] = el
+                if (!el) return
+                if (document.activeElement !== el) {
+                  const next = block.content || ''
+                  if (prevContentRef.current[block.id] !== next) {
+                    el.innerHTML = next
+                    prevContentRef.current[block.id] = next
+                  }
+                }
+              }}
+              className="flex-1 w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
+              contentEditable={!readOnly}
+              suppressContentEditableWarning
+              onFocus={(): void => {
+                setActiveBlockId(block.id)
+                saveSelectionForBlock(block.id)
+              }}
+              onMouseDown={() => {
+                setActiveBlockId(block.id)
+                isSelectingRef.current = true
+              }}
+              onKeyUp={() => saveSelectionForBlock(block.id)}
+              onClick={() => saveSelectionForBlock(block.id)}
+              onKeyDown={(e): void => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
+                }
+              }}
               onInput={(e): void => {
-                const target = e.target as HTMLTextAreaElement
-                target.style.height = 'auto'
-                target.style.height = `${target.scrollHeight}px`
+                const html = (e.currentTarget as HTMLDivElement).innerHTML
+                prevContentRef.current[block.id] = html
+                updateBlock(block.id, { content: html })
+              }}
+              onMouseUp={(): void => {
+                if (readOnly) return
+                saveSelectionForBlock(block.id)
+                isSelectingRef.current = false
+                const sel = window.getSelection()
+                if (!sel || sel.isCollapsed) {
+                  setShowTextToolbar(false)
+                  setToolbarBlockId(null)
+                  return
+                }
+                const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
+                if (!range) return
+                const container = blockRefs.current[block.id]
+                if (!container || !container.contains(range.commonAncestorContainer)) {
+                  setShowTextToolbar(false)
+                  setToolbarBlockId(null)
+                  return
+                }
+                let rect = range.getBoundingClientRect()
+                if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
+                  const rects = range.getClientRects()
+                  if (rects && rects.length > 0) rect = rects[0]
+                }
+                const x = rect.left + rect.width / 2
+                const y = rect.top - 8
+                setToolbarPos({ x, y })
+                setToolbarBlockId(block.id)
+                setShowTextToolbar(true)
+                try {
+                  setFormatState({
+                    bold: document.queryCommandState('bold'),
+                    italic: document.queryCommandState('italic'),
+                    underline: document.queryCommandState('underline'),
+                  })
+                } catch { }
               }}
             />
           </div>
         )
       }
+
       case 'image': {
         const isUploading = uploadingBlocks.has(block.id)
         const hasImage = block.url && !isUploading
-        
+
         if (hasImage) {
-          // Render uploaded image with alignment and hover toolbar
           const imageAlignment = block.alignment ?? 'center'
           const alignmentClasses = {
             left: 'justify-start',
-            center: 'justify-center', 
-            right: 'justify-end'
-          }
-          
+            center: 'justify-center',
+            right: 'justify-end',
+          } as const
+
           return (
             <div className={`flex w-full ${alignmentClasses[imageAlignment]}`}>
-              <div 
+              <div
                 className="relative group"
                 onMouseEnter={() => !readOnly && setHoveredImageId(block.id)}
                 onMouseLeave={() => setHoveredImageId(null)}
               >
-                <img 
-                  src={block.url} 
-                  alt={block.content || 'Uploaded image'} 
+                <img
+                  src={block.url}
+                  alt={block.content || 'Uploaded image'}
                   className="max-w-full h-auto rounded-lg shadow-sm"
                   style={{ maxHeight: '500px' }}
                 />
-                
-                {/* Floating Alignment Toolbar */}
+
                 {hoveredImageId === block.id && (
-                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 translate-y-[-8px] bg-white rounded-lg shadow-lg border border-gray-200 px-2 py-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 -translate-y-2 bg-white rounded-lg shadow-lg border border-gray-200 px-2 py-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                        imageAlignment === 'left' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
-                      }`}
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'left'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'text-gray-600'
+                        }`}
                       onClick={() => updateBlock(block.id, { alignment: 'left' })}
                       title="Align left"
                     >
                       <AlignLeft className="w-4 h-4" />
                     </button>
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                        imageAlignment === 'center' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
-                      }`}
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'center'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'text-gray-600'
+                        }`}
                       onClick={() => updateBlock(block.id, { alignment: 'center' })}
                       title="Align center"
                     >
                       <AlignCenter className="w-4 h-4" />
                     </button>
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                        imageAlignment === 'right' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
-                      }`}
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'right'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'text-gray-600'
+                        }`}
                       onClick={() => updateBlock(block.id, { alignment: 'right' })}
                       title="Align right"
                     >
@@ -647,7 +817,7 @@ function DocumentEditor({
             </div>
           )
         }
-        
+
         return (
           <div className="space-y-3">
             {isUploading ? (
@@ -671,7 +841,7 @@ function DocumentEditor({
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file) {
-                          handleFileUpload(block.id, file)
+                          void handleFileUpload(block.id, file)
                         }
                       }}
                       disabled={readOnly}
@@ -680,27 +850,24 @@ function DocumentEditor({
                 </div>
                 <div className="text-center text-sm text-gray-500">or</div>
                 <input
-                  {...commonProps}
                   type="url"
                   placeholder="Paste image URL"
-                  className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2 text-center`}
+                  className="w-full text-sm border border-gray-200 rounded px-3 py-2 text-center outline-none"
                   value={block.url ?? ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                    const url = e.target.value
-                    updateBlock(block.id, { url })
-                  }}
+                  onChange={(e) => updateBlock(block.id, { url: e.target.value })}
+                  disabled={readOnly}
                 />
               </div>
             )}
           </div>
         )
       }
+
       case 'file': {
         const isUploading = uploadingBlocks.has(block.id)
         const hasFile = block.url && block.fileName && !isUploading
-        
+
         if (hasFile) {
-          // Render uploaded file as card
           return (
             <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-4">
@@ -708,16 +875,12 @@ function DocumentEditor({
                   <FileText className="w-10 h-10 text-blue-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-gray-900 truncate">
-                    {block.fileName}
-                  </h4>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {block.fileSize}
-                  </p>
+                  <h4 className="text-sm font-medium text-gray-900 truncate">{block.fileName}</h4>
+                  <p className="text-xs text-gray-500 mt-1">{block.fileSize}</p>
                 </div>
                 <div className="flex-shrink-0">
-                  <a 
-                    href={block.url} 
+                  <a
+                    href={block.url}
                     download={block.fileName}
                     className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
@@ -728,7 +891,7 @@ function DocumentEditor({
             </div>
           )
         }
-        
+
         return (
           <div className="space-y-3">
             {isUploading ? (
@@ -751,7 +914,7 @@ function DocumentEditor({
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file) {
-                          handleFileUpload(block.id, file)
+                          void handleFileUpload(block.id, file)
                         }
                       }}
                       disabled={readOnly}
@@ -761,26 +924,23 @@ function DocumentEditor({
                 <div className="text-center text-sm text-gray-500">or</div>
                 <div className="space-y-2">
                   <input
-                    {...commonProps}
                     placeholder="File name"
-                    className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
+                    className="w-full text-sm border border-gray-200 rounded px-3 py-2 outline-none"
                     value={block.fileName ?? block.content}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                      updateBlock(block.id, { 
+                    onChange={(e) =>
+                      updateBlock(block.id, {
                         fileName: e.target.value,
-                        content: e.target.value 
+                        content: e.target.value,
                       })
-                    }}
+                    }
+                    disabled={readOnly}
                   />
                   <input
                     type="url"
                     placeholder="Paste file URL"
-                    className={`${commonProps.className} text-sm border border-gray-200 rounded px-3 py-2`}
+                    className="w-full text-sm border border-gray-200 rounded px-3 py-2 outline-none"
                     value={block.url ?? ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-                      const url = e.target.value
-                      updateBlock(block.id, { url })
-                    }}
+                    onChange={(e) => updateBlock(block.id, { url: e.target.value })}
                     disabled={readOnly}
                   />
                 </div>
@@ -789,13 +949,14 @@ function DocumentEditor({
           </div>
         )
       }
+
       default:
+        // paragraph (contentEditable)
         return (
           <div
             ref={(el): void => {
               blockRefs.current[block.id] = el
               if (!el) return
-              // Only sync DOM from state when not focused to avoid caret reset
               if (document.activeElement !== el) {
                 const next = block.content || ''
                 if (prevContentRef.current[block.id] !== next) {
@@ -804,12 +965,18 @@ function DocumentEditor({
                 }
               }
             }}
-            className={`w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none`}
-            dir="ltr"
+            className="w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
             contentEditable={!readOnly}
             suppressContentEditableWarning
-            onFocus={(): void => { setActiveBlockId(block.id); saveSelectionForBlock(block.id) }}
-            onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
+            placeholder={getBlockPlaceholder(block.type)}
+            onFocus={(): void => {
+              setActiveBlockId(block.id)
+              saveSelectionForBlock(block.id)
+            }}
+            onMouseDown={() => {
+              setActiveBlockId(block.id)
+              isSelectingRef.current = true
+            }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={() => saveSelectionForBlock(block.id)}
             onKeyDown={(e): void => {
@@ -825,7 +992,7 @@ function DocumentEditor({
             }}
             onMouseUp={(): void => {
               if (readOnly) return
-              // Save selection (caret or range) on mouse up
+              // Save caret/range
               saveSelectionForBlock(block.id)
               isSelectingRef.current = false
               const sel = window.getSelection()
@@ -842,7 +1009,11 @@ function DocumentEditor({
                 setToolbarBlockId(null)
                 return
               }
-              const rect = range.getBoundingClientRect()
+              let rect = range.getBoundingClientRect()
+              if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
+                const rects = range.getClientRects()
+                if (rects && rects.length > 0) rect = rects[0]
+              }
               const x = rect.left + rect.width / 2
               const y = rect.top - 8
               setToolbarPos({ x, y })
@@ -852,45 +1023,42 @@ function DocumentEditor({
                 setFormatState({
                   bold: document.queryCommandState('bold'),
                   italic: document.queryCommandState('italic'),
-                  underline: document.queryCommandState('underline')
+                  underline: document.queryCommandState('underline'),
                 })
-              } catch {}
+              } catch { }
             }}
-            // innerHTML is set via ref when not focused; avoid dangerouslySetInnerHTML to preserve caret
           />
         )
     }
   }
 
-
   return (
     <div className="w-full">
-      {/* Document Blocks */}
+      {/* Blocks */}
       <div className="space-y-2">
         {blocks.map((block) => (
           <div
             key={block.id}
-            className={`group relative transition-all duration-200 ${
-              dragOverBlockId === block.id ? 'border-t-2 border-blue-400' : ''
-            } ${
-              draggedBlockId === block.id ? 'opacity-50' : ''
-            }`}
+            className={`group relative transition-all duration-200 ${dragOverBlockId === block.id ? 'border-t-2 border-blue-400' : ''
+              } ${draggedBlockId === block.id ? 'opacity-50' : ''}`}
             onMouseEnter={() => !readOnly && setActiveBlockId(block.id)}
             onDragOver={(e) => handleDragOver(e, block.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, block.id)}
           >
-            {/* Block Controls */}
+            {/* Block controls */}
             {!readOnly && activeBlockId === block.id && (
               <div className="absolute -left-14 top-0 flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded mb-0.5"
                   onClick={() => addBlock(block.id)}
+                  title="Add block"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
+
                 <div className="relative">
-                  <button 
+                  <button
                     draggable
                     className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing"
                     onDragStart={(e) => handleDragStart(e, block.id)}
@@ -903,94 +1071,74 @@ function DocumentEditor({
                       e.preventDefault()
                       setShowGripMenu(showGripMenu === block.id ? null : block.id)
                     }}
-                    title="Drag to reorder, right-click to change type"
+                    title="Drag to reorder, click/right-click to change type"
                   >
                     <GripVertical className="w-4 h-4" />
                   </button>
-                  
-                  {/* Grip Menu */}
+
+                  {/* Grip Menu (NO overlay, page can scroll) */}
                   {showGripMenu === block.id && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-5"
-                        onClick={() => setShowGripMenu(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Escape') {
-                            setShowGripMenu(null)
-                          }
-                        }}
-                        role="button"
-                        tabIndex={-1}
-                        aria-label="Close menu"
-                      />
-                      <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px] z-10">
-                        <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          Change to
-                        </div>
-                        
-                        {[
-                          { type: 'paragraph' as const, icon: Type, label: 'Text'},
-                          { type: 'heading1' as const, icon: Heading1, label: 'Heading 1' },
-                          { type: 'heading2' as const, icon: Heading2, label: 'Heading 2' },
-                          { type: 'heading3' as const, icon: Heading3, label: 'Heading 3' },
-                          { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list' },
-                          { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list' },
-                          { type: 'quote' as const, icon: Quote, label: 'Quote' },
-                          { type: 'code' as const, icon: Code, label: 'Code' },
-                          { type: 'image' as const, icon: Image, label: 'Image' },
-                          { type: 'file' as const, icon: FileText, label: 'File' }
-                        ].map(({ type, icon: Icon, label }) => (
-                          <button
-                            key={type}
-                            className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
-                            onClick={() => {
-                              changeBlockType(block.id, type)
-                              setShowGripMenu(null)
-                            }}
-                          >
-                            <Icon className="w-5 h-5 text-gray-400" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{label}</div>
-                            </div>
-                          </button>
-                        ))}
+                    <div
+                      ref={gripMenuRef}
+                      className={`absolute left-0 ${gripMenuPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+                        } bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[220px] z-10`}
+                    >
+                      <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Change to
                       </div>
-                    </>
+                      {[
+                        { type: 'paragraph' as const, icon: Type, label: 'Text' },
+                        { type: 'heading1' as const, icon: Heading1, label: 'Heading 1' },
+                        { type: 'heading2' as const, icon: Heading2, label: 'Heading 2' },
+                        { type: 'heading3' as const, icon: Heading3, label: 'Heading 3' },
+                        { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list' },
+                        { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list' },
+                        { type: 'quote' as const, icon: Quote, label: 'Quote' },
+                        { type: 'code' as const, icon: Code, label: 'Code' },
+                        { type: 'image' as const, icon: Image, label: 'Image' },
+                        { type: 'file' as const, icon: FileText, label: 'File' },
+                      ].map(({ type, icon: Icon, label }) => (
+                        <button
+                          key={type}
+                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
+                          onClick={() => {
+                            changeBlockType(block.id, type)
+                            setShowGripMenu(null)
+                          }}
+                        >
+                          <Icon className="w-5 h-5 text-gray-400" />
+                          <div className="text-sm font-medium text-gray-900">{label}</div>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Block Content */}
+            {/* Block content */}
             <div className="relative">
               {getBlockElement(block)}
-              
-              {/* Type Menu */}
+
+              {/* Type Menu (NO overlay, auto flip) */}
               {showTypeMenu === block.id && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-5"
-                    onClick={() => setShowTypeMenu(null)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setShowTypeMenu(null)
-                      }
-                    }}
-                    role="button"
-                    tabIndex={-1}
-                    aria-label="Close menu"
+                <div ref={typeMenuRef} className="relative">
+                  <TypeMenu
+                    blockId={block.id}
+                    onChangeBlockType={changeBlockType}
+                    placement={typeMenuPlacement}
                   />
-                  <TypeMenu blockId={block.id} onChangeBlockType={changeBlockType} />
-                </>
+                </div>
               )}
             </div>
 
-            {/* Block Actions */}
+            {/* Delete */}
             {!readOnly && activeBlockId === block.id && blocks.length > 1 && (
               <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
                   onClick={() => deleteBlock(block.id)}
+                  title="Delete block"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1004,59 +1152,72 @@ function DocumentEditor({
       {!readOnly && showTextToolbar && toolbarBlockId && (
         <div
           className="fixed z-20 bg-white border border-gray-200 shadow-lg rounded-md px-1 py-0.5 flex items-center space-x-0.5"
-          style={{ left: toolbarPos.x, top: toolbarPos.y, transform: 'translate(-50%, -100%)' }}
+          style={{
+            left: toolbarPos.x,
+            top: toolbarPos.y,
+            transform: 'translate(-50%, -100%)',
+          }}
           onMouseDown={(e) => e.preventDefault()}
         >
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              }`}
             title="Bold"
             onClick={() => {
-              try { document.execCommand('bold') } catch {}
+              try {
+                document.execCommand('bold')
+              } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
                   italic: document.queryCommandState('italic'),
-                  underline: document.queryCommandState('underline')
+                  underline: document.queryCommandState('underline'),
                 })
-              } catch {}
+              } catch { }
             }}
           >
             <Bold className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              }`}
             title="Italic"
             onClick={() => {
-              try { document.execCommand('italic') } catch {}
+              try {
+                document.execCommand('italic')
+              } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
                   italic: document.queryCommandState('italic'),
-                  underline: document.queryCommandState('underline')
+                  underline: document.queryCommandState('underline'),
                 })
-              } catch {}
+              } catch { }
             }}
           >
             <Italic className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              }`}
             title="Underline"
             onClick={() => {
-              try { document.execCommand('underline') } catch {}
+              try {
+                document.execCommand('underline')
+              } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
                   italic: document.queryCommandState('italic'),
-                  underline: document.queryCommandState('underline')
+                  underline: document.queryCommandState('underline'),
                 })
-              } catch {}
+              } catch { }
             }}
           >
             <Underline className="w-4 h-4" />
