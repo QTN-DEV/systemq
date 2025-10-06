@@ -61,6 +61,7 @@ function Documents(): ReactElement {
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [canEditFolder, setCanEditFolder] = useState(false)
+  const [itemPermissions, setItemPermissions] = useState<Record<string, boolean>>({})
 
   // --- Global search states (NEW) ---
   const [globalQuery, setGlobalQuery] = useState('')
@@ -102,6 +103,19 @@ function Documents(): ReactElement {
         }
         setItemCounts(counts)
 
+        // Fetch permissions for each item
+        const permissions: Record<string, boolean> = {}
+        for (const item of items) {
+          try {
+            const access = await getDocumentAccess(item.id)
+            permissions[item.id] = Boolean(access?.can_edit)
+          } catch (error) {
+            // If permission check fails, default to no edit access
+            permissions[item.id] = false
+          }
+        }
+        setItemPermissions(permissions)
+
         setError(null) // Clear any previous errors
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -112,6 +126,7 @@ function Documents(): ReactElement {
         setBreadcrumbs([{ id: 'root', name: 'Documents', path: [] }])
         setItemCounts({})
         setCanEditFolder(false)
+        setItemPermissions({})
         setError('Failed to load documents. Please try again.')
       } finally {
         setIsInitialLoad(false)
@@ -227,6 +242,21 @@ function Documents(): ReactElement {
     }
   }
 
+  // Helper function to refresh permissions for current items
+  const refreshItemPermissions = async (items: DocumentItem[]): Promise<void> => {
+    const permissions: Record<string, boolean> = {}
+    for (const item of items) {
+      try {
+        const access = await getDocumentAccess(item.id)
+        permissions[item.id] = Boolean(access?.can_edit)
+      } catch (error) {
+        // If permission check fails, default to no edit access
+        permissions[item.id] = false
+      }
+    }
+    setItemPermissions(permissions)
+  }
+
   // Dropdown actions
   const handleShowActions = (itemId: string, e: React.MouseEvent): void => {
     e.stopPropagation()
@@ -285,6 +315,7 @@ function Documents(): ReactElement {
       if (newFolder) {
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
+        await refreshItemPermissions(updatedItems)
         const counts = { ...itemCounts }
         counts[newFolder.id] = 0
         setItemCounts(counts)
@@ -328,6 +359,7 @@ function Documents(): ReactElement {
       if (newFile) {
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
+        await refreshItemPermissions(updatedItems)
         setShowCreateFile(false)
         setNewItemName('')
         setError(null)
@@ -367,6 +399,7 @@ function Documents(): ReactElement {
       if (updatedItem) {
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
+        await refreshItemPermissions(updatedItems)
         setShowRenameModal(false)
         setSelectedItem(null)
         setNewItemName('')
@@ -388,6 +421,7 @@ function Documents(): ReactElement {
       if (success) {
         const updatedItems = await getDocumentsByParentId(currentFolderId)
         setCurrentItems(updatedItems)
+        await refreshItemPermissions(updatedItems)
         if (selectedItem.type === 'folder') {
           const newCounts = { ...itemCounts }
           delete newCounts[selectedItem.id]
@@ -739,7 +773,12 @@ function Documents(): ReactElement {
                             <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleShare(item) }}
-                              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                              disabled={!itemPermissions[item.id]}
+                              className={`w-full text-left px-4 py-2 text-sm ${
+                                itemPermissions[item.id] 
+                                  ? 'hover:bg-gray-50 text-gray-900' 
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
                             >
                               Share
                             </button>
@@ -796,7 +835,12 @@ function Documents(): ReactElement {
                             <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleShare(item) }}
-                              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                              disabled={!itemPermissions[item.id]}
+                              className={`w-full text-left px-4 py-2 text-sm ${
+                                itemPermissions[item.id] 
+                                  ? 'hover:bg-gray-50 text-gray-900' 
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
                             >
                               Share
                             </button>
