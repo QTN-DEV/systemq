@@ -14,6 +14,7 @@ import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import ShareDocumentModal from '../components/ShareDocumentModal'
+import MoveDocumentModal from '../components/MoveDocumentModal'
 import {
   getDocumentsByParentId,
   getDocumentById,
@@ -51,6 +52,7 @@ function Documents(): ReactElement {
   const [showRenameModal, setShowRenameModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
+  const [showMoveModal, setShowMoveModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<DocumentItem | null>(null)
   const [newItemName, setNewItemName] = useState('')
 
@@ -282,6 +284,14 @@ function Documents(): ReactElement {
   const handleShare = (item: DocumentItem): void => {
     setSelectedItem(item)
     setShowPermissionModal(true)
+    setShowActionsDropdown(null)
+  }
+
+  const handleMove = (item: DocumentItem): void => {
+    // Guard: only allow move when user has edit permission on the item
+    if (!itemPermissions[item.id]) return
+    setSelectedItem(item)
+    setShowMoveModal(true)
     setShowActionsDropdown(null)
   }
 
@@ -770,6 +780,17 @@ function Documents(): ReactElement {
                         <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                           <div className="py-1">
                             <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleMove(item) }} 
+                              disabled={!itemPermissions[item.id]}
+                              className={`w-full text-left px-4 py-2 text-sm ${
+                                itemPermissions[item.id]
+                                  ? 'hover:bg-gray-50 text-gray-900'
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
+                            >
+                              Move to Folder
+                            </button>
                             <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleShare(item) }}
@@ -832,6 +853,17 @@ function Documents(): ReactElement {
                         <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                           <div className="py-1">
                             <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleMove(item) }} 
+                              disabled={!itemPermissions[item.id]}
+                              className={`w-full text-left px-4 py-2 text-sm ${
+                                itemPermissions[item.id]
+                                  ? 'hover:bg-gray-50 text-gray-900'
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
+                            >
+                              Move to Folder
+                            </button>
                             <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleShare(item) }}
@@ -1080,6 +1112,33 @@ function Documents(): ReactElement {
           onClose={() => setShowPermissionModal(false)}
           documentId={selectedItem.id}
           documentName={selectedItem.name}
+        />
+      )}
+
+      {/* Move Modal */}
+      {showMoveModal && selectedItem && (
+        <MoveDocumentModal
+          isOpen={showMoveModal}
+          onClose={() => setShowMoveModal(false)}
+          documentId={selectedItem.id}
+          documentName={selectedItem.name}
+          currentParentId={selectedItem.parentId}
+          onMoveSuccess={async () => {
+            // Refresh current folder items after successful move
+            const updatedItems = await getDocumentsByParentId(currentFolderId)
+            setCurrentItems(updatedItems)
+            await refreshItemPermissions(updatedItems)
+            
+            // Update item counts if needed
+            if (selectedItem.type === 'folder') {
+              const counts = { ...itemCounts }
+              // Remove count for moved folder if it's no longer in current folder
+              if (selectedItem.parentId !== currentFolderId) {
+                delete counts[selectedItem.id]
+              }
+              setItemCounts(counts)
+            }
+          }}
         />
       )}
     </div>

@@ -392,6 +392,59 @@ export async function renameDocument(
   }
 }
 
+// Move document or folder to different parent
+export async function moveDocument(
+  documentId: string,
+  newParentId: string | null
+): Promise<DocumentItem | null> {
+  try {
+    const response = await api.patch<ApiDocumentItem>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      {
+        parent_id: newParentId,
+      }
+    );
+    return transformApiDocument(response.data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error moving document:", error);
+    return null;
+  }
+}
+
+// Get all accessible folders for move operation
+export async function getAllAccessibleFolders(): Promise<DocumentItem[]> {
+  try {
+    const response = await api.get<ApiDocumentItem[]>('/documents/', {
+      params: { type: 'folder' }
+    });
+    // Filter to ensure only folders are returned and transform
+    const allFolders = response.data
+      .filter(item => item.type === 'folder')
+      .map(transformApiDocument);
+
+    // Filter folders by edit permissions
+    const accessibleFolders: DocumentItem[] = []
+    for (const folder of allFolders) {
+      try {
+        const access = await getDocumentAccess(folder.id)
+        if (access?.can_edit) {
+          accessibleFolders.push(folder)
+        }
+      } catch (error) {
+        // If permission check fails, skip this folder
+        console.warn(`Failed to check permissions for folder ${folder.id}:`, error)
+      }
+    }
+
+    return accessibleFolders
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error fetching folders:", error);
+    return [];
+  }
+}
+
 // Update document content payload interface
 export interface UpdateDocumentContentPayload {
   category: string;
