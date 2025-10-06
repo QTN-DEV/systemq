@@ -184,7 +184,7 @@ function DocumentEditor({
           backward = sel.anchorOffset > sel.focusOffset
         } else {
           const pos = sel.anchorNode.compareDocumentPosition(sel.focusNode)
-          backward = !!(pos & Node.DOCUMENT_POSITION_PRECEDING)
+          backward = Boolean(pos & Node.DOCUMENT_POSITION_PRECEDING)
         }
       }
     } catch { }
@@ -569,11 +569,12 @@ function DocumentEditor({
             }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={() => saveSelectionForBlock(block.id)}
+            // 🔧 Always forward keydown to handler (so '/' works). Still prevent default Enter behavior.
             onKeyDown={(e): void => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
-                handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
               }
+              handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
             }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
@@ -680,11 +681,12 @@ function DocumentEditor({
               }}
               onKeyUp={() => saveSelectionForBlock(block.id)}
               onClick={() => saveSelectionForBlock(block.id)}
+              // 🔧 Always forward keydown to handler (so '/' works). Still prevent default Enter behavior.
               onKeyDown={(e): void => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
-                  handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
                 }
+                handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
               }}
               onInput={(e): void => {
                 const html = (e.currentTarget as HTMLDivElement).innerHTML
@@ -948,11 +950,12 @@ function DocumentEditor({
             }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={() => saveSelectionForBlock(block.id)}
+            // 🔧 Always forward keydown to handler (so '/' works). Still prevent default Enter behavior.
             onKeyDown={(e): void => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
-                handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
               }
+              handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
             }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
@@ -1129,10 +1132,13 @@ function DocumentEditor({
           onMouseDown={(e) => e.preventDefault()}
         >
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              }`}
             title="Bold"
             onClick={() => {
-              try { document.execCommand('bold') } catch { }
+              try {
+                document.execCommand('bold')
+              } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
@@ -1147,10 +1153,13 @@ function DocumentEditor({
             <Bold className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              }`}
             title="Italic"
             onClick={() => {
-              try { document.execCommand('italic') } catch { }
+              try {
+                document.execCommand('italic')
+              } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
@@ -1165,10 +1174,13 @@ function DocumentEditor({
             <Italic className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              }`}
             title="Underline"
             onClick={() => {
-              try { document.execCommand('underline') } catch { }
+              try {
+                document.execCommand('underline')
+              } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
