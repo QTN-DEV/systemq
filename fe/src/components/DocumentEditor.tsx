@@ -19,6 +19,7 @@ import {
   Bold,
   Italic,
   Underline,
+  Link as LinkIcon,
 } from 'lucide-react'
 import {
   useState,
@@ -44,6 +45,8 @@ export interface DocumentBlock {
   | 'code'
   | 'image'
   | 'file'
+  // 'link' disisakan demi kompat data lama; tak lagi dipakai saat paste/insert
+  | 'link'
   content: string
   alignment?: 'left' | 'center' | 'right'
   url?: string
@@ -59,27 +62,40 @@ interface DocumentEditorProps {
   onTitleChange?: (title: string) => void
 }
 
-/** Global CSS for contentEditable placeholder */
+/** Global CSS untuk placeholder & konsistensi link */
 const PlaceholderStyles = () => (
   <style>{`
   .ce-editable[contenteditable="true"]:empty:before {
     content: attr(data-placeholder);
-    color: #9ca3af; /* tailwind gray-400 */
+    color: #9ca3af;
     pointer-events: none;
     opacity: 0.9;
   }
+  .ce-editable a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+    word-break: break-word;
+  }
+  .ce-editable a:hover { color: #1d4ed8; }
+  .inline-editor-link { cursor: pointer; }
 `}</style>
 )
 
-/** Type Menu (supports drop-down / drop-up via `placement`) */
+/** Type Menu (tanpa "Link (new block)") */
 const TypeMenu = ({
   blockId,
   onChangeBlockType,
   placement = 'bottom',
+  onOpenLinkDialog,
 }: {
   blockId: string
   onChangeBlockType: (blockId: string, newType: DocumentBlock['type']) => void
   placement?: 'bottom' | 'top'
+  onOpenLinkDialog: (blockId: string) => void
 }): ReactElement => (
   <div
     className={`absolute z-10 ${placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
@@ -110,6 +126,16 @@ const TypeMenu = ({
         <div className="text-sm font-medium text-gray-900">{label}</div>
       </button>
     ))}
+
+    <div className="border-t border-gray-100 my-1" />
+    <button
+      className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
+      onClick={() => onOpenLinkDialog(blockId)}
+      title="Insert/edit link"
+    >
+      <LinkIcon className="w-5 h-5 text-gray-400" />
+      <div className="text-sm font-medium text-gray-900">Link</div>
+    </button>
   </div>
 )
 
@@ -152,13 +178,24 @@ function DocumentEditor({
   const [showTextToolbar, setShowTextToolbar] = useState(false)
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [toolbarBlockId, setToolbarBlockId] = useState<string | null>(null)
-  const [formatState, setFormatState] = useState<{ bold: boolean; italic: boolean; underline: boolean }>({
-    bold: false,
-    italic: false,
-    underline: false,
-  })
+  const [formatState, setFormatState] = useState<{ bold: boolean; italic: boolean; underline: boolean }>(
+    { bold: false, italic: false, underline: false },
+  )
 
-  /** ---------- Selection helpers (caret preservation) ---------- */
+  // Link dialog state
+  const [showLinkDialog, setShowLinkDialog] = useState(false)
+  const [linkDialogText, setLinkDialogText] = useState('')
+  const [linkDialogUrl, setLinkDialogUrl] = useState('')
+  const [linkDialogBlockId, setLinkDialogBlockId] = useState<string | null>(null)
+  const [linkEditAnchor, setLinkEditAnchor] = useState<HTMLAnchorElement | null>(null)
+
+  // Link hover toolbar
+  const [showLinkToolbar, setShowLinkToolbar] = useState(false)
+  const [linkToolbarPos, setLinkToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [linkToolbarBlockId, setLinkToolbarBlockId] = useState<string | null>(null)
+  const linkToolbarRef = useRef<HTMLDivElement | null>(null)
+
+  /** ---------- Utils ---------- */
   const getSelectionOffsets = (
     element: HTMLElement,
   ): { start: number; end: number; backward: boolean } | null => {
@@ -256,6 +293,21 @@ function DocumentEditor({
     }
   }
 
+  const createAnchorHTML = (href: string, text?: string) =>
+    `<a href="${href}" target="_blank" rel="noopener noreferrer" contenteditable="false" class="inline-editor-link" data-inline-link="1">${text || href}</a>`
+
+  // Normalize <a> di dalam editor agar atribut lengkap
+  const normalizeAnchors = (el: HTMLElement): void => {
+    const anchors = el.querySelectorAll('a')
+    anchors.forEach((a) => {
+      a.setAttribute('target', '_blank')
+      a.setAttribute('rel', 'noopener noreferrer')
+      a.setAttribute('contenteditable', 'false')
+      a.classList.add('inline-editor-link')
+      a.setAttribute('data-inline-link', '1')
+    })
+  }
+
   /** ---------- Autosave ---------- */
   useEffect((): (() => void) | void => {
     if (onSave) {
@@ -264,17 +316,19 @@ function DocumentEditor({
     }
   }, [blocks, onSave])
 
-  /** ---------- Outside click + Esc (no overlay; page still scrolls) ---------- */
+  /** ---------- Outside click + Esc ---------- */
   useEffect(() => {
     const onDocMouseDown = (e: MouseEvent): void => {
       const t = e.target as Node
       if (showGripMenu && !gripMenuRef.current?.contains(t)) setShowGripMenu(null)
       if (showTypeMenu && !typeMenuRef.current?.contains(t)) setShowTypeMenu(null)
+      if (showLinkToolbar && !linkToolbarRef.current?.contains(t)) setShowLinkToolbar(false)
     }
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         setShowGripMenu(null)
         setShowTypeMenu(null)
+        setShowLinkToolbar(false)
       }
     }
     window.addEventListener('mousedown', onDocMouseDown)
@@ -283,9 +337,9 @@ function DocumentEditor({
       window.removeEventListener('mousedown', onDocMouseDown)
       window.removeEventListener('keydown', onKey)
     }
-  }, [showGripMenu, showTypeMenu])
+  }, [showGripMenu, showTypeMenu, showLinkToolbar])
 
-  /** ---------- Auto-flip menus when near viewport edge ---------- */
+  /** ---------- Auto-flip menus ---------- */
   useEffect(() => {
     if (!showGripMenu) return
     requestAnimationFrame(() => {
@@ -329,13 +383,9 @@ function DocumentEditor({
 
   /** ---------- Selection end guard ---------- */
   useEffect(() => {
-    const handleUp = (): void => {
-      isSelectingRef.current = false
-    }
+    const handleUp = (): void => { isSelectingRef.current = false }
     document.addEventListener('mouseup', handleUp)
-    return () => {
-      document.removeEventListener('mouseup', handleUp)
-    }
+    return () => { document.removeEventListener('mouseup', handleUp) }
   }, [])
 
   /** ---------- Upload ---------- */
@@ -346,7 +396,6 @@ function DocumentEditor({
     try {
       const uploadResponse =
         blockType === 'image' ? await uploadImage(file) : await uploadFile(file)
-
       return {
         url: getFileUrl(uploadResponse.url),
         fileName: uploadResponse.fileName,
@@ -366,17 +415,14 @@ function DocumentEditor({
       content: '',
       alignment: 'left',
     }
-
     const afterIndex = blocks.findIndex((block) => block.id === afterId)
     const newBlocks = [
       ...blocks.slice(0, afterIndex + 1),
       newBlock,
       ...blocks.slice(afterIndex + 1),
     ]
-
     setBlocks(newBlocks)
     setActiveBlockId(newBlock.id)
-
     setTimeout(() => {
       const element = blockRefs.current[newBlock.id]
       if (element) element.focus()
@@ -413,7 +459,6 @@ function DocumentEditor({
     const fromIndex = blocks.findIndex((block) => block.id === fromId)
     const toIndex = blocks.findIndex((block) => block.id === toId)
     if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
-
     const newBlocks = [...blocks]
     const [movedBlock] = newBlocks.splice(fromIndex, 1)
     newBlocks.splice(toIndex, 0, movedBlock)
@@ -426,13 +471,11 @@ function DocumentEditor({
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', blockId)
   }
-
   const handleDragOver = (e: React.DragEvent, blockId: string): void => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     if (draggedBlockId !== blockId) setDragOverBlockId(blockId)
   }
-
   const handleDragLeave = (e: React.DragEvent): void => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const { clientX: x, clientY: y } = e
@@ -440,7 +483,6 @@ function DocumentEditor({
       setDragOverBlockId(null)
     }
   }
-
   const handleDrop = (e: React.DragEvent, blockId: string): void => {
     e.preventDefault()
     const draggedId = e.dataTransfer.getData('text/plain')
@@ -448,7 +490,6 @@ function DocumentEditor({
     setDraggedBlockId(null)
     setDragOverBlockId(null)
   }
-
   const handleDragEnd = (): void => {
     setDraggedBlockId(null)
     setDragOverBlockId(null)
@@ -480,6 +521,211 @@ function DocumentEditor({
     }
   }
 
+  /** ---------- Command \/link detection ---------- */
+  const handleCommandDetection = (blockId: string, html: string): void => {
+    if (readOnly) return
+    const text = html.replace(/<[^>]*>/g, '').trim()
+    if (text.toLowerCase().startsWith('/link')) {
+      setShowLinkDialog(true)
+      setLinkDialogBlockId(blockId)
+      setLinkDialogText('')
+      setLinkDialogUrl('')
+      updateBlock(blockId, { content: '' })
+    }
+  }
+
+  /** ---------- Paste handler: selalu inline anchor (no link block) ---------- */
+  const handlePaste = (e: React.ClipboardEvent, blockId: string): void => {
+    if (readOnly) return
+    const plain = e.clipboardData.getData('text/plain')
+    const urlRegex = /^(https?:\/\/[^\s]+)$/i
+    if (urlRegex.test(plain)) {
+      e.preventDefault()
+      const el = blockRefs.current[blockId]
+      if (!el) return
+
+      // Sisipkan anchor HTML supaya inherit font & terdeteksi hover
+      try {
+        document.execCommand('insertHTML', false, createAnchorHTML(plain))
+      } catch {
+        // fallback: append
+        (el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(plain))
+      }
+
+      normalizeAnchors(el as HTMLElement)
+      updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+    }
+  }
+
+  /** Cek selection di dalam elemen */
+  const isSelectionInside = (element: HTMLElement): boolean => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return false
+    const range = sel.getRangeAt(0)
+    return element.contains(range.commonAncestorContainer)
+  }
+
+  const openLinkDialogForSelection = (blockId: string): void => {
+    setLinkEditAnchor(null)
+    setShowLinkToolbar(false)
+    const host = blockRefs.current[blockId]
+    if (!host) return
+    const sel = window.getSelection()
+    const inside = sel && sel.rangeCount > 0 ? isSelectionInside(host) : false
+    if (inside && sel && !sel.isCollapsed) {
+      const selectedText = sel.toString()
+      setShowLinkDialog(true)
+      setLinkDialogBlockId(blockId)
+      setLinkDialogText(selectedText)
+      setLinkDialogUrl('')
+      return
+    }
+    const textLen = (host.innerText || '').length
+    savedSelectionRef.current = { blockId, start: textLen, end: textLen, backward: false }
+    setShowLinkDialog(true)
+    setLinkDialogBlockId(blockId)
+    setLinkDialogText('')
+    setLinkDialogUrl('')
+  }
+
+  /** Build a Range inside element using plain-text offsets */
+  const buildRangeWithin = (element: HTMLElement, start: number, end: number): Range => {
+    let charIndex = 0
+    let startNode: Text | null = null
+    let startOffsetInNode = 0
+    let endNode: Text | null = null
+    let endOffsetInNode = 0
+
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null)
+    let node: Node | null = walker.nextNode()
+    while (node) {
+      const text = node as Text
+      const nextChar = charIndex + text.length
+      if (!startNode && start >= charIndex && start <= nextChar) {
+        startNode = text
+        startOffsetInNode = Math.max(0, Math.min(text.length, start - charIndex))
+      }
+      if (!endNode && end >= charIndex && end <= nextChar) {
+        endNode = text
+        endOffsetInNode = Math.max(0, Math.min(text.length, end - charIndex))
+      }
+      charIndex = nextChar
+      if (startNode && endNode) break
+      node = walker.nextNode()
+    }
+    const range = document.createRange()
+    if (startNode) range.setStart(startNode, startOffsetInNode)
+    else range.setStart(element, 0)
+    if (endNode) range.setEnd(endNode, endOffsetInNode)
+    else range.setEnd(element, element.childNodes.length)
+    return range
+  }
+
+  /** Replace given range with an anchor element */
+  const replaceRangeWithAnchor = (range: Range, href: string, text: string): void => {
+    const anchor = document.createElement('a')
+    anchor.setAttribute('href', href)
+    anchor.setAttribute('target', '_blank')
+    anchor.setAttribute('rel', 'noopener noreferrer')
+    anchor.setAttribute('contenteditable', 'false')
+    anchor.classList.add('inline-editor-link')
+    anchor.setAttribute('data-inline-link', '1')
+    anchor.textContent = text || href
+    range.deleteContents()
+    range.insertNode(anchor)
+  }
+
+  const applyLinkFromDialog = (): void => {
+    if (!linkDialogBlockId) { setShowLinkDialog(false); return }
+    const blockId = linkDialogBlockId
+    const el = blockRefs.current[blockId]
+    if (!el) { setShowLinkDialog(false); return }
+
+    const text = linkDialogText.trim() || linkDialogUrl.trim()
+    const href = linkDialogUrl.trim()
+    if (!href) { setShowLinkDialog(false); return }
+
+    // Edit existing anchor
+    if (linkEditAnchor && el.contains(linkEditAnchor)) {
+      linkEditAnchor.setAttribute('href', href)
+      linkEditAnchor.setAttribute('target', '_blank')
+      linkEditAnchor.setAttribute('rel', 'noopener noreferrer')
+      linkEditAnchor.setAttribute('contenteditable', 'false')
+      linkEditAnchor.classList.add('inline-editor-link')
+      linkEditAnchor.setAttribute('data-inline-link', '1')
+      if (text) linkEditAnchor.textContent = text
+      updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+      setLinkEditAnchor(null)
+      setShowLinkDialog(false)
+      return
+    }
+
+    // Sisipkan inline di selection/end
+    const saved = savedSelectionRef.current
+    let start = (el as HTMLElement).innerText.length
+    let end = start
+    if (saved && saved.blockId === blockId) { start = saved.start; end = saved.end }
+    try {
+      const range = buildRangeWithin(el as HTMLElement, start, end)
+      replaceRangeWithAnchor(range, href, text)
+    } catch {
+      (el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(href, text))
+    }
+    normalizeAnchors(el as HTMLElement)
+    updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+    setShowLinkDialog(false)
+  }
+
+  const handleAnchorClick = (_e: React.MouseEvent, _blockId: string): void => {
+    if (readOnly) return
+  }
+
+  /** ---------- Link hover toolbar ---------- */
+  useEffect(() => {
+    if (readOnly) return
+    const onMouseOver = (e: MouseEvent): void => {
+      const t = e.target as HTMLElement
+      const anchor = t?.closest('a') as HTMLAnchorElement | null
+      if (!anchor) return
+      const host = anchor.closest('.ce-editable') as HTMLElement | null
+      if (!host) return
+      const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
+      if (!blockId) return
+      const rect = anchor.getBoundingClientRect()
+      setLinkToolbarPos({ x: rect.left + rect.width / 2, y: rect.bottom + 6 })
+      setLinkToolbarBlockId(blockId)
+      setShowLinkToolbar(true)
+      setLinkEditAnchor(anchor)
+    }
+    const onMouseDown = (e: MouseEvent): void => {
+      const t = e.target as Node
+      if (linkToolbarRef.current && linkToolbarRef.current.contains(t)) return
+      const isAnchor = (t as HTMLElement).closest && (t as HTMLElement).closest('a')
+      if (isAnchor) return
+      setShowLinkToolbar(false)
+    }
+    document.addEventListener('mouseover', onMouseOver)
+    document.addEventListener('mousedown', onMouseDown)
+    return () => {
+      document.removeEventListener('mouseover', onMouseOver)
+      document.removeEventListener('mousedown', onMouseDown)
+    }
+  }, [readOnly])
+
+  const unlinkAnchor = (): void => {
+    if (!linkToolbarBlockId || !linkEditAnchor) { setShowLinkToolbar(false); return }
+    const blockId = linkToolbarBlockId
+    const el = blockRefs.current[blockId]
+    if (!el) { setShowLinkToolbar(false); return }
+    const text = linkEditAnchor.textContent || ''
+    const span = document.createElement('span')
+    span.textContent = text
+    linkEditAnchor.replaceWith(span)
+    updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+    setShowLinkToolbar(false)
+    setLinkEditAnchor(null)
+  }
+
   /** ---------- Keyboard ---------- */
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -503,30 +749,39 @@ function DocumentEditor({
   /** ---------- UI helpers ---------- */
   const getBlockPlaceholder = (type: DocumentBlock['type']): string => {
     switch (type) {
-      case 'heading1':
-        return 'Heading 1'
-      case 'heading2':
-        return 'Heading 2'
-      case 'heading3':
-        return 'Heading 3'
-      case 'bulleted-list':
-        return 'Bulleted list'
-      case 'numbered-list':
-        return 'Numbered list'
-      case 'quote':
-        return 'Quote'
-      case 'code':
-        return 'Code block'
-      case 'image':
-        return 'Enter image URL or upload an image'
-      case 'file':
-        return 'Enter file name or upload a file'
-      default:
-        return "Type '/' for commands"
+      case 'heading1': return 'Heading 1'
+      case 'heading2': return 'Heading 2'
+      case 'heading3': return 'Heading 3'
+      case 'bulleted-list': return 'Bulleted list'
+      case 'numbered-list': return 'Numbered list'
+      case 'quote': return 'Quote'
+      case 'code': return 'Code block'
+      case 'image': return 'Enter image URL or upload an image'
+      case 'file': return 'Enter file name or upload a file'
+      case 'link': return 'Enter link label or paste a URL'
+      default: return "Type '/' for commands"
     }
   }
 
-  /** ---------- Render a block ---------- */
+  /** ---------- MIGRASI: ubah block type 'link' lama menjadi paragraph + anchor ---------- */
+  useEffect(() => {
+    setBlocks((prev) =>
+      prev.map((b) => {
+        if (b.type !== 'link') return b
+        const href = b.url || b.content || '#'
+        const text = b.content || b.url || 'Link'
+        return {
+          ...b,
+          type: 'paragraph',
+          content: createAnchorHTML(href, text),
+        }
+      }),
+    )
+    // sekali di mount saja
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** ---------- Render block ---------- */
   const getBlockElement = (block: DocumentBlock): ReactElement => {
     switch (block.type) {
       case 'heading1':
@@ -554,69 +809,25 @@ function DocumentEditor({
                   prevContentRef.current[block.id] = next
                 }
               }
+              normalizeAnchors(el as unknown as HTMLElement)
             }}
             className={`ce-editable w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
             contentEditable={!readOnly}
             suppressContentEditableWarning
             data-placeholder={getBlockPlaceholder(block.type)}
-            onFocus={(): void => {
-              setActiveBlockId(block.id)
-              saveSelectionForBlock(block.id)
-            }}
-            onMouseDown={(): void => {
-              setActiveBlockId(block.id)
-              isSelectingRef.current = true
-            }}
+            onFocus={(): void => { setActiveBlockId(block.id); saveSelectionForBlock(block.id) }}
+            onMouseDown={(): void => { setActiveBlockId(block.id); isSelectingRef.current = true }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
-            onClick={() => saveSelectionForBlock(block.id)}
-            // 🔧 Always forward keydown to handler (so '/' works). Still prevent default Enter behavior.
-            onKeyDown={(e): void => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-              }
-              handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
-            }}
+            onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
+            onKeyDown={(e): void => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); handleKeyDown(e as any, block.id) }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
               prevContentRef.current[block.id] = html
-              updateBlock(block.id, { content: html })
+              normalizeAnchors(e.currentTarget as HTMLDivElement)
+              updateBlock(block.id, { content: (e.currentTarget as HTMLDivElement).innerHTML })
+              handleCommandDetection(block.id, html)
             }}
-            onMouseUp={(): void => {
-              if (readOnly) return
-              saveSelectionForBlock(block.id)
-              isSelectingRef.current = false
-              const sel = window.getSelection()
-              if (!sel || sel.isCollapsed) {
-                setShowTextToolbar(false)
-                setToolbarBlockId(null)
-                return
-              }
-              const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
-              if (!range) return
-              const container = blockRefs.current[block.id]
-              if (!container || !container.contains(range.commonAncestorContainer)) {
-                setShowTextToolbar(false)
-                setToolbarBlockId(null)
-                return
-              }
-              let rect = range.getBoundingClientRect()
-              if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
-                const rects = range.getClientRects()
-                if (rects && rects.length > 0) rect = rects[0]
-              }
-              const x = rect.left + rect.width / 2
-              const y = rect.top - 8
-              setToolbarPos({ x, y })
-              setToolbarBlockId(block.id)
-              setShowTextToolbar(true)
-              try {
-                setFormatState({
-                  bold: document.queryCommandState('bold'),
-                  italic: document.queryCommandState('italic'),
-                  underline: document.queryCommandState('underline'),
-                })
-              } catch { }
-            }}
+            onPaste={(e): void => handlePaste(e, block.id)}
           />
         )
       }
@@ -666,69 +877,25 @@ function DocumentEditor({
                     prevContentRef.current[block.id] = next
                   }
                 }
+                normalizeAnchors(el as unknown as HTMLElement)
               }}
               className="ce-editable flex-1 w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
               contentEditable={!readOnly}
               suppressContentEditableWarning
               data-placeholder={getBlockPlaceholder(block.type)}
-              onFocus={(): void => {
-                setActiveBlockId(block.id)
-                saveSelectionForBlock(block.id)
-              }}
-              onMouseDown={() => {
-                setActiveBlockId(block.id)
-                isSelectingRef.current = true
-              }}
+              onFocus={(): void => { setActiveBlockId(block.id); saveSelectionForBlock(block.id) }}
+              onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
               onKeyUp={() => saveSelectionForBlock(block.id)}
-              onClick={() => saveSelectionForBlock(block.id)}
-              // 🔧 Always forward keydown to handler (so '/' works). Still prevent default Enter behavior.
-              onKeyDown={(e): void => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                }
-                handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
-              }}
+              onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
+              onKeyDown={(e): void => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); handleKeyDown(e as any, block.id) }}
               onInput={(e): void => {
                 const html = (e.currentTarget as HTMLDivElement).innerHTML
                 prevContentRef.current[block.id] = html
-                updateBlock(block.id, { content: html })
+                normalizeAnchors(e.currentTarget as HTMLDivElement)
+                updateBlock(block.id, { content: (e.currentTarget as HTMLDivElement).innerHTML })
+                handleCommandDetection(block.id, html)
               }}
-              onMouseUp={(): void => {
-                if (readOnly) return
-                saveSelectionForBlock(block.id)
-                isSelectingRef.current = false
-                const sel = window.getSelection()
-                if (!sel || sel.isCollapsed) {
-                  setShowTextToolbar(false)
-                  setToolbarBlockId(null)
-                  return
-                }
-                const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
-                if (!range) return
-                const container = blockRefs.current[block.id]
-                if (!container || !container.contains(range.commonAncestorContainer)) {
-                  setShowTextToolbar(false)
-                  setToolbarBlockId(null)
-                  return
-                }
-                let rect = range.getBoundingClientRect()
-                if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
-                  const rects = range.getClientRects()
-                  if (rects && rects.length > 0) rect = rects[0]
-                }
-                const x = rect.left + rect.width / 2
-                const y = rect.top - 8
-                setToolbarPos({ x, y })
-                setToolbarBlockId(block.id)
-                setShowTextToolbar(true)
-                try {
-                  setFormatState({
-                    bold: document.queryCommandState('bold'),
-                    italic: document.queryCommandState('italic'),
-                    underline: document.queryCommandState('underline'),
-                  })
-                } catch { }
-              }}
+              onPaste={(e): void => handlePaste(e, block.id)}
             />
           </div>
         )
@@ -763,24 +930,21 @@ function DocumentEditor({
                 {hoveredImageId === block.id && (
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 -translate-y-2 bg-white rounded-lg shadow-lg border border-gray-200 px-2 py-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'left' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
-                        }`}
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'left' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
                       onClick={() => updateBlock(block.id, { alignment: 'left' })}
                       title="Align left"
                     >
                       <AlignLeft className="w-4 h-4" />
                     </button>
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'center' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
-                        }`}
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'center' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
                       onClick={() => updateBlock(block.id, { alignment: 'center' })}
                       title="Align center"
                     >
                       <AlignCenter className="w-4 h-4" />
                     </button>
                     <button
-                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'right' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
-                        }`}
+                      className={`p-2 rounded hover:bg-gray-100 transition-colors ${imageAlignment === 'right' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
                       onClick={() => updateBlock(block.id, { alignment: 'right' })}
                       title="Align right"
                     >
@@ -921,8 +1085,8 @@ function DocumentEditor({
         )
       }
 
+      // default: paragraph (contentEditable)
       default:
-        // paragraph (contentEditable) — uses data-placeholder instead of invalid placeholder prop
         return (
           <div
             ref={(el): void => {
@@ -935,73 +1099,78 @@ function DocumentEditor({
                   prevContentRef.current[block.id] = next
                 }
               }
+              normalizeAnchors(el as unknown as HTMLElement)
             }}
             className="ce-editable w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
             contentEditable={!readOnly}
             suppressContentEditableWarning
             data-placeholder={getBlockPlaceholder(block.type)}
-            onFocus={(): void => {
-              setActiveBlockId(block.id)
-              saveSelectionForBlock(block.id)
-            }}
-            onMouseDown={() => {
-              setActiveBlockId(block.id)
-              isSelectingRef.current = true
-            }}
+            onFocus={(): void => { setActiveBlockId(block.id); saveSelectionForBlock(block.id) }}
+            onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
-            onClick={() => saveSelectionForBlock(block.id)}
-            // 🔧 Always forward keydown to handler (so '/' works). Still prevent default Enter behavior.
-            onKeyDown={(e): void => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-              }
-              handleKeyDown(e as unknown as React.KeyboardEvent, block.id)
-            }}
+            onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
+            onKeyDown={(e): void => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); handleKeyDown(e as any, block.id) }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
               prevContentRef.current[block.id] = html
-              updateBlock(block.id, { content: html })
+              normalizeAnchors(e.currentTarget as HTMLDivElement)
+              updateBlock(block.id, { content: (e.currentTarget as HTMLDivElement).innerHTML })
+              handleCommandDetection(block.id, html)
             }}
-            onMouseUp={(): void => {
-              if (readOnly) return
-              saveSelectionForBlock(block.id)
-              isSelectingRef.current = false
-              const sel = window.getSelection()
-              if (!sel || sel.isCollapsed) {
-                setShowTextToolbar(false)
-                setToolbarBlockId(null)
-                return
-              }
-              const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
-              if (!range) return
-              const container = blockRefs.current[block.id]
-              if (!container || !container.contains(range.commonAncestorContainer)) {
-                setShowTextToolbar(false)
-                setToolbarBlockId(null)
-                return
-              }
-              let rect = range.getBoundingClientRect()
-              if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
-                const rects = range.getClientRects()
-                if (rects && rects.length > 0) rect = rects[0]
-              }
-              const x = rect.left + rect.width / 2
-              const y = rect.top - 8
-              setToolbarPos({ x, y })
-              setToolbarBlockId(block.id)
-              setShowTextToolbar(true)
-              try {
-                setFormatState({
-                  bold: document.queryCommandState('bold'),
-                  italic: document.queryCommandState('italic'),
-                  underline: document.queryCommandState('underline'),
-                })
-              } catch { }
-            }}
+            onPaste={(e): void => handlePaste(e, block.id)}
           />
         )
     }
   }
+
+  // Sinkronisasi toolbar text
+  useEffect(() => {
+    if (readOnly) return
+    const onSelectionChange = (): void => {
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+        setShowTextToolbar(false)
+        setToolbarBlockId(null)
+        return
+      }
+      const range = sel.getRangeAt(0)
+      const containerEl = range.commonAncestorContainer instanceof Element
+        ? (range.commonAncestorContainer as Element)
+        : range.commonAncestorContainer.parentElement
+      if (!containerEl) return
+      const host = containerEl.closest('.ce-editable') as HTMLElement | null
+      if (!host) {
+        setShowTextToolbar(false)
+        setToolbarBlockId(null)
+        return
+      }
+      const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
+      if (!blockId) {
+        setShowTextToolbar(false)
+        setToolbarBlockId(null)
+        return
+      }
+      let rect = range.getBoundingClientRect()
+      if ((!rect || (rect.width === 0 && rect.height === 0)) && typeof range.getClientRects === 'function') {
+        const rects = range.getClientRects()
+        if (rects && rects.length > 0) rect = rects[0]
+      }
+      const x = rect.left + rect.width / 2
+      const y = rect.top - 8
+      setToolbarPos({ x, y })
+      setToolbarBlockId(blockId)
+      setShowTextToolbar(true)
+      try {
+        setFormatState({
+          bold: document.queryCommandState('bold'),
+          italic: document.queryCommandState('italic'),
+          underline: document.queryCommandState('underline'),
+        })
+      } catch { }
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
+    return () => document.removeEventListener('selectionchange', onSelectionChange)
+  }, [readOnly])
 
   return (
     <div className="w-full">
@@ -1012,8 +1181,7 @@ function DocumentEditor({
         {blocks.map((block) => (
           <div
             key={block.id}
-            className={`group relative transition-all duration-200 ${dragOverBlockId === block.id ? 'border-t-2 border-blue-400' : ''
-              } ${draggedBlockId === block.id ? 'opacity-50' : ''}`}
+            className={`group relative transition-all duration-200 ${dragOverBlockId === block.id ? 'border-t-2 border-blue-400' : ''} ${draggedBlockId === block.id ? 'opacity-50' : ''}`}
             onMouseEnter={() => !readOnly && setActiveBlockId(block.id)}
             onDragOver={(e) => handleDragOver(e, block.id)}
             onDragLeave={handleDragLeave}
@@ -1049,7 +1217,7 @@ function DocumentEditor({
                     <GripVertical className="w-4 h-4" />
                   </button>
 
-                  {/* Grip Menu (no overlay; page can scroll) */}
+                  {/* Grip Menu */}
                   {showGripMenu === block.id && (
                     <div
                       ref={gripMenuRef}
@@ -1074,15 +1242,21 @@ function DocumentEditor({
                         <button
                           key={type}
                           className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
-                          onClick={() => {
-                            updateBlock(block.id, { type })
-                            setShowGripMenu(null)
-                          }}
+                          onClick={() => { updateBlock(block.id, { type }); setShowGripMenu(null) }}
                         >
                           <Icon className="w-5 h-5 text-gray-400" />
                           <div className="text-sm font-medium text-gray-900">{label}</div>
                         </button>
                       ))}
+                      <div className="border-t border-gray-100 my-1" />
+                      <button
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
+                        onClick={() => { setShowGripMenu(null); openLinkDialogForSelection(block.id) }}
+                        title="Insert/edit link"
+                      >
+                        <LinkIcon className="w-5 h-5 text-gray-400" />
+                        <div className="text-sm font-medium text-gray-900">Link</div>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1093,16 +1267,14 @@ function DocumentEditor({
             <div className="relative">
               {getBlockElement(block)}
 
-              {/* Type Menu (no overlay; auto flip) */}
+              {/* Type Menu */}
               {showTypeMenu === block.id && (
                 <div ref={typeMenuRef} className="relative">
                   <TypeMenu
                     blockId={block.id}
-                    onChangeBlockType={(id, t) => {
-                      updateBlock(id, { type: t })
-                      setShowTypeMenu(null)
-                    }}
+                    onChangeBlockType={(id, t) => { updateBlock(id, { type: t }); setShowTypeMenu(null) }}
                     placement={typeMenuPlacement}
+                    onOpenLinkDialog={(id) => { setShowTypeMenu(null); openLinkDialogForSelection(id) }}
                   />
                 </div>
               )}
@@ -1132,13 +1304,10 @@ function DocumentEditor({
           onMouseDown={(e) => e.preventDefault()}
         >
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-              }`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.bold ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
             title="Bold"
             onClick={() => {
-              try {
-                document.execCommand('bold')
-              } catch { }
+              try { document.execCommand('bold') } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
@@ -1153,13 +1322,10 @@ function DocumentEditor({
             <Bold className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-              }`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.italic ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
             title="Italic"
             onClick={() => {
-              try {
-                document.execCommand('italic')
-              } catch { }
+              try { document.execCommand('italic') } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
@@ -1174,13 +1340,10 @@ function DocumentEditor({
             <Italic className="w-4 h-4" />
           </button>
           <button
-            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-              }`}
+            className={`p-1 rounded hover:bg-gray-100 ${formatState.underline ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
             title="Underline"
             onClick={() => {
-              try {
-                document.execCommand('underline')
-              } catch { }
+              try { document.execCommand('underline') } catch { }
               const el = blockRefs.current[toolbarBlockId]
               if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
               try {
@@ -1201,6 +1364,81 @@ function DocumentEditor({
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Floating link toolbar (hover on anchors) */}
+      {!readOnly && showLinkToolbar && linkToolbarBlockId && (
+        <div
+          ref={linkToolbarRef}
+          className="fixed z-30 bg-white border border-gray-200 shadow-lg rounded-md px-1 py-0.5 flex items-center space-x-0.5"
+          style={{ left: linkToolbarPos.x, top: linkToolbarPos.y, transform: 'translate(-50%, 0%)' }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <button
+            className="p-1 rounded hover:bg-gray-100 text-gray-700"
+            title="Edit link (change text / URL)"
+            onClick={() => {
+              if (!linkToolbarBlockId || !linkEditAnchor) return
+              setShowLinkToolbar(false)
+              setShowLinkDialog(true)
+              setLinkDialogBlockId(linkToolbarBlockId)
+              setLinkDialogText(linkEditAnchor.textContent || '')
+              setLinkDialogUrl(linkEditAnchor.getAttribute('href') || '')
+            }}
+          >
+            <LinkIcon className="w-4 h-4" />
+          </button>
+          <button
+            className="p-1 rounded hover:bg-gray-100 text-gray-700"
+            title="Remove link"
+            onClick={() => unlinkAnchor()}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Link Dialog — tetap */}
+      {!readOnly && showLinkDialog && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" onClick={() => { setShowLinkDialog(false); setLinkEditAnchor(null) }} />
+          <div className="relative bg-white w-96 max-w-[95vw] border border-gray-200 rounded-lg shadow-xl p-4 z-50">
+            <div className="mb-3">
+              <div className="text-sm font-medium text-gray-700 mb-1">Text</div>
+              <input
+                className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={linkDialogText}
+                onChange={(e) => setLinkDialogText(e.target.value)}
+                placeholder="Link text"
+              />
+            </div>
+            <div className="mb-4">
+              <div className="text-sm font-medium text-gray-700 mb-1">Link</div>
+              <input
+                type="url"
+                className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={linkDialogUrl}
+                onChange={(e) => setLinkDialogUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-3 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                onClick={() => { setShowLinkDialog(false); setLinkEditAnchor(null) }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
+                onClick={() => applyLinkFromDialog()}
+                disabled={!linkDialogUrl.trim()}
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
