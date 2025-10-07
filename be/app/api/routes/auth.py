@@ -139,6 +139,11 @@ async def get_current_user(authorization: str = Header()) -> UserProfile:
     return UserProfile.model_validate(user_data)
 
 
+@router.post(
+    "/logout",
+    summary="Logout and invalidate the current session token",
+    response_description="No content; the token is invalidated.",
+)
 async def logout(authorization: str = Header()) -> Response:
     """Invalidate the supplied bearer token so it can no longer be used."""
     token = auth_service.parse_bearer_token(authorization)
