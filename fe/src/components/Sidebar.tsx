@@ -161,6 +161,58 @@ function Sidebar(): ReactElement {
             const Icon = iconMap[item.icon as keyof typeof iconMap]
             const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
             
+            // Inject nested items for Documents
+            if (item.id === 'documents') {
+              const docsRootActive = location.pathname === '/documents' || location.pathname.startsWith('/documents/')
+              const isShared = location.pathname.startsWith('/documents/shared') || (location.pathname.startsWith('/documents/file/') && new URLSearchParams(location.search).get('view') === 'shared')
+              return (
+                <div key={item.id}>
+                  <Link
+                    to={item.path}
+                    className={cn(
+                      'flex items-center px-2 py-2 text-sm font-medium transition-colors group',
+                      docsRootActive 
+                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                      isCollapsed && 'justify-center'
+                    )}
+                    title={isCollapsed ? item.title : undefined}
+                  >
+                    <Icon className={cn(
+                      'flex-shrink-0 w-5 h-5',
+                      docsRootActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500',
+                      !isCollapsed && 'mr-3'
+                    )} />
+                    {!isCollapsed && (
+                      <span className="truncate">{item.title}</span>
+                    )}
+                  </Link>
+                  {!isCollapsed && (
+                    <div className="ml-9 mt-1 space-y-1">
+                      <Link
+                        to="/documents"
+                        className={cn(
+                          'block px-2 py-1.5 text-sm rounded',
+                          !isShared && docsRootActive ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        )}
+                      >
+                        My Documents
+                      </Link>
+                      <Link
+                        to="/documents/shared"
+                        className={cn(
+                          'block px-2 py-1.5 text-sm rounded',
+                          isShared ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        )}
+                      >
+                        Shared with Me
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.id}

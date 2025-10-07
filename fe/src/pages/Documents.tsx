@@ -33,10 +33,13 @@ function Documents(): ReactElement {
   const navigate = useNavigate()
   const { '*': currentPath } = useParams<{ '*': string }>()
   const getCurrentSession = useAuthStore((state) => state.getCurrentSession)
+  const currentUser = useAuthStore((state) => state.user)
 
   // Parse current folder from URL path
   const pathSegments = currentPath?.split('/').filter(Boolean) ?? []
-  const currentFolderId = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null
+  const isSharedView = pathSegments[0] === 'shared'
+  const effectiveSegments = isSharedView ? pathSegments.slice(1) : pathSegments
+  const currentFolderId = effectiveSegments.length > 0 ? effectiveSegments[effectiveSegments.length - 1] : null
 
   // State management
   const [searchTerm] = useState('') // local filter (tetap ada; tidak dipakai saat global search aktif)
@@ -169,15 +172,24 @@ function Documents(): ReactElement {
     return () => clearTimeout(t)
   }, [globalQuery, globalType])
 
-  // Get unique categories for filter tabs (local listing)
-  const categories = useMemo((): string[] => {
-    const uniqueCategories = [...new Set(currentItems.map(item => item.category).filter(Boolean))] as string[]
-    return ['All', ...uniqueCategories]
-  }, [currentItems])
+  // View-specific dataset: split by owner only (API result already respects access)
+  const displayItems = useMemo(() => {
+    if (!currentUser) return currentItems
+    const myId = currentUser.id
+    return isSharedView
+      ? currentItems.filter(i => i.ownedBy?.id !== myId)
+      : currentItems.filter(i => i.ownedBy?.id === myId)
+  }, [currentItems, currentUser, isSharedView])
 
-  // Filter and search documents (local listing)
+  // Get unique categories for filter tabs (local listing) based on display items
+  const categories = useMemo((): string[] => {
+    const uniqueCategories = [...new Set(displayItems.map(item => item.category).filter(Boolean))] as string[]
+    return ['All', ...uniqueCategories]
+  }, [displayItems])
+
+  // Filter and search documents (local listing) for display items
   const filteredItems = useMemo((): DocumentItem[] => {
-    let filtered = currentItems
+    let filtered = displayItems
 
     if (activeFilter !== 'All') {
       filtered = filtered.filter(item => item.category === activeFilter)
@@ -192,12 +204,14 @@ function Documents(): ReactElement {
     }
 
     return filtered
-  }, [currentItems, activeFilter, searchTerm])
+  }, [displayItems, activeFilter, searchTerm])
 
   // Pagination (local listing)
   const totalPages = Math.ceil(filteredItems.length / rowsPerPage)
   const startIndex = (currentPage - 1) * rowsPerPage
   const paginatedItems = filteredItems.slice(startIndex, startIndex + rowsPerPage)
+
+  // (no-op) — partitioning already computed above using currentItems
 
   // Helpers
   const getInitials = (name: string): string => name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -214,10 +228,13 @@ function Documents(): ReactElement {
 
   const handleItemClick = (item: DocumentItem): void => {
     if (item.type === 'folder') {
-      const newPath = [...pathSegments, item.id].join('/')
+      const newSegments = [...effectiveSegments, item.id]
+      const prefix = isSharedView ? 'shared/' : ''
+      const newPath = `${prefix}${newSegments.join('/')}`
       navigate(`/documents/${newPath}`)
     } else {
-      navigate(`/documents/file/${item.id}`)
+      const viewParam = isSharedView ? '?view=shared' : ''
+      navigate(`/documents/file/${item.id}${viewParam}`)
     }
   }
 
@@ -237,10 +254,11 @@ function Documents(): ReactElement {
 
   const handleBreadcrumbClick = (breadcrumb: DocumentBreadcrumb): void => {
     if (breadcrumb.id === 'root') {
-      navigate('/documents')
+      navigate(isSharedView ? '/documents/shared' : '/documents')
     } else {
       const newPath = [...breadcrumb.path, breadcrumb.id].join('/')
-      navigate(`/documents/${newPath}`)
+      const prefix = isSharedView ? 'shared/' : ''
+      navigate(`/documents/${prefix}${newPath}`)
     }
   }
 
