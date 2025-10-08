@@ -303,10 +303,34 @@ async def update_document(document_id: str, payload: DocumentUpdate) -> Document
     summary="Soft delete a document",
     response_description="Confirmation that the document was marked as deleted.",
 )
-async def delete_document(document_id: str) -> MessageResponse:
+async def delete_document(
+    document_id: str,
+    authorization: str = Header(alias="Authorization"),
+) -> MessageResponse:
+    # Only owner can delete (no inherited/editor rights)
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    user = UserProfile.model_validate(profile_payload)
+
+    # Load document to verify ownership
+    try:
+        document = await document_service.get_document_by_id(document_id)
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    if document.owned_by.id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owner can delete this item")
+
     try:
         await document_service.delete_document(document_id)
     except DocumentNotFoundError as exc:
+        # Race conditions: treat as 404
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return MessageResponse(message="Document deleted successfully.")
 
