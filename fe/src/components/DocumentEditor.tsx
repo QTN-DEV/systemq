@@ -31,28 +31,8 @@ import {
 
 import { logger } from '@/lib/logger'
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
-
-export interface DocumentBlock {
-  id: string
-  type:
-  | 'paragraph'
-  | 'heading1'
-  | 'heading2'
-  | 'heading3'
-  | 'bulleted-list'
-  | 'numbered-list'
-  | 'quote'
-  | 'code'
-  | 'image'
-  | 'file'
-  // 'link' disisakan demi kompat data lama; tak lagi dipakai saat paste/insert
-  | 'link'
-  content: string
-  alignment?: 'left' | 'center' | 'right'
-  url?: string
-  fileName?: string
-  fileSize?: string
-}
+import type { DocumentBlock } from '@/types/documents'
+export type { DocumentBlock } from '@/types/documents'
 
 interface DocumentEditorProps {
   initialBlocks?: DocumentBlock[]
@@ -660,7 +640,7 @@ function DocumentEditor({
       return
     }
 
-    // Sisipkan inline di selection/end
+    // Sisipkan inline di selection/end — selalu sebagai paragraph
     const saved = savedSelectionRef.current
     let start = (el as HTMLElement).innerText.length
     let end = start
@@ -672,7 +652,7 @@ function DocumentEditor({
       (el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(href, text))
     }
     normalizeAnchors(el as HTMLElement)
-    updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+    updateBlock(blockId, { type: 'paragraph', content: (el as HTMLElement).innerHTML })
     setShowLinkDialog(false)
   }
 
@@ -758,23 +738,22 @@ function DocumentEditor({
       case 'code': return 'Code block'
       case 'image': return 'Enter image URL or upload an image'
       case 'file': return 'Enter file name or upload a file'
-      case 'link': return 'Enter link label or paste a URL'
       default: return "Type '/' for commands"
     }
   }
 
-  /** ---------- MIGRASI: ubah block type 'link' lama menjadi paragraph + anchor ---------- */
+  /** ---------- MIGRASI: ubah block type 'link' (legacy) menjadi paragraph + anchor ---------- */
   useEffect(() => {
     setBlocks((prev) =>
       prev.map((b) => {
-        if (b.type !== 'link') return b
-        const href = b.url || b.content || '#'
-        const text = b.content || b.url || 'Link'
+        if ((b as any)?.type !== 'link') return b
+        const href = (b as any).url || (b as any).content || '#'
+        const text = (b as any).content || (b as any).url || 'Link'
         return {
           ...b,
-          type: 'paragraph',
+          type: 'paragraph' as DocumentBlock['type'],
           content: createAnchorHTML(href, text),
-        }
+        } as DocumentBlock
       }),
     )
     // sekali di mount saja
@@ -1251,7 +1230,11 @@ function DocumentEditor({
                       <div className="border-t border-gray-100 my-1" />
                       <button
                         className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
-                        onClick={() => { setShowGripMenu(null); openLinkDialogForSelection(block.id) }}
+                        onClick={() => {
+                          updateBlock(block.id, { type: 'paragraph' })
+                          setShowGripMenu(null)
+                          openLinkDialogForSelection(block.id)
+                        }}
                         title="Insert/edit link"
                       >
                         <LinkIcon className="w-5 h-5 text-gray-400" />
@@ -1274,7 +1257,11 @@ function DocumentEditor({
                     blockId={block.id}
                     onChangeBlockType={(id, t) => { updateBlock(id, { type: t }); setShowTypeMenu(null) }}
                     placement={typeMenuPlacement}
-                    onOpenLinkDialog={(id) => { setShowTypeMenu(null); openLinkDialogForSelection(id) }}
+                    onOpenLinkDialog={(id) => {
+                      updateBlock(id, { type: 'paragraph' })
+                      setShowTypeMenu(null)
+                      openLinkDialogForSelection(id)
+                    }}
                   />
                 </div>
               )}
