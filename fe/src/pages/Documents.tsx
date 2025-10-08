@@ -753,7 +753,7 @@ function Documents(): ReactElement {
                   {paginatedItems.filter(i => i.type === 'folder').map((item) => (
                     <div
                       key={item.id}
-                      className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white hover:shadow transition cursor-pointer"
+                      className="group relative rounded-xl border border-gray-200 bg-white hover:shadow transition cursor-pointer"
                       onClick={() => handleItemClick(item)}
                     >
                       <div className="relative h-28 bg-gradient-to-br from-gray-900 via-gray-800 to-slate-600 px-4 pt-3">
