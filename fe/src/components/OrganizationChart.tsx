@@ -40,48 +40,30 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
       .slice(0, 2)
   }
 
-  // Color mapping for different levels
-  const getLevelColor = (level: string): string => {
-    switch (level.toLowerCase()) {
-      case 'executive':
-        return 'border-red-500 bg-red-50'
-      case 'director':
-      case 'manager':
-        return 'border-orange-500 bg-orange-50'
-      case 'lead':
-      case 'senior':
-        return 'border-blue-500 bg-blue-50'
-      case 'mid':
-        return 'border-green-500 bg-green-50'
-      case 'junior':
-        return 'border-purple-500 bg-purple-50'
+  // Color mapping by position (role/position color stays consistent across nodes)
+  const getPositionClasses = (position: string | undefined): { card: string; avatar: string } => {
+    // Match EmployeeManagement.tsx color palette
+    switch (position) {
+      case 'CEO':
+        return { card: 'border-purple-500 bg-purple-50', avatar: 'bg-purple-500' }
+      case 'Internal Ops':
+        return { card: 'border-blue-500 bg-blue-50', avatar: 'bg-blue-500' }
+      case 'HR':
+        return { card: 'border-red-500 bg-red-50', avatar: 'bg-red-500' }
+      case 'PM':
+        return { card: 'border-pink-500 bg-pink-50', avatar: 'bg-pink-500' }
+      case 'Div. Lead':
+        return { card: 'border-green-500 bg-green-50', avatar: 'bg-green-500' }
+      case 'Team Member':
+        return { card: 'border-gray-500 bg-gray-50', avatar: 'bg-gray-500' }
       default:
-        return 'border-gray-500 bg-gray-50'
+        return { card: 'border-gray-500 bg-gray-50', avatar: 'bg-gray-500' }
     }
   }
 
-  const getAvatarBgColor = (level: string): string => {
-    switch (level.toLowerCase()) {
-      case 'executive':
-        return 'bg-red-500'
-      case 'director':
-      case 'manager':
-        return 'bg-orange-500'
-      case 'lead':
-      case 'senior':
-        return 'bg-blue-500'
-      case 'mid':
-        return 'bg-green-500'
-      case 'junior':
-        return 'bg-purple-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
-
-  const levelSafe = (employee.level ?? '').toString()
+  const { card, avatar } = getPositionClasses(employee.position as unknown as string)
   return (
-    <div className={`rounded-lg shadow-lg border-2 min-w-[200px] max-w-[200px] hover:shadow-xl transition-all duration-200 hover:-translate-y-1 ${getLevelColor(levelSafe)}`}>
+    <div className={`rounded-lg shadow-lg border-2 min-w-[200px] max-w-[200px] hover:shadow-xl transition-all duration-200 hover:-translate-y-1 ${card}`}>
       {/* Handle for incoming connections (from supervisor) - only show if employee has a supervisor */}
       {hasSupervisor && (
         <Handle
@@ -109,7 +91,7 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
               />
             ) : null}
             <div 
-              className={`w-10 h-10 rounded-full ${getAvatarBgColor(levelSafe)} flex items-center justify-center text-white text-xs font-bold shadow-sm ${employee.avatar ? 'hidden' : ''}`}
+              className={`w-10 h-10 rounded-full ${avatar} flex items-center justify-center text-white text-xs font-bold shadow-sm ${employee.avatar ? 'hidden' : ''}`}
             >
               {getInitials(employee.name)}
             </div>
@@ -119,8 +101,8 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
           <div className="flex-1 min-w-0">
             {/* Name on top */}
             <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">{employee.name}</h3>
-            {/* Role + Division on bottom */}
-            <p className="text-xs text-gray-600 leading-tight truncate">{employee.title ?? ''} • {employee.division ?? ''}</p>
+            {/* Title • Position on bottom */}
+            <p className="text-xs text-gray-600 leading-tight truncate">{employee.title ?? ''} • {employee.position ?? ''}</p>
           </div>
         </div>
       </div>
@@ -147,6 +129,7 @@ interface OrganizationChartProps {
 
 export default function OrganizationChart({ className = '' }: OrganizationChartProps): ReactElement {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null)
 
   useEffect(() => {
     void (async () => {
@@ -278,6 +261,13 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
     [setEdges]
   )
 
+  const handleNodeClick = useCallback((_: any, node: Node): void => {
+    const data = node.data as Partial<CustomNodeData>
+    if (data && (data as any).employee) {
+      setSelectedEmployee((data as any).employee as EmployeeListItem)
+    }
+  }, [])
+
   return (
     <div className={`h-full w-full ${className}`}>
       <ReactFlow
@@ -286,6 +276,7 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{
@@ -309,18 +300,15 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
         <MiniMap 
           className="bg-white shadow-lg border border-gray-200 rounded-lg"
           nodeColor={(node) => {
-            const data = node.data as Partial<CustomNodeData>;
-            if (!data.employee) return '#6b7280';
-            const employee = data.employee;
-            const level = (employee.level ?? '').toLowerCase()
-            switch (level) {
-              case 'executive': return '#ef4444'
-              case 'director':
-              case 'manager': return '#f97316'
-              case 'lead':
-              case 'senior': return '#3b82f6'
-              case 'mid': return '#10b981'
-              case 'junior': return '#8b5cf6'
+            const data = node.data as Partial<CustomNodeData>
+            const pos = data.employee?.position
+            switch (pos) {
+              case 'CEO': return '#8b5cf6' // purple
+              case 'Internal Ops': return '#3b82f6' // blue
+              case 'HR': return '#ef4444' // red
+              case 'PM': return '#ec4899' // pink
+              case 'Div. Lead': return '#10b981' // green
+              case 'Team Member': return '#6b7280' // gray
               default: return '#6b7280'
             }
           }}
@@ -333,6 +321,52 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
           color="#e5e7eb"
         />
       </ReactFlow>
+
+      {/* Detail Popup */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-xl w-[360px] max-w-[90vw] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Employee Details</h3>
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Name</span>
+                <span className="font-medium text-gray-900">{selectedEmployee.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Position</span>
+                <span className="font-medium text-gray-900">{selectedEmployee.position ?? '-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Level</span>
+                <span className="font-medium text-gray-900">{selectedEmployee.level ?? '-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Title</span>
+                <span className="font-medium text-gray-900">{selectedEmployee.title ?? '-'}</span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
