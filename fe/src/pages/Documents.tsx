@@ -23,9 +23,9 @@ import {
   createDocument,
   deleteDocument,
   renameDocument,
-  getFolderPathIds,          // <-- ADD
+  getFolderPathIds,
 } from '../services/DocumentService'
-import { getDocumentAccess, searchDocuments } from '../services/DocumentService' // <-- ADD
+import { getDocumentAccess, searchDocuments } from '../services/DocumentService'
 import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBreadcrumb } from '../types/documents'
 
@@ -68,18 +68,22 @@ function Documents(): ReactElement {
   const [canEditFolder, setCanEditFolder] = useState(false)
   const [itemPermissions, setItemPermissions] = useState<Record<string, boolean>>({})
 
-  // --- Global search states (NEW) ---
+  // --- Global search states ---
   const [globalQuery, setGlobalQuery] = useState('')
   const [globalLoading, setGlobalLoading] = useState(false)
   const [globalResults, setGlobalResults] = useState<DocumentItem[]>([])
   const [globalError, setGlobalError] = useState<string | null>(null)
+
+  // Helper: only owner can delete
+  const isOwner = (item: DocumentItem): boolean => {
+    return Boolean(currentUser && item.ownedBy?.id === currentUser.id)
+  }
 
   // Fetch documents and current folder when currentFolderId changes
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       setIsInitialLoad(true)
       try {
-        // Fetch current folder and items
         const [folder, items, breadcrumbsData] = await Promise.all([
           currentFolderId ? getDocumentById(currentFolderId, null) : Promise.resolve(null),
           getDocumentsByParentId(currentFolderId),
@@ -90,7 +94,7 @@ function Documents(): ReactElement {
         setCurrentItems(items)
         setBreadcrumbs(breadcrumbsData)
 
-        // Fetch effective access for folder (enable/disable Share button)
+        // Effective access for folder
         if (currentFolderId) {
           const access = await getDocumentAccess(currentFolderId).catch(() => null)
           setCanEditFolder(Boolean(access?.can_edit))
@@ -98,7 +102,7 @@ function Documents(): ReactElement {
           setCanEditFolder(false)
         }
 
-        // Fetch item counts for each folder
+        // Counts per folder
         const counts: Record<string, number> = {}
         for (const item of items) {
           if (item.type === 'folder') {
@@ -107,24 +111,22 @@ function Documents(): ReactElement {
         }
         setItemCounts(counts)
 
-        // Fetch permissions for each item
+        // Permissions per item
         const permissions: Record<string, boolean> = {}
         for (const item of items) {
           try {
             const access = await getDocumentAccess(item.id)
             permissions[item.id] = Boolean(access?.can_edit)
-          } catch (error) {
-            // If permission check fails, default to no edit access
+          } catch {
             permissions[item.id] = false
           }
         }
         setItemPermissions(permissions)
 
-        setError(null) // Clear any previous errors
+        setError(null)
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error fetching documents:', error)
-        // Set empty arrays on error to prevent UI issues
         setCurrentFolder(null)
         setCurrentItems([])
         setBreadcrumbs([{ id: 'root', name: 'Documents', path: [] }])
@@ -140,7 +142,7 @@ function Documents(): ReactElement {
     void fetchData()
   }, [currentFolderId])
 
-  // Global search effect (debounced)
+  // Global search (debounce)
   useEffect(() => {
     const q = globalQuery.trim()
     if (q.length < 2) {
@@ -169,7 +171,7 @@ function Documents(): ReactElement {
     return () => clearTimeout(t)
   }, [globalQuery])
 
-  // View-specific dataset: split by owner only (API result already respects access)
+  // View-specific dataset
   const displayItems = useMemo(() => {
     if (!currentUser) return currentItems
     const myId = currentUser.id
@@ -178,13 +180,13 @@ function Documents(): ReactElement {
       : currentItems.filter(i => i.ownedBy?.id === myId)
   }, [currentItems, currentUser, isSharedView])
 
-  // Get unique categories for filter tabs (local listing) based on display items
+  // Categories
   const categories = useMemo((): string[] => {
     const uniqueCategories = [...new Set(displayItems.map(item => item.category).filter(Boolean))] as string[]
     return ['All', ...uniqueCategories]
   }, [displayItems])
 
-  // Filter and search documents (local listing) for display items
+  // Local filter
   const filteredItems = useMemo((): DocumentItem[] => {
     let filtered = displayItems
 
@@ -203,12 +205,10 @@ function Documents(): ReactElement {
     return filtered
   }, [displayItems, activeFilter, searchTerm])
 
-  // Pagination (local listing)
+  // Pagination
   const totalPages = Math.ceil(filteredItems.length / rowsPerPage)
   const startIndex = (currentPage - 1) * rowsPerPage
   const paginatedItems = filteredItems.slice(startIndex, startIndex + rowsPerPage)
-
-  // (no-op) — partitioning already computed above using currentItems
 
   // Helpers
   const getInitials = (name: string): string => name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -241,7 +241,6 @@ function Documents(): ReactElement {
         const ids = await getFolderPathIds(item.id)
         navigate(`/documents/${ids.join('/')}`)
       } catch {
-        // fallback: open direct id
         navigate(`/documents/${item.id}`)
       }
     } else {
@@ -259,15 +258,14 @@ function Documents(): ReactElement {
     }
   }
 
-  // Helper function to refresh permissions for current items
+  // Refresh permissions for current items
   const refreshItemPermissions = async (items: DocumentItem[]): Promise<void> => {
     const permissions: Record<string, boolean> = {}
     for (const item of items) {
       try {
         const access = await getDocumentAccess(item.id)
         permissions[item.id] = Boolean(access?.can_edit)
-      } catch (error) {
-        // If permission check fails, default to no edit access
+      } catch {
         permissions[item.id] = false
       }
     }
@@ -291,6 +289,8 @@ function Documents(): ReactElement {
   }
 
   const handleDelete = (item: DocumentItem): void => {
+    // Only owner can initiate delete
+    if (!isOwner(item)) return
     setSelectedItem(item)
     setShowDeleteModal(true)
     setShowActionsDropdown(null)
@@ -303,16 +303,14 @@ function Documents(): ReactElement {
   }
 
   const handleMove = (item: DocumentItem): void => {
-    // Guard: only allow move when user has edit permission on the item
+    // only allow move when user has edit permission
     if (!itemPermissions[item.id]) return
     setSelectedItem(item)
     setShowMoveModal(true)
     setShowActionsDropdown(null)
   }
 
-  // Create / Rename / Delete handlers omitted for brevity (unchanged from your code) ...
-  // -- START: same as your current handlers --
-
+  // Create / Rename / Delete handlers
   const handleCreateFolderSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     const name = newItemName.trim()
@@ -441,6 +439,13 @@ function Documents(): ReactElement {
 
   const handleDeleteConfirm = async (): Promise<void> => {
     if (!selectedItem) return
+    // Guard: only owner may delete
+    if (!isOwner(selectedItem)) {
+      setError('Only the owner can delete this item.')
+      setShowDeleteModal(false)
+      setSelectedItem(null)
+      return
+    }
     try {
       const success = await deleteDocument(selectedItem.id)
       if (success) {
@@ -463,7 +468,6 @@ function Documents(): ReactElement {
       setError('Failed to delete item. Please try again.')
     }
   }
-  // -- END same handlers --
 
   const formatDate = (dateString: string): string => {
     try {
@@ -584,11 +588,9 @@ function Documents(): ReactElement {
             </button>
           </div>
         </div>
-
-        {/* Removed standalone search — moved next to category tabs below */}
       </div>
 
-      {/* Tabs + Inline Global Search (always visible) */}
+      {/* Tabs + Inline Global Search */}
       <div className="flex items-center justify-between border-b mb-4">
         <div className="flex items-center space-x-4">
           {categories.map((category) => (
@@ -599,8 +601,8 @@ function Documents(): ReactElement {
                 setCurrentPage(1)
               }}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeFilter === category
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               {category}
@@ -639,7 +641,7 @@ function Documents(): ReactElement {
         </div>
       )}
 
-      {/* When global search is active, show results */}
+      {/* Global search results */}
       {isGlobalSearching ? (
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -660,7 +662,7 @@ function Documents(): ReactElement {
             </div>
           )}
 
-          {/* Results grid mixes folders & files */}
+          {/* Results grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {globalResults.map(item => (
               <div
@@ -673,6 +675,18 @@ function Documents(): ReactElement {
                     <div className="relative h-28 bg-gradient-to-br from-gray-900 via-gray-800 to-slate-600 px-4 pt-3 rounded-t-lg">
                       <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
                         <Folder className="h-4 w-4 text-gray-700" />
+                      </div>
+                      {/* Badge shared view (pakai itemPermissions dari currentItems; dibiarkan seperti sebelumnya) */}
+                      {isSharedView && (
+                        <div className={`absolute left-3 bottom-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
+                            ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                            : 'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}>
+                          {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                        </div>
+                      )}
+                      <div className="absolute right-4 top-9 text-xs text-white/90">
+                        {(itemCounts[item.id] ?? 0)} documents
                       </div>
                       <div className="mt-8 text-white font-semibold leading-snug line-clamp-2 pr-4">
                         {item.name}
@@ -687,35 +701,32 @@ function Documents(): ReactElement {
                   </>
                 ) : (
                   <div className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="text-sm font-semibold text-gray-900 line-clamp-2">
-                          {item.name}
-                        </div>
-                        <FileText className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-start justify-between">
+                      <div className="text-sm font-semibold text-gray-900 line-clamp-2">
+                        {item.name}
                       </div>
-                      <div className="mt-3 h-24 bg-gray-100 rounded" aria-hidden="true" />
-                      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(item.ownedBy.role)}`}>
-                            {getInitials(item.ownedBy.name)}
-                          </div>
-                          <span>{item.category || 'Uncategorized'}</span>
-                        </div>
-                        <span>{item.path?.join(' / ') ?? '—'}</span>
-                      </div>
+                      <FileText className="w-4 h-4 text-gray-400" />
                     </div>
+                    {/* (Global results untuk file: tetap tanpa badge, mengikuti versi sebelumnya) */}
+                    <div className="mt-3 h-24 bg-gray-100 rounded" aria-hidden="true" />
+                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(item.ownedBy.role)}`}>
+                          {getInitials(item.ownedBy.name)}
+                        </div>
+                        <span>{item.category || 'Uncategorized'}</span>
+                      </div>
+                      <span>{item.path?.join(' / ') ?? '—'}</span>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         </div>
       ) : (
-        // Default listing (your original UI)
+        // Default listing
         <>
-          {/* Filter Tabs */}
-          
-
-          {/* Card-based layout */}
           {isInitialLoad ? (
             <div className="px-6 py-16 text-center bg-white border border-gray-200">
               <div className="flex flex-col items-center">
@@ -744,7 +755,7 @@ function Documents(): ReactElement {
             </div>
           ) : (
             <>
-              {/* Folders Section */}
+              {/* Folders */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-700">Folders</h2>
@@ -760,13 +771,12 @@ function Documents(): ReactElement {
                         <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
                           <Folder className="h-4 w-4 text-gray-700" />
                         </div>
-                        {/* Permission badge for shared view */}
+                        {/* Badge shared view — posisi OK */}
                         {isSharedView && (
-                          <div className={`absolute right-3 top-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
-                            itemPermissions[item.id]
+                          <div className={`absolute left-3 bottom-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
                               ? 'bg-blue-100 text-blue-700 border border-blue-200'
                               : 'bg-gray-100 text-gray-700 border border-gray-200'
-                          }`}>
+                            }`}>
                             {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
                           </div>
                         )}
@@ -785,49 +795,63 @@ function Documents(): ReactElement {
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => handleShowActions(item.id, e)}
-                        className="absolute right-2 top-2 p-1 rounded hover:bg-white/10 text-white/80 opacity-0 group-hover:opacity-100 transition"
-                        aria-label={`Actions for ${item.name}`}
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                      {showActionsDropdown === item.id && (
-                        <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
-                          <div className="py-1">
-                            <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleMove(item) }} 
-                              disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${
-                                itemPermissions[item.id]
-                                  ? 'hover:bg-gray-50 text-gray-900'
-                                  : 'text-gray-400 cursor-not-allowed'
-                              }`}
-                            >
-                              Move to Folder
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleShare(item) }}
-                              disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${
-                                itemPermissions[item.id] 
-                                  ? 'hover:bg-gray-50 text-gray-900' 
-                                  : 'text-gray-400 cursor-not-allowed'
-                              }`}
-                            >
-                              Share
-                            </button>
-                          </div>
-                        </div>
+
+                      {/* 3-dots hanya untuk editor/owner; viewer: tidak ditampilkan */}
+                      {(itemPermissions[item.id] || isOwner(item)) && (
+                        <>
+                          <button
+                            onClick={(e) => handleShowActions(item.id, e)}
+                            className="absolute right-2 top-2 p-1 rounded hover:bg-white/10 text-white/80 opacity-0 group-hover:opacity-100 transition"
+                            aria-label={`Actions for ${item.name}`}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                          {showActionsDropdown === item.id && (
+                            <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
+                              <div className="py-1">
+                                <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMove(item) }}
+                                  disabled={!itemPermissions[item.id]}
+                                  className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                                      ? 'hover:bg-gray-50 text-gray-900'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                  Move to Folder
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); if (isOwner(item)) handleDelete(item) }}
+                                  disabled={!isOwner(item)}
+                                  title={!isOwner(item) ? 'Only the owner can delete' : undefined}
+                                  className={`w-full text-left px-4 py-2 text-sm ${isOwner(item)
+                                      ? 'text-red-600 hover:bg-red-50'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleShare(item) }}
+                                  disabled={!itemPermissions[item.id]}
+                                  className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                                      ? 'hover:bg-gray-50 text-gray-900'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                  Share
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Documents Section */}
+              {/* Documents */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-700">Documents</h2>
@@ -848,25 +872,31 @@ function Documents(): ReactElement {
                           <div className="text-sm font-semibold text-gray-900 line-clamp-2">
                             {item.name}
                           </div>
-                          <button
-                            onClick={(e) => handleShowActions(item.id, e)}
-                            className="text-gray-500 hover:text-gray-700"
-                            aria-label={`Actions for ${item.name}`}
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+
+                          {/* 3-dots hanya untuk editor/owner */}
+                          {(itemPermissions[item.id] || isOwner(item)) && (
+                            <button
+                              onClick={(e) => handleShowActions(item.id, e)}
+                              className="text-gray-500 hover:text-gray-700"
+                              aria-label={`Actions for ${item.name}`}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                        {/* Permission badge for shared view */}
-                        {isSharedView && (
-                          <div className={`absolute right-2 top-2 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
-                            itemPermissions[item.id]
-                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                              : 'bg-gray-100 text-gray-700 border border-gray-200'
-                          }`}>
-                            {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
-                          </div>
-                        )}
-                        <div className="mt-3 h-28 bg-gray-100 rounded-md" aria-hidden="true" />
+
+                        {/* Preview abu-abu + badge Viewer/Editor pojok kanan atas (hanya Shared view) */}
+                        <div className="mt-3 relative h-28 bg-gray-100 rounded-md" aria-hidden="true">
+                          {isSharedView && (
+                            <div className={`absolute right-2 top-2 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
+                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                : 'bg-gray-100 text-gray-700 border border-gray-200'
+                              }`}>
+                              {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                            </div>
+                          )}
+                        </div>
+
                         <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                           <div className="flex items-center space-x-2">
                             <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(item.ownedBy.role)}`}>{getInitials(item.ownedBy.name)}</div>
@@ -875,30 +905,40 @@ function Documents(): ReactElement {
                           <span>Updated {formatDate(item.lastModified)}</span>
                         </div>
                       </div>
-                      {showActionsDropdown === item.id && (
+
+                      {/* Dropdown hanya muncul jika editor/owner */}
+                      {(itemPermissions[item.id] || isOwner(item)) && showActionsDropdown === item.id && (
                         <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                           <div className="py-1">
                             <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleMove(item) }} 
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleMove(item) }}
                               disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${
-                                itemPermissions[item.id]
+                              className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
                                   ? 'hover:bg-gray-50 text-gray-900'
                                   : 'text-gray-400 cursor-not-allowed'
-                              }`}
+                                }`}
                             >
                               Move to Folder
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDelete(item) }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (isOwner(item)) handleDelete(item) }}
+                              disabled={!isOwner(item)}
+                              title={!isOwner(item) ? 'Only the owner can delete' : undefined}
+                              className={`w-full text-left px-4 py-2 text-sm ${isOwner(item)
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                              Delete
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleShare(item) }}
                               disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${
-                                itemPermissions[item.id] 
-                                  ? 'hover:bg-gray-50 text-gray-900' 
+                              className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                                  ? 'hover:bg-gray-50 text-gray-900'
                                   : 'text-gray-400 cursor-not-allowed'
-                              }`}
+                                }`}
                             >
                               Share
                             </button>
@@ -1150,15 +1190,11 @@ function Documents(): ReactElement {
           documentName={selectedItem.name}
           currentParentId={selectedItem.parentId}
           onMoveSuccess={async () => {
-            // Refresh current folder items after successful move
             const updatedItems = await getDocumentsByParentId(currentFolderId)
             setCurrentItems(updatedItems)
             await refreshItemPermissions(updatedItems)
-            
-            // Update item counts if needed
             if (selectedItem.type === 'folder') {
               const counts = { ...itemCounts }
-              // Remove count for moved folder if it's no longer in current folder
               if (selectedItem.parentId !== currentFolderId) {
                 delete counts[selectedItem.id]
               }
