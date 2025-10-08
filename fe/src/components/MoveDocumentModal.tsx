@@ -7,6 +7,7 @@ import {
     Check
   } from 'lucide-react'
   import { useState, useEffect, useMemo, type ReactElement } from 'react'
+  import Swal from 'sweetalert2'
   
   import { 
     getAllAccessibleFolders,
@@ -149,13 +150,34 @@ import {
       try {
         const movedItem = await moveDocument(documentId, selectedFolderId)
         if (movedItem) {
+          await Swal.fire({
+            title: 'Item moved',
+            text: `"${documentName}" has been moved successfully.`,
+            icon: 'success',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3B82F6'
+          })
           onMoveSuccess?.()
           onClose()
         } else {
           setError('Failed to move item. Please try again.')
+          await Swal.fire({
+            title: 'Move failed',
+            text: 'Failed to move item. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3B82F6'
+          })
         }
       } catch (err) {
         setError('Failed to move item. Please try again.')
+        await Swal.fire({
+          title: 'Move failed',
+          text: 'Failed to move item. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#3B82F6'
+        })
       } finally {
         setMoving(false)
       }
