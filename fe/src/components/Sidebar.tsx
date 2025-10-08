@@ -8,7 +8,7 @@ import {
   LogOut,
   Settings
 } from 'lucide-react'
-import { useState, type ReactElement } from 'react'
+import { useState, useEffect, type ReactElement } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { logger } from '@/lib/logger'
@@ -32,13 +32,13 @@ const iconMap = {
 
 function Sidebar(): ReactElement {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [docsOpen, setDocsOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
 
   const userRole = user?.role ?? 'employee'
   const userTitle = user?.title ?? 'Employee'
-  // console.log("userTitle", userTitle)
   const rawName = user?.name?.trim()
   const displayName = rawName && rawName.length > 0 ? rawName : 'Employee User'
   const computedInitials = displayName
@@ -62,7 +62,7 @@ function Sidebar(): ReactElement {
   }
 
   // Filter menu items based on user role
-  const filteredMenuItems = menuConfig.menuItems.filter(item => 
+  const filteredMenuItems = menuConfig.menuItems.filter(item =>
     !item.roles || item.roles.includes(userRole)
   )
 
@@ -70,6 +70,12 @@ function Sidebar(): ReactElement {
     name: 'Employee',
     color: 'blue'
   }
+
+  // Auto-open Documents dropdown when current path is under /documents
+  useEffect(() => {
+    const underDocs = location.pathname === '/documents' || location.pathname.startsWith('/documents/')
+    setDocsOpen(underDocs)
+  }, [location.pathname])
 
   return (
     <div className={cn(
@@ -144,7 +150,7 @@ function Sidebar(): ReactElement {
               'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium',
               currentRole.color === 'red' && 'bg-red-500',
               currentRole.color === 'pink' && 'bg-pink-500',
-              currentRole.color === 'blue' && 'bg-blue-500', 
+              currentRole.color === 'blue' && 'bg-blue-500',
               currentRole.color === 'green' && 'bg-green-500',
               currentRole.color === 'purple' && 'bg-purple-500'
             )}>
@@ -160,40 +166,67 @@ function Sidebar(): ReactElement {
           {filteredMenuItems.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap]
             const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
-            
-            // Inject nested items for Documents
+
+            // Documents dropdown
             if (item.id === 'documents') {
               const docsRootActive = location.pathname === '/documents' || location.pathname.startsWith('/documents/')
-              const isShared = location.pathname.startsWith('/documents/shared') || (location.pathname.startsWith('/documents/file/') && new URLSearchParams(location.search).get('view') === 'shared')
+              const isShared =
+                location.pathname.startsWith('/documents/shared') ||
+                (location.pathname.startsWith('/documents/file/') &&
+                  new URLSearchParams(location.search).get('view') === 'shared')
+
               return (
                 <div key={item.id}>
-                  <Link
-                    to={item.path}
-                    className={cn(
-                      'flex items-center px-2 py-2 text-sm font-medium transition-colors group',
-                      docsRootActive 
-                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                      isCollapsed && 'justify-center'
-                    )}
-                    title={isCollapsed ? item.title : undefined}
-                  >
-                    <Icon className={cn(
-                      'flex-shrink-0 w-5 h-5',
-                      docsRootActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500',
-                      !isCollapsed && 'mr-3'
-                    )} />
-                    {!isCollapsed && (
-                      <span className="truncate">{item.title}</span>
-                    )}
-                  </Link>
-                  {!isCollapsed && (
+                  {isCollapsed ? (
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        'flex items-center px-2 py-2 text-sm font-medium transition-colors group justify-center',
+                        docsRootActive
+                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                      title={item.title}
+                    >
+                      <Icon className={cn(
+                        'flex-shrink-0 w-5 h-5',
+                        docsRootActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
+                      )} />
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDocsOpen((o) => !o)}
+                      className={cn(
+                        'w-full flex items-center px-2 py-2 text-left text-sm font-medium transition-colors group',
+                        docsRootActive
+                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon className={cn(
+                        'flex-shrink-0 w-5 h-5 mr-3',
+                        docsRootActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
+                      )} />
+                      <span className="truncate flex-1">{item.title}</span>
+                      <ChevronLeft
+                        className={cn(
+                          'w-4 h-4 text-gray-400 transition-transform',
+                          docsOpen ? '-rotate-90' : 'rotate-180'
+                        )}
+                      />
+                    </button>
+                  )}
+
+                  {!isCollapsed && docsOpen && (
                     <div className="ml-9 mt-1 space-y-1">
                       <Link
                         to="/documents"
                         className={cn(
                           'block px-2 py-1.5 text-sm rounded',
-                          !isShared && docsRootActive ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          !isShared && docsRootActive
+                            ? 'text-blue-700 bg-blue-50'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         )}
                       >
                         My Documents
@@ -202,7 +235,9 @@ function Sidebar(): ReactElement {
                         to="/documents/shared"
                         className={cn(
                           'block px-2 py-1.5 text-sm rounded',
-                          isShared ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          isShared
+                            ? 'text-blue-700 bg-blue-50'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         )}
                       >
                         Shared with Me
@@ -219,7 +254,7 @@ function Sidebar(): ReactElement {
                 to={item.path}
                 className={cn(
                   'flex items-center px-2 py-2 text-sm font-medium transition-colors group',
-                  isActive 
+                  isActive
                     ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                   isCollapsed && 'justify-center'
