@@ -20,6 +20,7 @@ import type {
   DocumentPermissions, 
   PermissionLevel
 } from '../types/document-permissions'
+import { validatePermissionInheritance, getHighestAncestorPermission } from '../utils/permissionValidation'
 
 interface ShareDocumentModalProps {
   isOpen: boolean
@@ -38,6 +39,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
   })
   const [, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [userAncestorPermissions, setUserAncestorPermissions] = useState<Record<string, PermissionLevel | null>>({})
 
   // Load permissions when modal opens
   useEffect(() => {
@@ -49,6 +51,14 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
           const permissionsData = await getDocumentPermissions(documentId)
           if (permissionsData) {
             setPermissions(permissionsData)
+            
+            // Load ancestor permissions for all users
+            const ancestorPermissions: Record<string, PermissionLevel | null> = {}
+            for (const userPermission of permissionsData.user_permissions) {
+              const highestPermission = await getHighestAncestorPermission(userPermission.user_id, documentId)
+              ancestorPermissions[userPermission.user_id] = highestPermission
+            }
+            setUserAncestorPermissions(ancestorPermissions)
           }
         } catch (err) {
           setError('Failed to load permissions data')
@@ -98,6 +108,14 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
     if (user.type !== 'user') return
 
     try {
+      // Check if user already has higher permissions in ancestor folders
+      const highestAncestorPermission = await getHighestAncestorPermission(user.id, documentId)
+      
+      if (highestAncestorPermission && highestAncestorPermission === 'editor') {
+        setError(`${user.name} has editor access in their ancestor folder. Cannot assign viewer access.`)
+        return
+      }
+      
       const success = await addUserPermission(documentId, {
         user_id: user.id,
         user_name: user.name,
@@ -117,6 +135,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
         }))
         setSearchQuery('')
         setSearchResults([])
+        setError(null) // Clear any previous errors
       }
     } catch (err) {
       setError('Failed to add user permission')
@@ -191,6 +210,14 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
   ): Promise<void> => {
     try {
       if (type === 'user') {
+        // Validate permission inheritance for users
+        const validation = await validatePermissionInheritance(id, documentId, newPermission)
+        
+        if (!validation.isValid && validation.conflictDetails) {
+          setError(validation.conflictDetails.message)
+          return
+        }
+        
         // For users, we need to remove and re-add with new permission
         const user = permissions.user_permissions.find(p => p.user_id === id)
         if (user) {
@@ -224,6 +251,9 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
           )
         }))
       }
+      
+      // Clear any previous errors on successful update
+      setError(null)
     } catch (err) {
       setError('Failed to update permission')
       // eslint-disable-next-line no-console
@@ -362,35 +392,52 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
                   People with access ({permissions.user_permissions.length})
                 </h3>
                 <div className="space-y-2">
-                  {permissions.user_permissions.map((permission) => (
-                    <div key={permission.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
-                          {getInitials(permission.user_name)}
+                  {permissions.user_permissions.map((permission) => {
+                    const ancestorPermission = userAncestorPermissions[permission.user_id]
+                    const hasHigherAncestorPermission = ancestorPermission === 'editor'
+                    
+                    return (
+                      <div key={permission.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                            {getInitials(permission.user_name)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{permission.user_name}</p>
+                            <p className="text-xs text-gray-500">{permission.user_email}</p>
+                            {hasHigherAncestorPermission && (
+                              <p className="text-xs text-amber-600 font-medium">
+                                Has editor access in ancestor folder
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{permission.user_name}</p>
-                          <p className="text-xs text-gray-500">{permission.user_email}</p>
+                        <div className="flex items-center space-x-2">
+                          <select
+                            value={permission.permission}
+                            onChange={(e) => handlePermissionChange('user', permission.user_id, e.target.value as PermissionLevel)}
+                            disabled={hasHigherAncestorPermission && permission.permission === 'viewer'}
+                            className={`text-sm border border-gray-300 rounded px-2 py-1 ${
+                              hasHigherAncestorPermission && permission.permission === 'viewer' 
+                                ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                                : ''
+                            }`}
+                          >
+                            <option value="viewer" disabled={hasHigherAncestorPermission}>
+                              Viewer
+                            </option>
+                            <option value="editor">Editor</option>
+                          </select>
+                          <button
+                            onClick={() => handleRemoveUserPermission(permission.user_id)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <select
-                          value={permission.permission}
-                          onChange={(e) => handlePermissionChange('user', permission.user_id, e.target.value as PermissionLevel)}
-                          className="text-sm border border-gray-300 rounded px-2 py-1"
-                        >
-                          <option value="viewer">Viewer</option>
-                          <option value="editor">Editor</option>
-                        </select>
-                        <button
-                          onClick={() => handleRemoveUserPermission(permission.user_id)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
