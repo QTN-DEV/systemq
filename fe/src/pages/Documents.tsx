@@ -760,6 +760,16 @@ function Documents(): ReactElement {
                         <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
                           <Folder className="h-4 w-4 text-gray-700" />
                         </div>
+                        {/* Permission badge for shared view */}
+                        {isSharedView && (
+                          <div className={`absolute right-3 top-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
+                            itemPermissions[item.id]
+                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                              : 'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}>
+                            {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                          </div>
+                        )}
                         <div className="absolute right-4 top-9 text-xs text-white/90">
                           {(itemCounts[item.id] ?? 0)} documents
                         </div>
@@ -846,6 +856,16 @@ function Documents(): ReactElement {
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
                         </div>
+                        {/* Permission badge for shared view */}
+                        {isSharedView && (
+                          <div className={`absolute right-2 top-2 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
+                            itemPermissions[item.id]
+                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                              : 'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}>
+                            {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                          </div>
+                        )}
                         <div className="mt-3 h-28 bg-gray-100 rounded-md" aria-hidden="true" />
                         <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                           <div className="flex items-center space-x-2">
