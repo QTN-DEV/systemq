@@ -9,6 +9,7 @@ import type {
   SearchUserResult,
 } from "../types/document-permissions";
 import type { DocumentItem, DocumentBlock } from "../types/document-type";
+import type { EditHistoryEvent } from "../types/documents";
 
 const API_BASE_URL =
   import.meta.env?.VITE_API_BASE_URL ?? "https://api.systemq.qtn.ai";
@@ -23,6 +24,11 @@ api.interceptors.request.use((config) => {
   const session = useAuthStore.getState().getCurrentSession();
   if (session?.token) {
     config.headers.Authorization = `Bearer ${session.token}`;
+  }
+  // Disable caching for GET to avoid stale reads after save
+  if (config.method === 'get') {
+    config.headers['Cache-Control'] = 'no-cache';
+    config.headers['Pragma'] = 'no-cache';
   }
   return config;
 });
@@ -49,6 +55,10 @@ interface ApiDocumentItem {
   item_count: number;
   path: string[];
   content: DocumentBlock[];
+  last_modified_by?: {
+    id: string;
+    name: string;
+  } | null;
   user_permissions?: {
     user_id: string;
     user_name: string;
@@ -84,6 +94,9 @@ function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
     },
     dateCreated: apiDoc.date_created,
     lastModified: apiDoc.last_modified,
+    lastModifiedBy: apiDoc.last_modified_by
+      ? { id: apiDoc.last_modified_by.id, name: apiDoc.last_modified_by.name }
+      : null,
     size: apiDoc.size ?? undefined,
     itemCount: apiDoc.item_count,
     path: apiDoc.path,
@@ -146,6 +159,7 @@ export async function getDocumentsByParentId(
     const session = useAuthStore.getState().getCurrentSession();
     const response = await api.get<ApiDocumentItem[]>(endpoint, {
       headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
+      params: { _t: Date.now() },
     });
     return response.data.map(transformApiDocument);
   } catch (error) {
@@ -182,7 +196,10 @@ export async function getDocumentById(
     const session = useAuthStore.getState().getCurrentSession();
     const response = await api.get<ApiDocumentItem>(
       `/documents/${encodeURIComponent(id)}`,
-      { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
+      {
+        headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
+        params: { _t: Date.now() },
+      }
     );
     return transformApiDocument(response.data);
   } catch (error) {
@@ -363,7 +380,7 @@ export async function createDocument(
 // Delete document or folder
 export async function deleteDocument(documentId: string): Promise<boolean> {
   try {
-    await api.delete(`/documents/${encodeURIComponent(documentId)}`);
+    await api.delete(`/documents/${ encodeURIComponent(documentId)}`);
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -447,7 +464,7 @@ export async function getAllAccessibleFolders(): Promise<DocumentItem[]> {
 
 // Update document content payload interface
 export interface UpdateDocumentContentPayload {
-  category: string;
+  category?: string | null;
   content: DocumentBlock[];
 }
 
@@ -467,6 +484,19 @@ export async function updateDocumentContent(
     console.error("Error updating document content:", error);
     return null;
   }
+}
+
+// ===== EDIT HISTORY =====
+export async function getDocumentHistory(
+  id: string,
+): Promise<EditHistoryEvent[]> {
+  const session = useAuthStore.getState().getCurrentSession()
+  const res = await api.get<EditHistoryEvent[]>(`/documents/${encodeURIComponent(id)}/history`, {
+    headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
+    withCredentials: true,
+  })
+  if (res.status === 200) return res.data
+  throw new Error('Failed to fetch edit history')
 }
 
 // ===== DOCUMENT PERMISSION FUNCTIONS =====

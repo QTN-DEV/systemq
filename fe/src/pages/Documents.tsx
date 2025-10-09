@@ -771,9 +771,9 @@ function Documents(): ReactElement {
                         <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
                           <Folder className="h-4 w-4 text-gray-700" />
                         </div>
-                        {/* Badge shared view — posisi OK */}
+                        {/* Badge shared view — positioned to the left of 3-dots for consistency */}
                         {isSharedView && (
-                          <div className={`absolute left-3 bottom-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
+                          <div className={`absolute right-10 top-2 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
                               ? 'bg-blue-100 text-blue-700 border border-blue-200'
                               : 'bg-gray-100 text-gray-700 border border-gray-200'
                             }`}>
@@ -812,8 +812,9 @@ function Documents(): ReactElement {
                                 <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleMove(item) }}
-                                  disabled={!itemPermissions[item.id]}
-                                  className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                                  disabled={!isOwner(item)}
+                                  title={!isOwner(item) ? 'Only the owner can move folders' : undefined}
+                                  className={`w-full text-left px-4 py-2 text-sm ${isOwner(item)
                                       ? 'hover:bg-gray-50 text-gray-900'
                                       : 'text-gray-400 cursor-not-allowed'
                                     }`}
@@ -913,8 +914,9 @@ function Documents(): ReactElement {
                             <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleMove(item) }}
-                              disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                              disabled={!isOwner(item)}
+                              title={!isOwner(item) ? 'Only the owner can move files' : undefined}
+                              className={`w-full text-left px-4 py-2 text-sm ${isOwner(item)
                                   ? 'hover:bg-gray-50 text-gray-900'
                                   : 'text-gray-400 cursor-not-allowed'
                                 }`}

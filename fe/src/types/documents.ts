@@ -19,6 +19,16 @@ export interface DocumentOwner {
   avatar?: string
 }
 
+export interface DocumentUserRef {
+  id: string
+  name: string
+}
+
+export interface EditHistoryEvent {
+  editor: DocumentUserRef
+  at: string // ISO
+}
+
 export interface DocumentItem {
   id: string
   name: string // File name (e.g., "work-arrangement.docx")
@@ -28,7 +38,8 @@ export interface DocumentItem {
   category?: string
   status: DocumentStatus
   dateCreated: string
-  lastModified: string
+  lastModified?: string | null
+  lastModifiedBy?: DocumentUserRef | null
   size?: string // For files only
   itemCount?: number // For folders only
   parentId?: string // For nested items
