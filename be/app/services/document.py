@@ -5,7 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Literal, Iterable
 
-from app.models.document import DocumentBlock, DocumentHistory, DocumentItem, DocumentOwner
+from app.models.document import (
+    DocumentBlock,
+    DocumentHistory,
+    DocumentItem,
+    DocumentOwner,
+    DocumentUserRef,
+    EditHistoryEvent,
+)
 from app.models.user import User  # NEW
 from app.schemas.document import DocumentCreate
 
@@ -41,6 +48,11 @@ def _serialize_document(document: DocumentItem) -> dict[str, Any]:
         "status": document.status,
         "date_created": document.date_created.isoformat(),
         "last_modified": document.last_modified.isoformat(),
+        "last_modified_by": (
+            document.last_modified_by.model_dump()
+            if isinstance(document.last_modified_by, DocumentUserRef)
+            else (document.last_modified_by if document.last_modified_by else None)
+        ),
         "size": document.size,
         "item_count": document.item_count,
         "parent_id": document.parent_id,
@@ -338,6 +350,10 @@ async def create_document(payload: DocumentCreate, owner: dict[str, Any]) -> dic
     await _apply_path(document)
     await document.insert()
 
+    # initialize last_modified_by as owner on create
+    document.last_modified_by = DocumentUserRef(id=owner["id"], name=owner["name"])  # type: ignore[index]
+    await document.save()
+
     await _record_history(
         document,
         "created",
@@ -349,7 +365,68 @@ async def create_document(payload: DocumentCreate, owner: dict[str, Any]) -> dic
     return _serialize_document(document)
 
 
-async def update_document(document_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+COALESCE_MINUTES = 10
+
+
+async def record_edit_history(document_id: str, editor: dict[str, str]) -> None:
+    """Coalesce edit events within COALESCE_MINUTES for the same editor and doc.
+
+    Always updates the document's last_modified and last_modified_by.
+    """
+    now = _utcnow()
+    cutoff_ts = now.timestamp() - COALESCE_MINUTES * 60
+    cutoff = datetime.fromtimestamp(cutoff_ts, tz=now.tzinfo)
+    # Beanie/Mongo: query last event by at desc
+    last = await EditHistoryEvent.find({"document_id": document_id}).sort("-at").first_or_none()
+
+    if last and last.editor_id == editor["id"]:
+        last_at = last.at
+        if last_at.tzinfo is None:
+            last_at = last_at.replace(tzinfo=UTC)
+        if last_at >= cutoff:
+            # update timestamp of last event
+            last.at = now
+            await last.save()
+        else:
+            event = EditHistoryEvent(
+                document_id=document_id,
+                editor_id=editor["id"],
+                editor_name=editor["name"],
+                at=now,
+            )
+            await event.insert()
+    else:
+        event = EditHistoryEvent(
+            document_id=document_id,
+            editor_id=editor["id"],
+            editor_name=editor["name"],
+            at=now,
+        )
+        await event.insert()
+
+    # Update document metadata
+    document = await get_document_by_id(document_id)
+    document.last_modified = now
+    document.last_modified_by = DocumentUserRef(id=editor["id"], name=editor["name"])  # type: ignore[arg-type]
+    document.updated_at = now
+    await document.save()
+
+
+async def get_edit_history(document_id: str) -> list[dict[str, Any]]:
+    events = (
+        await EditHistoryEvent.find(EditHistoryEvent.document_id == document_id)
+        .sort("-at")
+        .to_list()
+    )
+    return [
+        {"editor": {"id": e.editor_id, "name": e.editor_name}, "at": e.at.isoformat()}
+        for e in events
+    ]
+
+
+async def update_document(
+    document_id: str, payload: dict[str, Any], editor: dict[str, str] | None = None
+) -> dict[str, Any]:
     document = await get_document_by_id(document_id)
 
     changes: dict[str, Any] = {}
@@ -375,6 +452,7 @@ async def update_document(document_id: str, payload: dict[str, Any]) -> dict[str
         changes["share_url"] = {"old": document.share_url, "new": payload["share_url"]}
         document.share_url = payload["share_url"]
     if "content" in payload and payload["content"] != document.content:
+        print("APA", payload["content"], document.content)
         new_content = payload["content"] if payload["content"] is not None else []
         changes["content"] = {"old": document.content, "new": new_content}
         document.content = new_content
@@ -399,12 +477,18 @@ async def update_document(document_id: str, payload: dict[str, Any]) -> dict[str
     await _apply_path(document)
     document.last_modified = _utcnow()
     document.updated_at = document.last_modified
+    if editor is not None:
+        document.last_modified_by = DocumentUserRef(id=editor["id"], name=editor["name"])  # type: ignore[arg-type]
     await document.save()
 
     if document.type == "folder" or "parent_id" in changes:
         await _refresh_descendant_paths(document)
 
     await _record_history(document, "updated", changes)
+
+    # Coalesced edit event only for real edits and only when editor is known
+    if editor is not None:
+        await record_edit_history(document.document_id, editor)
 
     if "parent_id" in changes:
         await _refresh_item_count(old_parent_id)

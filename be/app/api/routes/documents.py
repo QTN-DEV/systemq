@@ -284,17 +284,65 @@ async def create_document(
     summary="Update document metadata",
     response_description="Updated document representation after applying changes.",
 )
-async def update_document(document_id: str, payload: DocumentUpdate) -> DocumentResponse:
+async def update_document(document_id: str, payload: DocumentUpdate, authorization: str = Header(alias="Authorization")) -> DocumentResponse:
+    # identify editor and enforce edit access
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    user = UserProfile.model_validate(profile_payload)
+    allowed = await check_document_access(document_id, user.id, "editor")
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
     try:
         document = await document_service.update_document(
             document_id,
             payload.model_dump(exclude_unset=True),
+            editor={"id": user.id, "name": user.name},
         )
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return DocumentResponse.model_validate(document)
+
+
+@router.get(
+    "/{document_id}/history",
+    summary="Get edit history (coalesced)",
+)
+async def get_edit_history(document_id: str, authorization: str = Header(alias="Authorization")) -> list[dict]:
+    # Only owner/editor can view history
+    try:
+        token = auth_service.parse_bearer_token(authorization)
+        profile_payload = await auth_service.get_user_profile_from_token(token)
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    user = UserProfile.model_validate(profile_payload)
+
+    # owner or editor access
+    from app.services.document_permission import has_direct_document_access, has_ancestor_folder_access
+    is_owner = False
+    try:
+        doc = await document_service.get_document_by_id(document_id)
+        is_owner = doc.owned_by.id == user.id
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    can_edit = await check_document_access(document_id, user.id, "editor")
+    if not (is_owner or can_edit):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    events = await document_service.get_edit_history(document_id)
+    return events
 
 
 @router.delete(

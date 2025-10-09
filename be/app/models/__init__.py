@@ -9,7 +9,7 @@ from .enums import (
 from .password_reset_token import PasswordResetToken
 from .session_token import SessionToken
 from .user import User
-from .document import DocumentItem, DocumentHistory
+from .document import DocumentItem, DocumentHistory, EditHistoryEvent
 from .project import Project
 from .health import SystemStatus
 
@@ -23,6 +23,7 @@ __all__ = [
     "User",
     "DocumentItem",
     "DocumentHistory",
+    "EditHistoryEvent",
     "Project",
     "SystemStatus",
 ]
