@@ -8,7 +8,7 @@ import {
   Share2,
   Search as SearchIcon,
   X as XIcon,
-  FileText
+  FileText,
 } from 'lucide-react'
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -39,14 +39,19 @@ function Documents(): ReactElement {
   const pathSegments = currentPath?.split('/').filter(Boolean) ?? []
   const isSharedView = pathSegments[0] === 'shared'
   const effectiveSegments = isSharedView ? pathSegments.slice(1) : pathSegments
-  const currentFolderId = effectiveSegments.length > 0 ? effectiveSegments[effectiveSegments.length - 1] : null
+  const currentFolderId =
+    effectiveSegments.length > 0
+      ? effectiveSegments[effectiveSegments.length - 1]
+      : null
 
   // State management
-  const [searchTerm] = useState('') // local filter (tetap ada; tidak dipakai saat global search aktif)
+  const [searchTerm] = useState('') // local filter (not used while global search active)
   const [activeFilter, setActiveFilter] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null)
+  const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(
+    null,
+  )
   const [itemCounts, setItemCounts] = useState<Record<string, number | null>>({})
 
   // Modal states
@@ -59,6 +64,13 @@ function Documents(): ReactElement {
   const [selectedItem, setSelectedItem] = useState<DocumentItem | null>(null)
   const [newItemName, setNewItemName] = useState('')
 
+  // Contributors modal state (kept as-is)
+  const [showContributors, setShowContributors] = useState(false)
+  const [contributorsLoading, setContributorsLoading] = useState(false)
+  const [contributorsError, setContributorsError] = useState<string | null>(null)
+  const [contributorsList, setContributorsList] = useState<string[]>([])
+  const [contributorsForName, setContributorsForName] = useState<string>('')
+
   // State for loading, data, and errors
   const [currentFolder, setCurrentFolder] = useState<DocumentItem | null | undefined>(null)
   const [currentItems, setCurrentItems] = useState<DocumentItem[]>([])
@@ -67,6 +79,7 @@ function Documents(): ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [canEditFolder, setCanEditFolder] = useState(false)
   const [itemPermissions, setItemPermissions] = useState<Record<string, boolean>>({})
+  const [contributorsMap, setContributorsMap] = useState<Record<string, string[]>>({})
 
   // --- Global search states ---
   const [globalQuery, setGlobalQuery] = useState('')
@@ -74,7 +87,7 @@ function Documents(): ReactElement {
   const [globalResults, setGlobalResults] = useState<DocumentItem[]>([])
   const [globalError, setGlobalError] = useState<string | null>(null)
 
-  // Helper: only owner can delete
+  // Only owner can delete
   const isOwner = (item: DocumentItem): boolean => {
     return Boolean(currentUser && item.ownedBy?.id === currentUser.id)
   }
@@ -85,7 +98,9 @@ function Documents(): ReactElement {
       setIsInitialLoad(true)
       try {
         const [folder, items, breadcrumbsData] = await Promise.all([
-          currentFolderId ? getDocumentById(currentFolderId, null) : Promise.resolve(null),
+          currentFolderId
+            ? getDocumentById(currentFolderId, null)
+            : Promise.resolve(null),
           getDocumentsByParentId(currentFolderId),
           buildBreadcrumbs(currentFolderId ?? null),
         ])
@@ -96,7 +111,9 @@ function Documents(): ReactElement {
 
         // Effective access for folder
         if (currentFolderId) {
-          const access = await getDocumentAccess(currentFolderId).catch(() => null)
+          const access = await getDocumentAccess(currentFolderId).catch(
+            () => null,
+          )
           setCanEditFolder(Boolean(access?.can_edit))
         } else {
           setCanEditFolder(false)
@@ -142,6 +159,36 @@ function Documents(): ReactElement {
     void fetchData()
   }, [currentFolderId])
 
+  // Prefetch contributors for visible items in Shared view (kept)
+  const prefetchContributors = useMemo(() => {
+    return async (items: DocumentItem[]): Promise<void> => {
+      if (!isSharedView) return
+      const folders = items.filter((i) => i.type === 'folder')
+      if (folders.length === 0) return
+      const { getDocumentPermissions } = await import('../services/DocumentService')
+      const entries: Array<[string, string[]]> = []
+      for (const f of folders) {
+        try {
+          const perms = await getDocumentPermissions(f.id)
+          const names: string[] = []
+          names.push(f.ownedBy.name)
+          if (perms) {
+            perms.user_permissions
+              .filter((u) => u.permission === 'editor')
+              .forEach((u) => names.push(u.user_name))
+            perms.division_permissions
+              .filter((d) => d.permission === 'editor')
+              .forEach((d) => names.push(d.division))
+          }
+          entries.push([f.id, names])
+        } catch {
+          entries.push([f.id, [f.ownedBy.name]])
+        }
+      }
+      setContributorsMap((prev) => ({ ...prev, ...Object.fromEntries(entries) }))
+    }
+  }, [isSharedView])
+
   // Global search (debounce)
   useEffect(() => {
     const q = globalQuery.trim()
@@ -176,13 +223,15 @@ function Documents(): ReactElement {
     if (!currentUser) return currentItems
     const myId = currentUser.id
     return isSharedView
-      ? currentItems.filter(i => i.ownedBy?.id !== myId)
-      : currentItems.filter(i => i.ownedBy?.id === myId)
+      ? currentItems.filter((i) => i.ownedBy?.id !== myId)
+      : currentItems.filter((i) => i.ownedBy?.id === myId)
   }, [currentItems, currentUser, isSharedView])
 
   // Categories
   const categories = useMemo((): string[] => {
-    const uniqueCategories = [...new Set(displayItems.map(item => item.category).filter(Boolean))] as string[]
+    const uniqueCategories = [
+      ...new Set(displayItems.map((item) => item.category).filter(Boolean)),
+    ] as string[]
     return ['All', ...uniqueCategories]
   }, [displayItems])
 
@@ -191,14 +240,15 @@ function Documents(): ReactElement {
     let filtered = displayItems
 
     if (activeFilter !== 'All') {
-      filtered = filtered.filter(item => item.category === activeFilter)
+      filtered = filtered.filter((item) => item.category === activeFilter)
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.ownedBy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.ownedBy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.category?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
@@ -209,9 +259,17 @@ function Documents(): ReactElement {
   const totalPages = Math.ceil(filteredItems.length / rowsPerPage)
   const startIndex = (currentPage - 1) * rowsPerPage
   const paginatedItems = filteredItems.slice(startIndex, startIndex + rowsPerPage)
+  useEffect(() => {
+    void prefetchContributors(paginatedItems)
+  }, [prefetchContributors, paginatedItems])
 
   // Helpers
-  const getInitials = (name: string): string => name.split(' ').map(n => n[0]).join('').toUpperCase()
+  const getInitials = (name: string): string =>
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
 
   const getRoleColor = (role: string): string => {
     const colors = {
@@ -278,8 +336,14 @@ function Documents(): ReactElement {
     setShowActionsDropdown(showActionsDropdown === itemId ? null : itemId)
   }
 
-  const handleCreateFolder = (): void => { setShowCreateFolder(true); setNewItemName('') }
-  const handleCreateFile = (): void => { setShowCreateFile(true); setNewItemName('') }
+  const handleCreateFolder = (): void => {
+    setShowCreateFolder(true)
+    setNewItemName('')
+  }
+  const handleCreateFile = (): void => {
+    setShowCreateFile(true)
+    setNewItemName('')
+  }
 
   const handleRename = (item: DocumentItem): void => {
     setSelectedItem(item)
@@ -303,8 +367,7 @@ function Documents(): ReactElement {
   }
 
   const handleMove = (item: DocumentItem): void => {
-    // only allow move when user has edit permission
-    if (!itemPermissions[item.id]) return
+    if (!isOwner(item)) return
     setSelectedItem(item)
     setShowMoveModal(true)
     setShowActionsDropdown(null)
@@ -318,11 +381,15 @@ function Documents(): ReactElement {
 
     const validNamePattern = /^[A-Za-z0-9 _.-]+$/
     if (!validNamePattern.test(name)) {
-      setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
+      setError(
+        'Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.',
+      )
       return
     }
 
-    const siblingNames = new Set(currentItems.map(i => i.name.trim().toLowerCase()))
+    const siblingNames = new Set(
+      currentItems.map((i) => i.name.trim().toLowerCase()),
+    )
     if (siblingNames.has(name.toLowerCase())) {
       setError('Duplicate name: an item with this name already exists in this folder.')
       return
@@ -330,7 +397,10 @@ function Documents(): ReactElement {
 
     try {
       const session = getCurrentSession()
-      if (!session) { setError('Authentication required'); return }
+      if (!session) {
+        setError('Authentication required')
+        return
+      }
 
       const authToken = `Bearer ${session.token}`
       const newFolder = await createDocument(name, 'folder', currentFolderId, authToken)
@@ -362,11 +432,15 @@ function Documents(): ReactElement {
 
     const validNamePattern = /^[A-Za-z0-9 _.-]+$/
     if (!validNamePattern.test(name)) {
-      setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
+      setError(
+        'Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.',
+      )
       return
     }
 
-    const siblingNames = new Set(currentItems.map(i => i.name.trim().toLowerCase()))
+    const siblingNames = new Set(
+      currentItems.map((i) => i.name.trim().toLowerCase()),
+    )
     if (siblingNames.has(name.toLowerCase())) {
       setError('Duplicate name: an item with this name already exists in this folder.')
       return
@@ -374,7 +448,10 @@ function Documents(): ReactElement {
 
     try {
       const session = getCurrentSession()
-      if (!session) { setError('Authentication required'); return }
+      if (!session) {
+        setError('Authentication required')
+        return
+      }
 
       const authToken = `Bearer ${session.token}`
       const newFile = await createDocument(name, 'file', currentFolderId, authToken)
@@ -403,14 +480,16 @@ function Documents(): ReactElement {
 
     const validNamePattern = /^[A-Za-z0-9 _.-]+$/
     if (!validNamePattern.test(name)) {
-      setError('Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.')
+      setError(
+        'Invalid name: only letters, numbers, spaces, dot (.), hyphen (-), and underscore (_) are allowed.',
+      )
       return
     }
 
     const siblingNames = new Set(
       currentItems
-        .filter(i => i.id !== selectedItem.id)
-        .map(i => i.name.trim().toLowerCase()),
+        .filter((i) => i.id !== selectedItem.id)
+        .map((i) => i.name.trim().toLowerCase()),
     )
     if (siblingNames.has(name.toLowerCase())) {
       setError('Duplicate name: an item with this name already exists in this folder.')
@@ -478,10 +557,23 @@ function Documents(): ReactElement {
       const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
       if (diffInSeconds < 0) return 'In the future'
       if (diffInSeconds < 60) return 'Just now'
-      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minute${Math.floor(diffInSeconds / 60) !== 1 ? 's' : ''} ago`
-      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hour${Math.floor(diffInSeconds / 3600) !== 1 ? 's' : ''} ago`
-      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} day${Math.floor(diffInSeconds / 86400) !== 1 ? 's' : ''} ago`
-      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+      if (diffInSeconds < 3600)
+        return `${Math.floor(diffInSeconds / 60)} minute${
+          Math.floor(diffInSeconds / 60) !== 1 ? 's' : ''
+        } ago`
+      if (diffInSeconds < 86400)
+        return `${Math.floor(diffInSeconds / 3600)} hour${
+          Math.floor(diffInSeconds / 3600) !== 1 ? 's' : ''
+        } ago`
+      if (diffInSeconds < 604800)
+        return `${Math.floor(diffInSeconds / 86400)} day${
+          Math.floor(diffInSeconds / 86400) !== 1 ? 's' : ''
+        } ago`
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
     } catch {
       return dateString
     }
@@ -539,14 +631,19 @@ function Documents(): ReactElement {
                   <Folder className="h-8 w-8 text-blue-500" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xl font-semibold text-gray-900 truncate">{currentFolder.name}</div>
+                  <div className="text-xl font-semibold text-gray-900 truncate">
+                    {currentFolder.name}
+                  </div>
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                     <span>Owned by</span>
                     <div className="flex items-center space-x-2">
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium ${getRoleColor(currentFolder.ownedBy.role)}`}
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium ${getRoleColor(
+                          currentFolder.ownedBy.role,
+                        )}`}
                       >
-                        {currentFolder.ownedBy.avatar ?? getInitials(currentFolder.ownedBy.name)}
+                        {currentFolder.ownedBy.avatar ??
+                          getInitials(currentFolder.ownedBy.name)}
                       </div>
                       <span className="font-medium">{currentFolder.ownedBy.name}</span>
                     </div>
@@ -556,7 +653,9 @@ function Documents(): ReactElement {
             ) : (
               <>
                 <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
-                <p className="text-gray-600 mt-1">Manage your documents, folders, and files in one centralized location.</p>
+                <p className="text-gray-600 mt-1">
+                  Manage your documents, folders, and files in one centralized location.
+                </p>
               </>
             )}
           </div>
@@ -570,22 +669,25 @@ function Documents(): ReactElement {
                   setShowPermissionModal(true)
                 }}
                 disabled={!canEditFolder}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${canEditFolder
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  }`}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${
+                  canEditFolder
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
               >
                 <Share2 className="w-4 h-4" />
                 <span>Share</span>
               </button>
             )}
-            <button
-              onClick={handleCreateFolder}
-              className="flex items-center space-x-2 px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create New Folder</span>
-            </button>
+            {!isSharedView && (
+              <button
+                onClick={handleCreateFolder}
+                className="flex items-center space-x-2 px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create New Folder</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -600,10 +702,11 @@ function Documents(): ReactElement {
                 setActiveFilter(category)
                 setCurrentPage(1)
               }}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeFilter === category
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                activeFilter === category
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
             >
               {category}
             </button>
@@ -619,7 +722,10 @@ function Documents(): ReactElement {
           />
           {globalQuery && (
             <button
-              onClick={() => { setGlobalQuery(''); setGlobalResults([]) }}
+              onClick={() => {
+                setGlobalQuery('')
+                setGlobalResults([])
+              }}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
               aria-label="Clear search"
             >
@@ -633,8 +739,16 @@ function Documents(): ReactElement {
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
           <div className="flex items-center">
-            <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <svg
+              className="w-5 h-5 text-red-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
             <p className="text-red-700 font-medium">{error}</p>
           </div>
@@ -664,11 +778,13 @@ function Documents(): ReactElement {
 
           {/* Results grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {globalResults.map(item => (
+            {globalResults.map((item) => (
               <div
                 key={item.id}
                 className="relative rounded-lg border border-gray-200 bg-white hover:shadow transition cursor-pointer"
-                onClick={() => { void handleOpenSearchItem(item) }}
+                onClick={() => {
+                  void handleOpenSearchItem(item)
+                }}
               >
                 {item.type === 'folder' ? (
                   <>
@@ -676,12 +792,15 @@ function Documents(): ReactElement {
                       <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
                         <Folder className="h-4 w-4 text-gray-700" />
                       </div>
-                      {/* Badge shared view (pakai itemPermissions dari currentItems; dibiarkan seperti sebelumnya) */}
+                      {/* Shared badge shown only in shared view */}
                       {isSharedView && (
-                        <div className={`absolute left-3 bottom-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
-                            ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                            : 'bg-gray-100 text-gray-700 border border-gray-200'
-                          }`}>
+                        <div
+                          className={`absolute left-3 bottom-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
+                            itemPermissions[item.id]
+                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                              : 'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}
+                        >
                           {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
                         </div>
                       )}
@@ -693,13 +812,16 @@ function Documents(): ReactElement {
                       </div>
                     </div>
                     <div className="px-4 py-3 text-xs text-gray-500">
-                      <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-700 mr-2">Folder</span>
+                      <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-700 mr-2">
+                        Folder
+                      </span>
                       <span className="truncate inline-block align-middle max-w-[70%]">
                         {item.path?.join(' / ') ?? '—'}
                       </span>
                     </div>
                   </>
                 ) : (
+                  // Keep search card simple for files
                   <div className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="text-sm font-semibold text-gray-900 line-clamp-2">
@@ -707,11 +829,14 @@ function Documents(): ReactElement {
                       </div>
                       <FileText className="w-4 h-4 text-gray-400" />
                     </div>
-                    {/* (Global results untuk file: tetap tanpa badge, mengikuti versi sebelumnya) */}
                     <div className="mt-3 h-24 bg-gray-100 rounded" aria-hidden="true" />
                     <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                       <div className="flex items-center space-x-2">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(item.ownedBy.role)}`}>
+                        <div
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(
+                            item.ownedBy.role,
+                          )}`}
+                        >
                           {getInitials(item.ownedBy.name)}
                         </div>
                         <span>{item.category || 'Uncategorized'}</span>
@@ -730,20 +855,40 @@ function Documents(): ReactElement {
           {isInitialLoad ? (
             <div className="px-6 py-16 text-center bg-white border border-gray-200">
               <div className="flex flex-col items-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" aria-label="Loading documents" />
+                <div
+                  className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"
+                  aria-label="Loading documents"
+                />
                 <p className="text-gray-600">Loading documents...</p>
               </div>
             </div>
           ) : error ? (
             <div className="px-6 py-16 text-center bg-white border border-gray-200">
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4" aria-label="Error indicator">
-                  <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <div
+                  className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4"
+                  aria-label="Error indicator"
+                >
+                  <svg
+                    className="w-8 h-8 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Documents</h3>
-                <p className="text-gray-500 mb-6 max-w-sm">There was an error loading your documents. Please check your connection and try again.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Failed to Load Documents
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-sm">
+                  There was an error loading your documents. Please check your connection and try again.
+                </p>
                 <button
                   onClick={() => window.location.reload()}
                   className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
@@ -761,199 +906,350 @@ function Documents(): ReactElement {
                   <h2 className="text-sm font-semibold text-gray-700">Folders</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {paginatedItems.filter(i => i.type === 'folder').map((item) => (
-                    <div
-                      key={item.id}
-                      className="group relative rounded-xl border border-gray-200 bg-white hover:shadow transition cursor-pointer"
-                      onClick={() => handleItemClick(item)}
-                    >
-                      <div className="relative h-28 bg-gradient-to-br from-gray-900 via-gray-800 to-slate-600 px-4 pt-3">
-                        <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
-                          <Folder className="h-4 w-4 text-gray-700" />
-                        </div>
-                        {/* Badge shared view — posisi OK */}
-                        {isSharedView && (
-                          <div className={`absolute left-3 bottom-3 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
-                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                              : 'bg-gray-100 text-gray-700 border border-gray-200'
-                            }`}>
-                            {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
-                          </div>
-                        )}
-                        <div className="absolute right-4 top-9 text-xs text-white/90">
-                          {(itemCounts[item.id] ?? 0)} documents
-                        </div>
-                        <div className="mt-8 text-white font-semibold leading-snug line-clamp-2 pr-4">
-                          {item.name}
-                        </div>
-                      </div>
-                      <div className="bg-white px-4 py-3 flex items-center justify-between">
-                        <span className="text-sm text-gray-700">Contributor:</span>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-7 h-7 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
-                            {getInitials(item.ownedBy.name)}
-                          </div>
-                        </div>
-                      </div>
+                  {paginatedItems
+                    .filter((i) => i.type === 'folder')
+                    .map((item) => {
+                      const showDots =
+                        !isSharedView || itemPermissions[item.id] || isOwner(item) // in My Documents: always (owner), in Shared: only editors/owner
+                      const showBadge = isSharedView // only in Shared with Me
 
-                      {/* 3-dots hanya untuk editor/owner; viewer: tidak ditampilkan */}
-                      {(itemPermissions[item.id] || isOwner(item)) && (
-                        <>
-                          <button
-                            onClick={(e) => handleShowActions(item.id, e)}
-                            className="absolute right-2 top-2 p-1 rounded hover:bg-white/10 text-white/80 opacity-0 group-hover:opacity-100 transition"
-                            aria-label={`Actions for ${item.name}`}
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-                          {showActionsDropdown === item.id && (
+                      return (
+                        <div
+                          key={item.id}
+                          className="group relative rounded-xl border border-gray-200 bg-white hover:shadow transition cursor-pointer"
+                          onClick={() => handleItemClick(item)}
+                        >
+                          <div className="relative h-28 bg-gradient-to-br from-gray-900 via-gray-800 to-slate-600 px-4 pt-3 rounded-t-xl">
+                            <div className="absolute left-3 top-3 h-7 w-7 rounded-full bg-white/95 flex items-center justify-center shadow">
+                              <Folder className="h-4 w-4 text-gray-700" />
+                            </div>
+
+                            {showDots && (
+                              <button
+                                onClick={(e) => handleShowActions(item.id, e)}
+                                className="absolute right-2 top-2 p-1 rounded hover:bg-white/10 text-white/80 transition"
+                                aria-label={`Actions for ${item.name}`}
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {showBadge && (
+                              <div
+                                className={`absolute ${showDots ? 'right-10' : 'right-2'} top-2 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
+                                  itemPermissions[item.id]
+                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                                }`}
+                              >
+                                {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                              </div>
+                            )}
+
+                            {/* Title & count zone */}
+                            <div className="mt-8 text-white font-semibold leading-snug line-clamp-2 pr-4">
+                              {item.name}
+                            </div>
+                            <div className="mt-1 text-xs text-white/70">
+                              {(itemCounts[item.id] ?? 0)} items
+                            </div>
+                          </div>
+
+
+                          <div className="bg-white px-4 py-3 flex items-center justify-between rounded-b-xl">
+                            <span className="text-sm text-gray-700">
+                              Contributor
+                              {(contributorsMap[item.id]?.length ?? 0) > 1 ? 's' : ''}:
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              {(() => {
+                                const names = contributorsMap[item.id] ?? [item.ownedBy.name]
+                                const count = names.length
+                                if (count <= 1) {
+                                  return (
+                                    <span className="text-sm text-gray-700">
+                                      {names[0]}
+                                    </span>
+                                  )
+                                }
+                                const maxCircles = 3
+                                const circles = names.slice(0, maxCircles).map((n, idx) => (
+                                  <div
+                                    key={`${item.id}-c-${idx}`}
+                                    className="w-6 h-6 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center"
+                                  >
+                                    {getInitials(n)}
+                                  </div>
+                                ))
+                                if (count > maxCircles) {
+                                  circles[maxCircles - 1] = (
+                                    <button
+                                      key={`${item.id}-more`}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setContributorsForName(item.name)
+                                        setContributorsList(names.map((n) => `${n}`))
+                                        setContributorsError(null)
+                                        setContributorsLoading(false)
+                                        setShowContributors(true)
+                                      }}
+                                      className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-[10px] font-semibold flex items-center justify-center"
+                                      title="View all contributors"
+                                    >
+                                      +{count - (maxCircles - 1)}
+                                    </button>
+                                  )
+                                }
+                                return circles
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* 3-dots dropdown for folder (only when allowed) */}
+                          {showDots && showActionsDropdown === item.id && (
                             <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
                               <div className="py-1">
-                                <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
+                                {/* Rename: allowed only if editor/owner (viewer has no 3-dots anyway here) */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleMove(item) }}
-                                  disabled={!itemPermissions[item.id]}
-                                  className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRename(item)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                                >
+                                  Rename
+                                </button>
+
+                                {/* Move: owner only */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleMove(item)
+                                  }}
+                                  disabled={!isOwner(item)}
+                                  title={!isOwner(item) ? 'Only the owner can move this item' : undefined}
+                                  className={`w-full text-left px-4 py-2 text-sm ${
+                                    isOwner(item)
                                       ? 'hover:bg-gray-50 text-gray-900'
                                       : 'text-gray-400 cursor-not-allowed'
-                                    }`}
+                                  }`}
                                 >
                                   Move to Folder
                                 </button>
+
+
+                                {/* Delete: owner only */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); if (isOwner(item)) handleDelete(item) }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (isOwner(item)) handleDelete(item)
+                                  }}
                                   disabled={!isOwner(item)}
                                   title={!isOwner(item) ? 'Only the owner can delete' : undefined}
-                                  className={`w-full text-left px-4 py-2 text-sm ${isOwner(item)
+                                  className={`w-full text-left px-4 py-2 text-sm ${
+                                    isOwner(item)
                                       ? 'text-red-600 hover:bg-red-50'
                                       : 'text-gray-400 cursor-not-allowed'
-                                    }`}
+                                  }`}
                                 >
                                   Delete
                                 </button>
+
+                                {/* Share: require editor */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleShare(item) }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleShare(item)
+                                  }}
                                   disabled={!itemPermissions[item.id]}
-                                  className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
+                                  className={`w-full text-left px-4 py-2 text-sm ${
+                                    itemPermissions[item.id]
                                       ? 'hover:bg-gray-50 text-gray-900'
                                       : 'text-gray-400 cursor-not-allowed'
-                                    }`}
+                                  }`}
                                 >
                                   Share
                                 </button>
                               </div>
                             </div>
                           )}
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        </div>
+                      )
+                    })}
                 </div>
               </div>
 
-              {/* Documents */}
+              {/* Documents (FILES) */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-gray-700">Documents</h2>
-                  <button onClick={handleCreateFile} className="hidden sm:inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50">
-                    <Plus className="w-4 h-4" />
-                    <span>Add New Document</span>
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {paginatedItems.filter(i => i.type === 'file').map((item) => (
-                    <div
-                      key={item.id}
-                      className="relative rounded-lg border border-gray-200 bg-white hover:shadow transition cursor-pointer"
-                      onClick={() => handleItemClick(item)}
+                  {!isSharedView && (
+                    <button
+                      onClick={handleCreateFile}
+                      className="hidden sm:inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
                     >
-                      <div className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="text-sm font-semibold text-gray-900 line-clamp-2">
-                            {item.name}
+                      <Plus className="w-4 h-4" />
+                      <span>Add New Document</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {paginatedItems
+                    .filter((i) => i.type === 'file')
+                    .map((item) => {
+                      // My Documents: no badge, dots always (owner)
+                      // Shared with Me: badge visible; dots only for editor/owner
+                      const showDots =
+                        !isSharedView || itemPermissions[item.id] || isOwner(item)
+                      const showBadge = isSharedView
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="relative rounded-lg border border-gray-200 bg-white hover:shadow transition cursor-pointer"
+                          onClick={() => handleItemClick(item)}
+                        >
+                          {/* Header row inside card (icon left, top-right area for dots/badge) */}
+                          <div className="p-4 pb-0">
+                            <div className="relative">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-7 w-7 rounded-lg bg-gray-100 flex items-center justify-center">
+                                  <FileText className="w-4 h-4 text-gray-600" />
+                                </div>
+                              </div>
+
+                              {/* Top-right: 3-dots and/or badge */}
+                              {showDots && (
+                                <button
+                                  onClick={(e) => handleShowActions(item.id, e)}
+                                  className="absolute right-2 top-0 p-1 rounded hover:bg-gray-100 text-gray-600"
+                                  aria-label={`Actions for ${item.name}`}
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </button>
+                              )}
+                              {showBadge && (
+                                <div
+                                  className={`absolute ${
+                                    showDots ? 'right-10' : 'right-2'
+                                  } top-0 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${
+                                    itemPermissions[item.id]
+                                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                      : 'bg-gray-100 text-gray-700 border border-gray-200'
+                                  }`}
+                                >
+                                  {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          {/* 3-dots hanya untuk editor/owner */}
-                          {(itemPermissions[item.id] || isOwner(item)) && (
-                            <button
-                              onClick={(e) => handleShowActions(item.id, e)}
-                              className="text-gray-500 hover:text-gray-700"
-                              aria-label={`Actions for ${item.name}`}
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
+                          {/* Body */}
+                          <div className="p-4 pt-2">
+                            <div className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
+                              {item.name}
+                            </div>
+                            <div className="text-xs text-gray-500 mb-3">
+                              Last edited {formatDate(item.lastModified)}
+                            </div>
 
-                        {/* Preview abu-abu + badge Viewer/Editor pojok kanan atas (hanya Shared view) */}
-                        <div className="mt-3 relative h-28 bg-gray-100 rounded-md" aria-hidden="true">
-                          {isSharedView && (
-                            <div className={`absolute right-2 top-2 text-[10px] px-2 py-0.5 rounded-full font-medium shadow ${itemPermissions[item.id]
-                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                : 'bg-gray-100 text-gray-700 border border-gray-200'
-                              }`}>
-                              {itemPermissions[item.id] ? 'Editor' : 'Viewer'}
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                              <div className="flex items-center space-x-2">
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(
+                                    item.ownedBy.role,
+                                  )}`}
+                                >
+                                  {getInitials(item.ownedBy.name)}
+                                </div>
+                                <span>
+                                  Created by{' '}
+                                  <span className="font-medium text-gray-700">
+                                    {item.ownedBy.name}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Dropdown only when allowed */}
+                          {showDots && showActionsDropdown === item.id && (
+                            <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
+                              <div className="py-1">
+                                {/* Rename: viewers get no 3 dots in Shared; in My Docs it’s allowed */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRename(item)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                                >
+                                  Rename
+                                </button>
+                                {/* Move: owner only */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleMove(item)
+                                  }}
+                                  disabled={!isOwner(item)}
+                                  title={!isOwner(item) ? 'Only the owner can move this item' : undefined}
+                                  className={`w-full text-left px-4 py-2 text-sm ${
+                                    isOwner(item)
+                                      ? 'hover:bg-gray-50 text-gray-900'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  Move to Folder
+                                </button>
+
+                                {/* Delete: owner only */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (isOwner(item)) handleDelete(item)
+                                  }}
+                                  disabled={!isOwner(item)}
+                                  title={!isOwner(item) ? 'Only the owner can delete' : undefined}
+                                  className={`w-full text-left px-4 py-2 text-sm ${
+                                    isOwner(item)
+                                      ? 'text-red-600 hover:bg-red-50'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  Delete
+                                </button>
+                                {/* Share: require editor */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleShare(item)
+                                  }}
+                                  disabled={!itemPermissions[item.id]}
+                                  className={`w-full text-left px-4 py-2 text-sm ${
+                                    itemPermissions[item.id]
+                                      ? 'hover:bg-gray-50 text-gray-900'
+                                      : 'text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  Share
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
-
-                        <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] ${getRoleColor(item.ownedBy.role)}`}>{getInitials(item.ownedBy.name)}</div>
-                            <span>Created by {item.ownedBy.name}</span>
-                          </div>
-                          <span>Updated {formatDate(item.lastModified)}</span>
-                        </div>
-                      </div>
-
-                      {/* Dropdown hanya muncul jika editor/owner */}
-                      {(itemPermissions[item.id] || isOwner(item)) && showActionsDropdown === item.id && (
-                        <div className="absolute right-2 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-[100]">
-                          <div className="py-1">
-                            <button onClick={(e) => { e.stopPropagation(); handleRename(item) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Rename</button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleMove(item) }}
-                              disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
-                                  ? 'hover:bg-gray-50 text-gray-900'
-                                  : 'text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                              Move to Folder
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); if (isOwner(item)) handleDelete(item) }}
-                              disabled={!isOwner(item)}
-                              title={!isOwner(item) ? 'Only the owner can delete' : undefined}
-                              className={`w-full text-left px-4 py-2 text-sm ${isOwner(item)
-                                  ? 'text-red-600 hover:bg-red-50'
-                                  : 'text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleShare(item) }}
-                              disabled={!itemPermissions[item.id]}
-                              className={`w-full text-left px-4 py-2 text-sm ${itemPermissions[item.id]
-                                  ? 'hover:bg-gray-50 text-gray-900'
-                                  : 'text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                              Share
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                      )
+                    })}
                 </div>
               </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-between mt-6">
                 <div className="flex items-center space-x-2">
-                  <label htmlFor="rowsPerPage" className="text-sm text-gray-700">Rows per page</label>
+                  <label htmlFor="rowsPerPage" className="text-sm text-gray-700">
+                    Rows per page
+                  </label>
                   <select
                     id="rowsPerPage"
                     value={rowsPerPage}
@@ -987,10 +1283,11 @@ function Documents(): ReactElement {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-1 text-sm border ${currentPage === page
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'border-gray-300 hover:bg-gray-50'
-                          }`}
+                        className={`px-3 py-1 text-sm border ${
+                          currentPage === page
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
                       >
                         {page}
                       </button>
@@ -1010,7 +1307,9 @@ function Documents(): ReactElement {
                   )}
 
                   <button
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                    }
                     disabled={currentPage === totalPages}
                     className="px-3 py-1 text-sm border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -1024,13 +1323,63 @@ function Documents(): ReactElement {
       )}
 
       {/* Modals */}
+      {/* Contributors Modal */}
+      {showContributors && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-[420px] max-w-[90vw]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-medium text-gray-900">Contributors</h3>
+              <button
+                onClick={() => setShowContributors(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-sm text-gray-500 mb-4">{contributorsForName}</div>
+            {contributorsLoading && (
+              <div className="text-sm text-gray-600">Loading...</div>
+            )}
+            {contributorsError && (
+              <div className="text-sm text-red-600">{contributorsError}</div>
+            )}
+            {!contributorsLoading && !contributorsError && (
+              <ul className="list-disc pl-5 space-y-2 text-sm text-gray-800">
+                {contributorsList.length === 0 ? (
+                  <li>No contributors.</li>
+                ) : (
+                  contributorsList.map((n, i) => <li key={`${n}-${i}`}>{n}</li>)
+                )}
+              </ul>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowContributors(false)}
+                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCreateFolder && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Folder</h3>
-            <form onSubmit={(e) => { void handleCreateFolderSubmit(e) }}>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Create New Folder
+            </h3>
+            <form
+              onSubmit={(e) => {
+                void handleCreateFolderSubmit(e)
+              }}
+            >
               <div className="mb-4">
-                <label htmlFor="folderName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="folderName"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Folder Name
                 </label>
                 <input
@@ -1066,10 +1415,19 @@ function Documents(): ReactElement {
       {showCreateFile && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Document</h3>
-            <form onSubmit={(e) => { void handleCreateFileSubmit(e) }}>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Add New Document
+            </h3>
+            <form
+              onSubmit={(e) => {
+                void handleCreateFileSubmit(e)
+              }}
+            >
               <div className="mb-4">
-                <label htmlFor="fileName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="fileName"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Document Name
                 </label>
                 <input
@@ -1108,9 +1466,16 @@ function Documents(): ReactElement {
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Rename {selectedItem.type === 'folder' ? 'Folder' : 'File'}
             </h3>
-            <form onSubmit={(e) => { void handleRenameSubmit(e) }}>
+            <form
+              onSubmit={(e) => {
+                void handleRenameSubmit(e)
+              }}
+            >
               <div className="mb-4">
-                <label htmlFor="itemName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="itemName"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   {selectedItem.type === 'folder' ? 'Folder' : 'File'} Name
                 </label>
                 <input
@@ -1150,7 +1515,8 @@ function Documents(): ReactElement {
             </h3>
             <p className="text-gray-600 mb-6">
               Are you sure you want to delete &quot;{selectedItem.name}&quot;?
-              {selectedItem.type === 'folder' && ' This will also delete all items inside this folder.'}{' '}
+              {selectedItem.type === 'folder' &&
+                ' This will also delete all items inside this folder.'}{' '}
               This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
@@ -1161,7 +1527,9 @@ function Documents(): ReactElement {
                 Cancel
               </button>
               <button
-                onClick={() => { void handleDeleteConfirm() }}
+                onClick={() => {
+                  void handleDeleteConfirm()
+                }}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
                 Delete
@@ -1193,6 +1561,7 @@ function Documents(): ReactElement {
             const updatedItems = await getDocumentsByParentId(currentFolderId)
             setCurrentItems(updatedItems)
             await refreshItemPermissions(updatedItems)
+
             if (selectedItem.type === 'folder') {
               const counts = { ...itemCounts }
               if (selectedItem.parentId !== currentFolderId) {
@@ -1208,3 +1577,4 @@ function Documents(): ReactElement {
 }
 
 export default Documents
+
