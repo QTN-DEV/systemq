@@ -516,8 +516,6 @@ function Documents(): ReactElement {
     return (): void => document.removeEventListener('click', handleClickOutside)
   }, [])
 
-  const isGlobalSearching = globalQuery.trim().length >= 2
-
   return (
     <div className="p-8">
       {/* Breadcrumbs */}
