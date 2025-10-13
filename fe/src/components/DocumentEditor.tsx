@@ -288,12 +288,21 @@ function DocumentEditor({
     })
   }
 
-  /** ---------- Autosave ---------- */
+  /** ---------- Autosave (debounced, skip identical snapshots) ---------- */
+  const lastEmittedSnapshotRef = useRef<string>(JSON.stringify(initialBlocks ?? []))
   useEffect((): (() => void) | void => {
-    if (onSave) {
-      const tid = setTimeout(() => onSave(blocks), 1000)
-      return () => clearTimeout(tid)
-    }
+    if (!onSave) return
+    const snapshot = JSON.stringify(blocks ?? [])
+    if (snapshot === lastEmittedSnapshotRef.current) return
+    const tid = setTimeout(() => {
+      // Emit only if still different at fire time
+      const currentSnapshot = JSON.stringify(blocks ?? [])
+      if (currentSnapshot !== lastEmittedSnapshotRef.current) {
+        lastEmittedSnapshotRef.current = currentSnapshot
+        onSave(blocks)
+      }
+    }, 1500)
+    return () => clearTimeout(tid)
   }, [blocks, onSave])
 
   /** ---------- Outside click + Esc ---------- */

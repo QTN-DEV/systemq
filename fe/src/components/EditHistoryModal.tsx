@@ -10,9 +10,81 @@ interface EditHistoryModalProps {
 }
 
 function EditHistoryModal({ isOpen, onClose, events, error }: EditHistoryModalProps): ReactElement {
-  const sorted = useMemo(() => {
-    if (!events) return []
-    return [...events].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+  // Group by date buckets and editor within small time windows (e.g., 5 minutes)
+  const grouped = useMemo(() => {
+    if (!events || events.length === 0) return [] as Array<{
+      dateLabel: string
+      entries: Array<{ editorName: string; count: number; startMs: number; endMs: number }>
+    }>
+
+    const byDay: Record<string, EditHistoryEvent[]> = {}
+    const sortedAsc = [...events].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+
+    for (const e of sortedAsc) {
+      const d = new Date(e.at)
+      const key = d.toDateString()
+      if (!byDay[key]) byDay[key] = []
+      byDay[key].push(e)
+    }
+
+    const result: Array<{ dateLabel: string; entries: Array<{ editorName: string; count: number; startMs: number; endMs: number }> }> = []
+
+    for (const [dateLabel, dayEvents] of Object.entries(byDay)) {
+      // Within the day, group consecutive events by same editor within 5 minutes window
+      const entries: Array<{ editorName: string; count: number; startMs: number; endMs: number }> = []
+      let windowStart: Date | null = null
+      let windowEnd: Date | null = null
+      let currentEditor: string | null = null
+      let currentCount = 0
+
+      const flush = () => {
+        if (currentEditor && windowStart && windowEnd) {
+          entries.push({
+            editorName: currentEditor,
+            count: currentCount,
+            startMs: windowStart.getTime(),
+            endMs: windowEnd.getTime(),
+          })
+        }
+        windowStart = null
+        windowEnd = null
+        currentEditor = null
+        currentCount = 0
+      }
+
+      for (const e of dayEvents) {
+        const t = new Date(e.at)
+        if (!currentEditor) {
+          currentEditor = e.editor.name
+          windowStart = t
+          windowEnd = t
+          currentCount = 1
+          continue
+        }
+        const isSameEditor = currentEditor === e.editor.name
+        const diffMs = t.getTime() - (windowEnd?.getTime() ?? t.getTime())
+        const withinFiveMin = diffMs <= 5 * 60 * 1000
+        if (isSameEditor && withinFiveMin) {
+          currentCount += 1
+          windowEnd = t
+        } else {
+          flush()
+          currentEditor = e.editor.name
+          windowStart = t
+          windowEnd = t
+          currentCount = 1
+        }
+      }
+      flush()
+
+      // Latest groups first within the day by end time
+      entries.sort((a, b) => b.endMs - a.endMs)
+      result.push({ dateLabel, entries })
+    }
+
+    // Latest day first
+    result.sort((a, b) => new Date(a.dateLabel).getTime() < new Date(b.dateLabel).getTime() ? 1 : -1)
+    return result
   }, [events])
 
   if (!isOpen) return <></>
@@ -36,18 +108,30 @@ function EditHistoryModal({ isOpen, onClose, events, error }: EditHistoryModalPr
             <div className="text-sm text-gray-500">No edit history.</div>
           )}
 
-          {!error && sorted.length > 0 && (
-            <ul className="divide-y divide-gray-100">
-              {sorted.map((e, idx) => (
-                <li key={`${e.editor.id}-${e.at}-${idx}`} className="py-3">
-                  <div className="text-sm text-gray-900">
-                    <span className="font-medium">{e.editor.name}</span>
-                    <span className="text-gray-500"> edited</span>
-                  </div>
-                  <div className="text-xs text-gray-500">{new Date(e.at).toLocaleString()}</div>
-                </li>
+          {!error && grouped.length > 0 && (
+            <div className="space-y-4">
+              {grouped.map((g) => (
+                <div key={g.dateLabel}>
+                  <div className="text-xs font-semibold text-gray-500 mb-1">{g.dateLabel}</div>
+                  <ul className="divide-y divide-gray-100">
+                    {g.entries.map((entry, i) => (
+                      <li key={`${g.dateLabel}-${entry.editorName}-${i}`} className="py-3">
+                        <div className="text-sm text-gray-900">
+                          <span className="font-medium">{entry.editorName}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {(() => {
+                            const startStr = new Date(entry.startMs).toLocaleTimeString()
+                            const endStr = new Date(entry.endMs).toLocaleTimeString()
+                            return entry.startMs === entry.endMs ? startStr : `${startStr}–${endStr}`
+                          })()}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
 

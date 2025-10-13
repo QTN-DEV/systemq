@@ -36,6 +36,7 @@ function DocumentEditorPage(): ReactElement {
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState<EditHistoryEvent[] | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [idleCommitTimer, setIdleCommitTimer] = useState<number | null>(null)
 
   const isBlocksEqual = (a: DocumentBlock[] | undefined, b: DocumentBlock[]): boolean => {
     try {
@@ -77,6 +78,21 @@ function DocumentEditorPage(): ReactElement {
     void loadDocument()
   }, [fileId, getCurrentSession, navigate])
 
+  const scheduleIdleCommit = (blocksForCommit: DocumentBlock[]): void => {
+    if (idleCommitTimer) {
+      window.clearTimeout(idleCommitTimer)
+    }
+    const tid = window.setTimeout(() => {
+      if (fileId && document && !isBlocksEqual(document.content, blocksForCommit)) {
+        void updateDocumentContent(fileId, {
+          category: documentCategory ? documentCategory : null,
+          content: blocksForCommit,
+        }, { commit: true })
+      }
+    }, 10000) // 10s idle commit window
+    setIdleCommitTimer(tid)
+  }
+
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
     setBlocks(newBlocks)
     if (fileId && document) {
@@ -86,17 +102,15 @@ function DocumentEditorPage(): ReactElement {
         const updatedDoc = await updateDocumentContent(fileId, {
           category: documentCategory ? documentCategory : null,
           content: newBlocks
-        })
+        }, { commit: false })
         if (updatedDoc) {
+          // Trust server response and avoid immediate refetch to reduce noise
           setDocument(updatedDoc)
-          // Refetch to avoid stale/partial responses
-          const fresh = await getDocumentById(fileId, null)
-          if (fresh) {
-            setDocument(fresh)
-            if (Array.isArray(fresh.content) && fresh.content.length > 0) {
-              setBlocks(fresh.content)
-            }
+          if (Array.isArray(updatedDoc.content) && updatedDoc.content.length > 0) {
+            setBlocks(updatedDoc.content)
           }
+          // schedule an idle commit summarizing recent autosaves
+          scheduleIdleCommit(updatedDoc.content || newBlocks)
         }
       } catch (error) {
         logger.error('Failed to save document:', error)
@@ -107,14 +121,15 @@ function DocumentEditorPage(): ReactElement {
   // Flush pending edits when leaving the page (autosave debounce gets cleared on unmount)
   useEffect(() => {
     return () => {
+      if (idleCommitTimer) window.clearTimeout(idleCommitTimer)
       if (fileId && document && !isBlocksEqual(document.content, blocks)) {
         void updateDocumentContent(fileId, {
           category: documentCategory ? documentCategory : null,
           content: blocks,
-        })
+        }, { commit: true })
       }
     }
-  }, [fileId, document, blocks, documentCategory])
+  }, [fileId, document, blocks, documentCategory, idleCommitTimer])
 
   const handleNameChange = async (newName: string): Promise<void> => {
     setFileName(newName)

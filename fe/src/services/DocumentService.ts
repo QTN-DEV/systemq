@@ -471,12 +471,16 @@ export interface UpdateDocumentContentPayload {
 // Update document content (for files only)
 export async function updateDocumentContent(
   documentId: string,
-  payload: UpdateDocumentContentPayload
+  payload: UpdateDocumentContentPayload,
+  options?: { commit?: boolean }
 ): Promise<DocumentItem | null> {
   try {
     const response = await api.patch<ApiDocumentItem>(
       `/documents/${encodeURIComponent(documentId)}`,
-      payload
+      payload,
+      {
+        params: options?.commit !== undefined ? { commit: options.commit ? 'true' : 'false' } : undefined,
+      }
     );
     return transformApiDocument(response.data);
   } catch (error) {
