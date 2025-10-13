@@ -452,7 +452,6 @@ async def update_document(
         changes["share_url"] = {"old": document.share_url, "new": payload["share_url"]}
         document.share_url = payload["share_url"]
     if "content" in payload and payload["content"] != document.content:
-        print("APA", payload["content"], document.content)
         new_content = payload["content"] if payload["content"] is not None else []
         changes["content"] = {"old": document.content, "new": new_content}
         document.content = new_content
