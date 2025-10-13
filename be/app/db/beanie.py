@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from app.models import (
     DocumentHistory,
     DocumentItem,
+    EditHistoryEvent,
     PasswordResetToken,
     Project,
     SessionToken,
@@ -40,6 +41,7 @@ async def init_database() -> None:
             SessionToken,
             DocumentItem,
             DocumentHistory,
+            EditHistoryEvent,
         ],
     )
 

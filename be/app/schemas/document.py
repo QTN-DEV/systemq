@@ -48,6 +48,7 @@ class DocumentResponse(DocumentBase):
     owned_by: DocumentOwnerSchema
     date_created: datetime
     last_modified: datetime
+    last_modified_by: dict | None = None
     size: str | None = None
     item_count: int | None = None
     path: list[str] = Field(default_factory=list)

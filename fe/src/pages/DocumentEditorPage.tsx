@@ -17,9 +17,10 @@ import {
   updateDocumentContent,
   renameDocument,
 } from '../services/DocumentService'
-import { getDocumentAccess } from '../services/DocumentService' // <-- ADD
+import { getDocumentAccess, getDocumentHistory } from '../services/DocumentService' // <-- ADD
 import { useAuthStore } from '../stores/authStore'
-import type { DocumentItem, DocumentBlock } from '../types/documents'
+import type { DocumentItem, DocumentBlock, EditHistoryEvent } from '../types/documents'
+import EditHistoryModal from '../components/EditHistoryModal'
 
 function DocumentEditorPage(): ReactElement {
   const { fileId } = useParams<{ fileId: string }>()
@@ -32,6 +33,18 @@ function DocumentEditorPage(): ReactElement {
   const [documentCategory, setDocumentCategory] = useState<string>('')
   const [showShareModal, setShowShareModal] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<EditHistoryEvent[] | null>(null)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [idleCommitTimer, setIdleCommitTimer] = useState<number | null>(null)
+
+  const isBlocksEqual = (a: DocumentBlock[] | undefined, b: DocumentBlock[]): boolean => {
+    try {
+      return JSON.stringify(a ?? []) === JSON.stringify(b)
+    } catch {
+      return false
+    }
+  }
 
   useEffect(() => {
     if (!fileId) return
@@ -65,22 +78,58 @@ function DocumentEditorPage(): ReactElement {
     void loadDocument()
   }, [fileId, getCurrentSession, navigate])
 
+  const scheduleIdleCommit = (blocksForCommit: DocumentBlock[]): void => {
+    if (idleCommitTimer) {
+      window.clearTimeout(idleCommitTimer)
+    }
+    const tid = window.setTimeout(() => {
+      if (fileId && document && !isBlocksEqual(document.content, blocksForCommit)) {
+        void updateDocumentContent(fileId, {
+          category: documentCategory ? documentCategory : null,
+          content: blocksForCommit,
+        }, { commit: true })
+      }
+    }, 10000) // 10s idle commit window
+    setIdleCommitTimer(tid)
+  }
+
   const handleSave = async (newBlocks: DocumentBlock[]): Promise<void> => {
     setBlocks(newBlocks)
     if (fileId && document) {
+      // Guard: avoid overwriting with identical content (e.g., initial load)
+      if (isBlocksEqual(document.content, newBlocks)) return
       try {
         const updatedDoc = await updateDocumentContent(fileId, {
-          category: documentCategory,
+          category: documentCategory ? documentCategory : null,
           content: newBlocks
-        })
+        }, { commit: false })
         if (updatedDoc) {
+          // Trust server response and avoid immediate refetch to reduce noise
           setDocument(updatedDoc)
+          if (Array.isArray(updatedDoc.content) && updatedDoc.content.length > 0) {
+            setBlocks(updatedDoc.content)
+          }
+          // schedule an idle commit summarizing recent autosaves
+          scheduleIdleCommit(updatedDoc.content || newBlocks)
         }
       } catch (error) {
         logger.error('Failed to save document:', error)
       }
     }
   }
+
+  // Flush pending edits when leaving the page (autosave debounce gets cleared on unmount)
+  useEffect(() => {
+    return () => {
+      if (idleCommitTimer) window.clearTimeout(idleCommitTimer)
+      if (fileId && document && !isBlocksEqual(document.content, blocks)) {
+        void updateDocumentContent(fileId, {
+          category: documentCategory ? documentCategory : null,
+          content: blocks,
+        }, { commit: true })
+      }
+    }
+  }, [fileId, document, blocks, documentCategory, idleCommitTimer])
 
   const handleNameChange = async (newName: string): Promise<void> => {
     setFileName(newName)
@@ -104,12 +153,37 @@ function DocumentEditorPage(): ReactElement {
     }
     if (fileId && document) {
       try {
-        await updateDocumentContent(fileId, {
-          category: newCategory,
+        const updated = await updateDocumentContent(fileId, {
+          category: newCategory ? newCategory : null,
           content: blocks
         })
+        if (updated) {
+          setDocument(updated)
+          const fresh = await getDocumentById(fileId, null)
+          if (fresh) setDocument(fresh)
+        }
       } catch (error) {
         logger.error('Failed to save category:', error)
+      }
+    }
+  }
+
+  const openHistory = async (): Promise<void> => {
+    if (!fileId) return
+    setShowHistory(true)
+    setHistoryError(null)
+    try {
+      const events = await getDocumentHistory(fileId)
+      setHistory(events)
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 403) {
+        // hide UI if forbidden
+        setShowHistory(false)
+        setHistory(null)
+      } else {
+        setHistory([])
+        setHistoryError('Failed to load edit history')
       }
     }
   }
@@ -182,6 +256,14 @@ function DocumentEditorPage(): ReactElement {
               <Share2 className="w-4 h-4" />
               <span>Share</span>
             </button>
+            {(document?.ownedBy?.id === getCurrentSession()?.user.id || canEdit) && (
+              <button
+                onClick={() => { void openHistory() }}
+                className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded"
+              >
+                Edit History
+              </button>
+            )}
             {/* <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
               <MoreHorizontal className="w-5 h-5" />
             </button> */}
@@ -226,6 +308,15 @@ function DocumentEditorPage(): ReactElement {
               />
             </div>
 
+            {/* Meta line: Last modified */}
+            {document?.lastModified && (
+              <div className="text-sm text-gray-500 mb-2">
+                {document.lastModifiedBy?.name
+                  ? `Last modified by ${document.lastModifiedBy.name} at ${new Date(document.lastModified).toLocaleString()}`
+                  : `Last modified at ${new Date(document.lastModified).toLocaleString()}`}
+              </div>
+            )}
+
             {/* HR Line */}
             <hr className="border-gray-200 mb-6" />
 
@@ -246,6 +337,16 @@ function DocumentEditorPage(): ReactElement {
           onClose={() => setShowShareModal(false)}
           documentId={fileId}
           documentName={fileName || 'Untitled Document'}
+        />
+      )}
+
+      {/* Edit History Modal */}
+      {fileId && (
+        <EditHistoryModal
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          events={history}
+          error={historyError}
         />
       )}
     </div>

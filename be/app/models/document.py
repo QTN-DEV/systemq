@@ -30,6 +30,11 @@ class DocumentOwner(BaseModel):
     avatar: str | None = None
 
 
+class DocumentUserRef(BaseModel):
+    id: str
+    name: str
+
+
 class DocumentPermission(BaseModel):
     """Individual user permission for a document."""
     user_id: str
@@ -53,6 +58,7 @@ class DocumentItem(Document):
     status: Literal["active", "archived", "shared", "private"] = "active"
     date_created: datetime = Field(default_factory=_utcnow)
     last_modified: datetime = Field(default_factory=_utcnow)
+    last_modified_by: DocumentUserRef | None = None
     size: str | None = None
     item_count: int | None = None
     parent_id: str | None = None
@@ -92,3 +98,14 @@ class DocumentHistory(Document):
     class Settings:
         name = "document_history"
         indexes = ["document_id", "revision"]
+
+
+class EditHistoryEvent(Document):
+    document_id: str
+    editor_id: str
+    editor_name: str
+    at: datetime = Field(default_factory=_utcnow)
+
+    class Settings:
+        name = "edit_history"
+        indexes = ["document_id", "at"]
