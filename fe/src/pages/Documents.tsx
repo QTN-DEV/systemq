@@ -942,7 +942,7 @@ function Documents(): ReactElement {
                             {item.name}
                           </div>
                           <div className="text-xs text-gray-500 mb-3">
-                            Last edited {formatDate(item.lastModified)}
+                            Last edited {formatDate(item.lastModified ?? '')}
                           </div>
 
                           <div className="flex items-center justify-between text-xs text-gray-600">
