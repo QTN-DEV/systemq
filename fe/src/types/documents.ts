@@ -22,6 +22,7 @@ export interface DocumentOwner {
 export interface DocumentUserRef {
   id: string
   name: string
+  avatar?: string | null
 }
 
 export interface EditHistoryEvent {

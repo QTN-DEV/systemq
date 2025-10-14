@@ -16,11 +16,12 @@ import {
   getDocumentCategories,
   updateDocumentContent,
   renameDocument,
+  getDocumentAccess,
+  getDocumentHistory,
 } from '../services/DocumentService'
-import { getDocumentAccess, getDocumentHistory } from '../services/DocumentService' // <-- ADD
 import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBlock, EditHistoryEvent } from '../types/documents'
-import EditHistoryModal from '../components/EditHistoryModal'
+import EditHistorySidebar from '../components/EditHistorySidebar'
 
 function DocumentEditorPage(): ReactElement {
   const { fileId } = useParams<{ fileId: string }>()
@@ -172,6 +173,7 @@ function DocumentEditorPage(): ReactElement {
     if (!fileId) return
     setShowHistory(true)
     setHistoryError(null)
+    setHistory(null)
     try {
       const events = await getDocumentHistory(fileId)
       setHistory(events)
@@ -206,128 +208,144 @@ function DocumentEditorPage(): ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Breadcrumb Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <button
-              onClick={(): void => { void navigate('/documents') }}
-              className="hover:text-gray-700 transition-colors"
-            >
-              All Documents
-            </button>
-            <span>/</span>
-            {document?.parentId && (
-              <>
+    <>
+      <div className="h-screen min-h-screen bg-white flex">
+        <div className="flex flex-col flex-1 min-w-0 bg-white">
+          {/* Breadcrumb Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
+            <div className="flex items-center justify-between bg-white">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <button
-                  onClick={(): void => {
-                    if (document.parentId) {
-                      const navigateToParent = async (): Promise<void> => {
-                        try {
-                          const parentPathIds = await getFolderPathIds(document.parentId ?? null)
-                          const parentPath = parentPathIds.join('/')
-                          void navigate(`/documents/${parentPath}`)
-                        } catch {
-                          // jika parent tidak bisa diakses, biarkan tetap di halaman ini
-                        }
-                      }
-                      void navigateToParent()
-                    }
-                  }}
+                  onClick={(): void => { void navigate('/documents') }}
                   className="hover:text-gray-700 transition-colors"
                 >
-                  {document.path.length > 0 ? document.path[document.path.length - 1] : 'Documents'}
+                  All Documents
                 </button>
                 <span>/</span>
-              </>
-            )}
-            <span className="text-gray-900 font-medium">{fileName || 'New Document'}</span>
-          </div>
-
-          {/* Share Button */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setShowShareModal(true)}
-              disabled={!canEdit}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${canEdit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
-            >
-              <Share2 className="w-4 h-4" />
-              <span>Share</span>
-            </button>
-            {(document?.ownedBy?.id === getCurrentSession()?.user.id || canEdit) && (
-              <button
-                onClick={() => { void openHistory() }}
-                className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded"
-              >
-                Edit History
-              </button>
-            )}
-            {/* <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
-              <MoreHorizontal className="w-5 h-5" />
-            </button> */}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="bg-white">
-        <div className="px-20 py-8">
-          {/* File Name (used as title) */}
-          <div className="mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <input
-                type="text"
-                value={fileName}
-                onChange={(e) => { void handleNameChange(e.target.value) }}
-                className="flex-1 text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400"
-                placeholder="Untitled Document"
-                readOnly={!canEdit}
-              />
-              {canEdit ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Editor
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  Viewer
-                </span>
-              )}
-            </div>
-
-            {/* Category Searchable Dropdown */}
-            <div className="flex items-center space-x-3 mb-6">
-              <SearchableDropdown
-                value={documentCategory}
-                placeholder="Add Category"
-                icon={Tag}
-                onSelect={(category) => { void handleCategoryChange(category) }}
-                fetchOptions={getDocumentCategories}
-                disabled={!canEdit}
-              />
-            </div>
-
-            {/* Meta line: Last modified */}
-            {document?.lastModified && (
-              <div className="text-sm text-gray-500 mb-2">
-                {document.lastModifiedBy?.name
-                  ? `Last modified by ${document.lastModifiedBy.name} at ${new Date(document.lastModified).toLocaleString()}`
-                  : `Last modified at ${new Date(document.lastModified).toLocaleString()}`}
+                {document?.parentId && (
+                  <>
+                    <button
+                      onClick={(): void => {
+                        if (document.parentId) {
+                          const navigateToParent = async (): Promise<void> => {
+                            try {
+                              const parentPathIds = await getFolderPathIds(document.parentId ?? null)
+                              const parentPath = parentPathIds.join('/')
+                              void navigate(`/documents/${parentPath}`)
+                            } catch {
+                              // jika parent tidak bisa diakses, biarkan tetap di halaman ini
+                            }
+                          }
+                          void navigateToParent()
+                        }
+                      }}
+                      className="hover:text-gray-700 transition-colors"
+                    >
+                      {document.path.length > 0 ? document.path[document.path.length - 1] : 'Documents'}
+                    </button>
+                    <span>/</span>
+                  </>
+                )}
+                <span className="text-gray-900 font-medium">{fileName || 'New Document'}</span>
               </div>
-            )}
 
-            {/* HR Line */}
-            <hr className="border-gray-200 mb-6" />
+              {/* Share Button */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  disabled={!canEdit}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${canEdit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Share</span>
+                </button>
+                {(document?.ownedBy?.id === getCurrentSession()?.user.id || canEdit) && !showHistory && (
+                  <button
+                    onClick={() => { void openHistory() }}
+                    className={`px-3 py-2 text-sm rounded transition-colors ${showHistory ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-blue-600 hover:bg-blue-50'
+                      }`}
+                  >
+                    {showHistory ? 'Hide Edit History' : 'Edit History'}
+                  </button>
+                )}
+                {/* <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
+                  <MoreHorizontal className="w-5 h-5" />
+                </button> */}
+              </div>
+            </div>
+          </div>
 
-            {/* Document Editor */}
-            <DocumentEditor
-              initialBlocks={blocks}
-              onSave={(newBlocks): void => { void handleSave(newBlocks) }}
-              readOnly={!canEdit}
-            />
+          {/* Main Content */}
+          <div className="flex flex-1 flex-col bg-white min-h-0 overflow-hidden">
+            <div className={`flex-1 min-h-0 overflow-y-auto transition-[padding] duration-300 ease-in-out ${showHistory ? 'xl:pr-8 2xl:pr-12' : ''}`}>
+              <div className="mx-auto w-full max-w-4xl px-6 py-8 lg:max-w-5xl lg:px-12 xl:px-16">
+                {/* File Name (used as title) */}
+                <div className="mb-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <input
+                      type="text"
+                      value={fileName}
+                      onChange={(e) => { void handleNameChange(e.target.value) }}
+                      className="flex-1 text-4xl font-bold text-gray-900 bg-transparent border-none outline-none placeholder-gray-400"
+                      placeholder="Untitled Document"
+                      readOnly={!canEdit}
+                    />
+                    {canEdit ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Editor
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Viewer
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Category Searchable Dropdown */}
+                  <div className="flex items-center space-x-3 mb-6">
+                    <SearchableDropdown
+                      value={documentCategory}
+                      placeholder="Add Category"
+                      icon={Tag}
+                      onSelect={(category) => { void handleCategoryChange(category) }}
+                      fetchOptions={getDocumentCategories}
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  {/* Meta line: Last modified */}
+                  {document?.lastModified && (
+                    <div className="text-sm text-gray-500 mb-2">
+                      {document.lastModifiedBy?.name
+                        ? `Last modified by ${document.lastModifiedBy.name} at ${new Date(document.lastModified).toLocaleString()}`
+                        : `Last modified at ${new Date(document.lastModified).toLocaleString()}`}
+                    </div>
+                  )}
+
+                  {/* HR Line */}
+                  <hr className="border-gray-200 mb-6" />
+
+                  {/* Document Editor */}
+                  <DocumentEditor
+                    initialBlocks={blocks}
+                    onSave={(newBlocks): void => { void handleSave(newBlocks) }}
+                    readOnly={!canEdit}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {showHistory && (
+          <EditHistorySidebar
+            isOpen={showHistory}
+            onClose={() => setShowHistory(false)}
+            events={history}
+            error={historyError}
+          />
+        )}
       </div>
 
       {/* Share Document Modal */}
@@ -339,17 +357,7 @@ function DocumentEditorPage(): ReactElement {
           documentName={fileName || 'Untitled Document'}
         />
       )}
-
-      {/* Edit History Modal */}
-      {fileId && (
-        <EditHistoryModal
-          isOpen={showHistory}
-          onClose={() => setShowHistory(false)}
-          events={history}
-          error={historyError}
-        />
-      )}
-    </div>
+    </>
   )
 }
 
