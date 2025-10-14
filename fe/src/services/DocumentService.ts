@@ -491,14 +491,10 @@ export async function updateDocumentContent(
 }
 
 // ===== EDIT HISTORY =====
-export async function getDocumentHistory(
-  id: string,
-): Promise<EditHistoryEvent[]> {
-  const session = useAuthStore.getState().getCurrentSession()
-  const res = await api.get<EditHistoryEvent[]>(`/documents/${encodeURIComponent(id)}/history`, {
-    headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
-    withCredentials: true,
-  })
+export async function getDocumentHistory(id: string): Promise<EditHistoryEvent[]> {
+  const res = await api.get<EditHistoryEvent[]>(
+    `/documents/${encodeURIComponent(id)}/history`
+  )
   if (res.status === 200) return res.data
   throw new Error('Failed to fetch edit history')
 }
