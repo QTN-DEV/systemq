@@ -272,17 +272,82 @@ function Documents(): ReactElement {
     () => filteredItems.slice(startIndex, startIndex + rowsPerPage),
     [filteredItems, startIndex, rowsPerPage],
   )
+  const foldersOnPage = useMemo(
+    () => paginatedItems.filter((item) => item.type === 'folder'),
+    [paginatedItems],
+  )
+  const documentsOnPage = useMemo(
+    () => paginatedItems.filter((item) => item.type === 'file'),
+    [paginatedItems],
+  )
+  const hasFolderResults = useMemo(
+    () => filteredItems.some((item) => item.type === 'folder'),
+    [filteredItems],
+  )
+  const hasDocumentResults = useMemo(
+    () => filteredItems.some((item) => item.type === 'file'),
+    [filteredItems],
+  )
+  const canCreateHere = !isSharedView && (currentFolderId ? canEditFolder : true)
+  const emptyState = useMemo(() => {
+    if (isInitialLoad || error || filteredItems.length > 0) return null
+
+    if (activeFilter !== 'All') {
+      return {
+        title: 'No documents match this category',
+        description: 'Try choosing a different category filter to see more files.',
+        showActions: false,
+      }
+    }
+
+    if (isSharedView) {
+      if (currentFolderId) {
+        return {
+          title: 'No shared items in this folder',
+          description: 'Only files that are shared with you will show up here.',
+          showActions: false,
+        }
+      }
+      return {
+        title: 'Nothing has been shared with you yet',
+        description: 'When teammates share folders or documents, they will appear in this list.',
+        showActions: false,
+      }
+    }
+
+    if (currentFolderId) {
+      return {
+        title: 'This folder is empty',
+        description: canCreateHere
+          ? 'Use the buttons below to add a new folder or document.'
+          : 'You can view this folder but do not have permission to add items.',
+        showActions: canCreateHere,
+      }
+    }
+
+    return {
+      title: 'Create your first document',
+      description: 'Start by adding a folder or document. Everything you create will appear here.',
+      showActions: canCreateHere,
+    }
+  }, [
+    activeFilter,
+    canCreateHere,
+    currentFolderId,
+    error,
+    filteredItems.length,
+    isInitialLoad,
+    isSharedView,
+  ])
 
   // dedupe prefetch
   const fetchedContribIdsRef = useRef<Set<string>>(new Set())
   useEffect(() => {
-    const toFetch = paginatedItems.filter(
-      (i) => i.type === 'folder' && !fetchedContribIdsRef.current.has(i.id),
-    )
+    const toFetch = foldersOnPage.filter((i) => !fetchedContribIdsRef.current.has(i.id))
     if (toFetch.length === 0) return
     toFetch.forEach((i) => fetchedContribIdsRef.current.add(i.id))
     void prefetchContributors(toFetch)
-  }, [paginatedItems, prefetchContributors])
+  }, [foldersOnPage, prefetchContributors])
 
   // helpers
   const getInitials = (name: string): string =>
@@ -759,6 +824,34 @@ function Documents(): ReactElement {
                 </button>
               </div>
             </div>
+          ) : emptyState ? (
+            <div className="px-6 py-16 text-center bg-white border border-gray-200">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
+                  <Folder className="w-7 h-7 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{emptyState.title}</h3>
+                <p className="text-gray-500 max-w-sm">{emptyState.description}</p>
+                {emptyState.showActions && (
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      onClick={handleCreateFolder}
+                      className="inline-flex items-center space-x-2 px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <Folder className="w-4 h-4" />
+                      <span>New Folder</span>
+                    </button>
+                    <button
+                      onClick={handleCreateFile}
+                      className="inline-flex items-center space-x-2 px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>New Document</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             <>
               {/* Folders */}
@@ -767,7 +860,25 @@ function Documents(): ReactElement {
                   <h2 className="text-sm font-semibold text-gray-700">Folders</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {paginatedItems.filter((i) => i.type === 'folder').map((item) => {
+                  {foldersOnPage.length === 0 ? (
+                    <div className="col-span-full">
+                      <div className="w-full rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
+                        <p className="text-sm font-medium text-gray-700 mb-1">
+                          {hasFolderResults
+                            ? 'No folders on this page.'
+                            : isSharedView
+                              ? 'No shared folders available.'
+                              : 'No folders yet.'}
+                        </p>
+                        {!hasFolderResults && canCreateHere && !isSharedView && (
+                          <p className="text-sm text-gray-500">Use “New Folder” to create one.</p>
+                        )}
+                        {hasFolderResults && totalPages > 1 && (
+                          <p className="text-xs text-gray-500">Try switching pages to see other folders.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : foldersOnPage.map((item) => {
                     const showDots = !isSharedView || itemPermissions[item.id] || isOwner(item)
                     const showBadge = isSharedView
                     const names = (contributorsMap[item.id] ?? [item.ownedBy?.name ?? 'Owner']).filter(Boolean).map(String)
@@ -899,7 +1010,25 @@ function Documents(): ReactElement {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {paginatedItems.filter((i) => i.type === 'file').map((item) => {
+                  {documentsOnPage.length === 0 ? (
+                    <div className="col-span-full">
+                      <div className="w-full rounded-lg border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
+                        <p className="text-sm font-medium text-gray-700 mb-1">
+                          {hasDocumentResults
+                            ? 'No documents on this page.'
+                            : isSharedView
+                              ? 'No shared documents available.'
+                              : 'No documents yet.'}
+                        </p>
+                        {!hasDocumentResults && canCreateHere && (
+                          <p className="text-sm text-gray-500">Use “Add New Document” to start one.</p>
+                        )}
+                        {hasDocumentResults && totalPages > 1 && (
+                          <p className="text-xs text-gray-500">Try switching pages to see other documents.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : documentsOnPage.map((item) => {
                     const showDots = !isSharedView || itemPermissions[item.id] || isOwner(item)
                     const showBadge = isSharedView
 
