@@ -956,6 +956,7 @@ function EmployeeManagement(): ReactElement {
                       <option value={newEmployee.division}>{newEmployee.division}</option>
                     )}
                     <option value="Marketing">Marketing</option>
+                    <option value="Product">Product</option>
                     <option value="Graphic Design">Graphic Design</option>
                     <option value="Developer">Developer</option>
                     <option value="UI/UX">UI/UX</option>
