@@ -418,8 +418,16 @@ async def get_edit_history(document_id: str) -> list[dict[str, Any]]:
         .sort("-at")
         .to_list()
     )
+    def to_iso_z(dt: datetime) -> str:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z")
+        return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
     return [
-        {"editor": {"id": e.editor_id, "name": e.editor_name}, "at": e.at.isoformat()}
+        {
+            "editor": {"id": e.editor_id, "name": e.editor_name},
+            "at": to_iso_z(e.at),
+        }
         for e in events
     ]
 
