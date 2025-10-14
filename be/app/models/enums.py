@@ -29,6 +29,7 @@ ALLOWED_DIVISIONS: Final[set[str]] = {
     "Developer",
     "UI/UX",
     "Internal Ops",
+    "Product"
 }
 
 ALLOWED_POSITIONS: Final[set[str]] = {
