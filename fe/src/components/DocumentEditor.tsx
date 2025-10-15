@@ -28,6 +28,8 @@ import {
   useLayoutEffect,
   type ReactElement,
 } from 'react'
+import { isAxiosError } from 'axios'
+import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
@@ -397,7 +399,7 @@ function DocumentEditor({
   }
 
   /** ---------- Blocks ops ---------- */
-  const addBlock = (afterId: string, type: DocumentBlock['type'] = 'paragraph'): void => {
+  const addBlock = (afterId: string, type: DocumentBlock['type'] = 'paragraph'): string => {
     const newBlock: DocumentBlock = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type,
@@ -416,6 +418,7 @@ function DocumentEditor({
       const element = blockRefs.current[newBlock.id]
       if (element) element.focus()
     }, 0)
+    return newBlock.id
   }
 
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
@@ -454,6 +457,33 @@ function DocumentEditor({
     setBlocks(newBlocks)
   }
 
+  const insertFilesAsBlocks = (anchorId: string, files: FileList | File[]): void => {
+    if (readOnly) return
+    const validFiles = Array.from(files).filter((file) => file && file.size > 0)
+    if (validFiles.length === 0) return
+
+    const anchorBlock = blocks.find((b) => b.id === anchorId)
+    let afterId = anchorId
+
+    validFiles.forEach((file, index) => {
+      const blockType: DocumentBlock['type'] = file.type.startsWith('image/') ? 'image' : 'file'
+      const canReuseAnchor =
+        index === 0 &&
+        anchorBlock &&
+        ((blockType === 'image' && anchorBlock.type === 'image' && !anchorBlock.url) ||
+          (blockType === 'file' && anchorBlock.type === 'file' && !anchorBlock.url))
+
+      if (canReuseAnchor) {
+        void handleFileUpload(anchorId, file, blockType, false)
+        afterId = anchorId
+      } else {
+        const newBlockId = addBlock(afterId, blockType)
+        afterId = newBlockId
+        setTimeout(() => { void handleFileUpload(newBlockId, file, blockType, true) }, 0)
+      }
+    })
+  }
+
   /** ---------- DnD ---------- */
   const handleDragStart = (e: React.DragEvent, blockId: string): void => {
     setDraggedBlockId(blockId)
@@ -474,6 +504,19 @@ function DocumentEditor({
   }
   const handleDrop = (e: React.DragEvent, blockId: string): void => {
     e.preventDefault()
+    if (readOnly) {
+      setDraggedBlockId(null)
+      setDragOverBlockId(null)
+      return
+    }
+
+    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      insertFilesAsBlocks(blockId, e.dataTransfer.files)
+      setDraggedBlockId(null)
+      setDragOverBlockId(null)
+      return
+    }
+
     const draggedId = e.dataTransfer.getData('text/plain')
     if (draggedId && draggedId !== blockId) moveBlock(draggedId, blockId)
     setDraggedBlockId(null)
@@ -485,22 +528,63 @@ function DocumentEditor({
   }
 
   /** ---------- Upload handlers ---------- */
-  const handleFileUpload = async (blockId: string, file: File): Promise<void> => {
+  const handleFileUpload = async (
+    blockId: string,
+    file: File,
+    preferredType?: DocumentBlock['type'],
+    cleanupOnFailure = false,
+  ): Promise<void> => {
     if (readOnly) return
     const block = blocks.find((b) => b.id === blockId)
-    if (!block) return
-    const blockType: 'image' | 'file' = block.type === 'image' ? 'image' : 'file'
+    const inferredFromBlock =
+      block?.type === 'image' ? 'image' : block?.type === 'file' ? 'file' : null
+    const uploadType: 'image' | 'file' =
+      (preferredType === 'image' || preferredType === 'file')
+        ? preferredType
+        : inferredFromBlock ?? (file.type.startsWith('image/') ? 'image' : 'file')
+
     setUploadingBlocks((prev) => new Set(prev).add(blockId))
     try {
-      const uploadResult = await uploadFileToServer(file, blockType)
-      updateBlock(blockId, {
-        url: uploadResult.url,
-        fileName: uploadResult.fileName,
-        fileSize: uploadResult.fileSize,
-        content: blockType === 'file' ? uploadResult.fileName : file.name,
-      })
+      const uploadResult = await uploadFileToServer(file, uploadType)
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === blockId
+            ? {
+              ...b,
+              type: uploadType,
+              url: uploadResult.url,
+              fileName: uploadResult.fileName,
+              fileSize: uploadResult.fileSize,
+              content: uploadType === 'file'
+                ? uploadResult.fileName || file.name || b.content
+                : b.content || file.name || '',
+            }
+            : b,
+        ),
+      )
     } catch (error) {
       logger.error('Upload failed:', error)
+      let message = 'Failed to upload file'
+      if (isAxiosError(error)) {
+        const status = error.response?.status
+        if (status === 413) {
+          message = 'File is too large. Maximum allowed size is 50 MB.'
+        } else if (typeof error.response?.data?.detail === 'string') {
+          message = error.response.data.detail
+        }
+      }
+      void Swal.fire({
+        toast: true,
+        icon: 'error',
+        title: message,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+      })
+      if (cleanupOnFailure) {
+        setBlocks((prev) => prev.filter((b) => b.id !== blockId))
+      }
     } finally {
       setUploadingBlocks((prev) => {
         const next = new Set(prev)
@@ -526,6 +610,21 @@ function DocumentEditor({
   /** ---------- Paste handler: selalu inline anchor (no link block) ---------- */
   const handlePaste = (e: React.ClipboardEvent, blockId: string): void => {
     if (readOnly) return
+    if (e.clipboardData) {
+      const directFiles = Array.from(e.clipboardData.files ?? [])
+      let collectedFiles = directFiles
+      if (collectedFiles.length === 0 && e.clipboardData.items) {
+        collectedFiles = Array.from(e.clipboardData.items)
+          .filter((item) => item.kind === 'file')
+          .map((item) => item.getAsFile())
+          .filter((file): file is File => Boolean(file && file.size > 0))
+      }
+      if (collectedFiles.length > 0) {
+        e.preventDefault()
+        insertFilesAsBlocks(blockId, collectedFiles)
+        return
+      }
+    }
     const plain = e.clipboardData.getData('text/plain')
     const urlRegex = /^(https?:\/\/[^\s]+)$/i
     if (urlRegex.test(plain)) {
@@ -718,14 +817,110 @@ function DocumentEditor({
   /** ---------- Keyboard ---------- */
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      // Allow default newline, then persist selection so caret stays on the new line
+      setTimeout(() => {
+        saveSelectionForBlock(blockId)
+      }, 0)
+      return
+    }
+
+    if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault()
       addBlock(blockId)
     } else if (e.key === 'Backspace') {
       const block = blocks.find((b) => b.id === blockId)
-      if (block && block.content === '' && blocks.length > 1) {
+      if (!block) return
+      const host = blockRefs.current[blockId] as HTMLElement | null
+      const offsets = host ? getSelectionOffsets(host) : null
+      const caretAtStart = offsets ? offsets.start === 0 && offsets.end === 0 : false
+
+      if (block.content === '' && blocks.length > 1) {
         e.preventDefault()
         deleteBlock(blockId)
+        return
       }
+
+      if (caretAtStart) {
+        const currentIndex = blocks.findIndex((b) => b.id === blockId)
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : -1
+        if (prevIndex >= 0) {
+          const prevBlock = blocks[prevIndex]
+          const mergeableTypes: DocumentBlock['type'][] = [
+            'paragraph',
+            'heading1',
+            'heading2',
+            'heading3',
+            'bulleted-list',
+            'numbered-list',
+            'quote',
+            'code',
+          ]
+          if (
+            mergeableTypes.includes(prevBlock.type) &&
+            mergeableTypes.includes(block.type)
+          ) {
+            e.preventDefault()
+            const prevText = prevBlock.content || ''
+            const mergedContent = `${prevText}${block.content || ''}`
+            const caretPosition = prevText.length
+            setBlocks((prev) => {
+              const nextBlocks = [...prev]
+              nextBlocks[prevIndex] = { ...prevBlock, content: mergedContent }
+              nextBlocks.splice(currentIndex, 1)
+              return nextBlocks
+            })
+            setActiveBlockId(prevBlock.id)
+            setTimeout(() => {
+              const prevEl = blockRefs.current[prevBlock.id]
+              if (prevEl) {
+                prevEl.focus()
+                setSelectionOffsets(
+                  prevEl,
+                  caretPosition,
+                  caretPosition,
+                  false,
+                )
+              }
+            }, 0)
+          }
+        }
+      }
+    } else if (e.key === 'ArrowUp' && !e.shiftKey) {
+      const host = blockRefs.current[blockId] as HTMLElement | null
+      const offsets = host ? getSelectionOffsets(host) : null
+      if (!offsets || offsets.start !== 0 || offsets.end !== 0) return
+      const currentIndex = blocks.findIndex((b) => b.id === blockId)
+      if (currentIndex <= 0) return
+      const prevBlock = blocks[currentIndex - 1]
+      const prevEl = blockRefs.current[prevBlock.id]
+      if (!prevEl) return
+      e.preventDefault()
+      setActiveBlockId(prevBlock.id)
+      setTimeout(() => {
+        prevEl.focus()
+        const length = (prevBlock.content ?? '').length
+        if ((prevEl as HTMLElement).isContentEditable) {
+          setSelectionOffsets(prevEl as HTMLElement, length, length, false)
+        }
+      }, 0)
+    } else if (e.key === 'ArrowDown' && !e.shiftKey) {
+      const host = blockRefs.current[blockId] as HTMLElement | null
+      const offsets = host ? getSelectionOffsets(host) : null
+      const textLength = host?.textContent?.length ?? 0
+      if (!offsets || offsets.start !== textLength || offsets.end !== textLength) return
+      const currentIndex = blocks.findIndex((b) => b.id === blockId)
+      if (currentIndex < 0 || currentIndex >= blocks.length - 1) return
+      const nextBlock = blocks[currentIndex + 1]
+      const nextEl = blockRefs.current[nextBlock.id]
+      if (!nextEl) return
+      e.preventDefault()
+      setActiveBlockId(nextBlock.id)
+      setTimeout(() => {
+        nextEl.focus()
+        if ((nextEl as HTMLElement).isContentEditable) {
+          setSelectionOffsets(nextEl as HTMLElement, 0, 0, false)
+        }
+      }, 0)
     } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
       const block = blocks.find((b) => b.id === blockId)
       if (block && block.content === '') {
@@ -807,7 +1002,7 @@ function DocumentEditor({
             onMouseDown={(): void => { setActiveBlockId(block.id); isSelectingRef.current = true }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
-            onKeyDown={(e): void => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); handleKeyDown(e as any, block.id) }}
+            onKeyDown={(e): void => { handleKeyDown(e as any, block.id) }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
               prevContentRef.current[block.id] = html
@@ -875,7 +1070,7 @@ function DocumentEditor({
               onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
               onKeyUp={() => saveSelectionForBlock(block.id)}
               onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
-              onKeyDown={(e): void => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); handleKeyDown(e as any, block.id) }}
+              onKeyDown={(e): void => { handleKeyDown(e as any, block.id) }}
               onInput={(e): void => {
                 const html = (e.currentTarget as HTMLDivElement).innerHTML
                 prevContentRef.current[block.id] = html
@@ -967,7 +1162,7 @@ function DocumentEditor({
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
-                        if (file) void handleFileUpload(block.id, file)
+                        if (file) void handleFileUpload(block.id, file, block.type, false)
                       }}
                       disabled={readOnly}
                     />
@@ -1038,7 +1233,7 @@ function DocumentEditor({
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
-                        if (file) void handleFileUpload(block.id, file)
+                        if (file) void handleFileUpload(block.id, file, block.type, false)
                       }}
                       disabled={readOnly}
                     />
@@ -1097,7 +1292,7 @@ function DocumentEditor({
             onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
-            onKeyDown={(e): void => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); handleKeyDown(e as any, block.id) }}
+            onKeyDown={(e): void => { handleKeyDown(e as any, block.id) }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
               prevContentRef.current[block.id] = html
