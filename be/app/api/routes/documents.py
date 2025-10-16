@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
+from app.logging_utils import get_logger, log_debug, log_info, log_warning
 from app.schemas import (
     DistinctValuesResponse,
     DocumentBreadcrumbSchema,
@@ -20,7 +21,12 @@ from app.services import auth as auth_service
 from app.services import document as document_service
 from app.services.auth import AuthenticationError, UserNotFoundError
 from app.services.document import DocumentAlreadyExistsError, DocumentNotFoundError
-from app.services.document_permission import check_document_access  # NEW
+from app.services.document_permission import (
+    can_user_edit_document,
+    can_user_view_document,
+    check_document_access,
+    get_document_access_summary,
+)
 from app.models.document import DocumentItem  # NEW
 
 _ALLOWED_OWNER_ROLES = {"admin", "manager", "employee", "secretary"}
@@ -44,6 +50,7 @@ def _derive_owner_payload(profile: UserProfile) -> dict[str, Any]:
 
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+logger = get_logger(__name__)
 
 
 @router.get(
@@ -56,6 +63,7 @@ async def list_documents(
     parent_id: str | None = Query(None),
     authorization: str = Header(alias="Authorization"),
 ) -> list[DocumentResponse]:
+    log_info(logger, "list_documents called", parent_id=parent_id)
     try:
         token = auth_service.parse_bearer_token(authorization)
         profile_payload = await auth_service.get_user_profile_from_token(token)
@@ -67,6 +75,7 @@ async def list_documents(
     owner_payload = _derive_owner_payload(UserProfile.model_validate(profile_payload))
 
     documents = await document_service.get_documents_by_parent(parent_id, owner_payload["id"])
+    log_debug(logger, "list_documents resolved", parent_id=parent_id, result_count=len(documents))
     return [DocumentResponse.model_validate(doc) for doc in documents]
 
 
@@ -95,6 +104,7 @@ async def search_documents(
     - Filters by types=['file','folder'] if provided
     - Paginates using limit+offset *after* access filtering (keeps code simple)
     """
+    log_info(logger, "search_documents called", query=q, types=types, limit=limit, offset=offset)
     # Auth -> user
     try:
         token = auth_service.parse_bearer_token(authorization)
@@ -148,6 +158,7 @@ async def search_documents(
 
     # Pagination after access-filter
     sliced = accessible[offset : offset + limit]
+    log_debug(logger, "search_documents resolved", accessible=len(accessible), returned=len(sliced))
     return [DocumentResponse.model_validate(item) for item in sliced]
 
 
@@ -164,6 +175,7 @@ async def get_document(
     document_id: str,
     authorization: str = Header(alias="Authorization"),
 ) -> DocumentResponse:
+    log_info(logger, "get_document called", document_id=document_id)
     # Enforce access (direct or inherited from ancestor folders)
     try:
         token = auth_service.parse_bearer_token(authorization)
@@ -175,7 +187,7 @@ async def get_document(
 
     user = UserProfile.model_validate(profile_payload)
 
-    allowed = await check_document_access(document_id, user.id, "viewer")
+    allowed = await can_user_view_document(document_id, user.id)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
@@ -183,6 +195,7 @@ async def get_document(
         document = await document_service.get_document_payload(document_id)
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    log_debug(logger, "get_document resolved", document_id=document_id, owner=document.owned_by.id)
     return DocumentResponse.model_validate(document)
 
 
@@ -295,7 +308,7 @@ async def update_document(document_id: str, payload: DocumentUpdate, authorizati
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     user = UserProfile.model_validate(profile_payload)
-    allowed = await check_document_access(document_id, user.id, "editor")
+    allowed = await can_user_edit_document(document_id, user.id)
     if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
@@ -318,6 +331,7 @@ async def update_document(document_id: str, payload: DocumentUpdate, authorizati
 )
 async def get_edit_history(document_id: str, authorization: str = Header(alias="Authorization")) -> list[dict]:
     # Only owner/editor can view history
+    log_info(logger, "get_edit_history called", document_id=document_id)
     try:
         token = auth_service.parse_bearer_token(authorization)
         profile_payload = await auth_service.get_user_profile_from_token(token)
@@ -337,11 +351,12 @@ async def get_edit_history(document_id: str, authorization: str = Header(alias="
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
-    can_edit = await check_document_access(document_id, user.id, "editor")
+    can_edit = await can_user_edit_document(document_id, user.id)
     if not (is_owner or can_edit):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
     events = await document_service.get_edit_history(document_id)
+    log_debug(logger, "get_edit_history resolved", document_id=document_id, events=len(events))
     return events
 
 
@@ -392,11 +407,7 @@ async def get_my_access(
     document_id: str,
     authorization: str = Header(alias="Authorization"),
 ) -> dict:
-    from app.services.document_permission import (
-        has_direct_document_access,
-        has_ancestor_folder_access,
-    )
-
+    log_info(logger, "get_my_access called", document_id=document_id)
     try:
         token = auth_service.parse_bearer_token(authorization)
         profile_payload = await auth_service.get_user_profile_from_token(token)
@@ -407,22 +418,10 @@ async def get_my_access(
 
     user = UserProfile.model_validate(profile_payload)
 
-    # viewer
-    v_direct = await has_direct_document_access(document_id, user.id, "viewer")
-    v_inherit = await has_ancestor_folder_access(document_id, user.id, "viewer")
-    can_view = v_direct or v_inherit
-
-    # editor
-    e_direct = await has_direct_document_access(document_id, user.id, "editor")
-    e_inherit = await has_ancestor_folder_access(document_id, user.id, "editor")
-    can_edit = e_direct or e_inherit
-
-    # optional detail; FE pakai can_view/can_edit saja
-    return {
-        "can_view": can_view,
-        "can_edit": can_edit,
-        "detail": {
-            "viewer": {"direct": v_direct, "inherited": v_inherit},
-            "editor": {"direct": e_direct, "inherited": e_inherit},
-        },
-    }
+    try:
+        summary = await get_document_access_summary(document_id, user.id)
+        log_debug(logger, "get_my_access resolved", document_id=document_id, user_id=user.id, summary=summary)
+        return summary
+    except DocumentNotFoundError as exc:
+        log_warning(logger, "get_my_access failed: document not found", document_id=document_id, user_id=user.id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

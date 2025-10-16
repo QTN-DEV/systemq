@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException, status
 
+from app.logging_utils import get_logger, log_debug, log_info, log_warning
 from app.schemas import MessageResponse, UserProfile
 from app.schemas.document_permission import (
     AddDivisionPermissionRequest,
@@ -24,6 +25,7 @@ from app.services.document_permission import (
 from app.services.document import DocumentNotFoundError
 
 router = APIRouter(prefix="/documents", tags=["Document Permissions"])
+logger = get_logger(__name__)
 
 
 async def _get_current_user(authorization: str) -> UserProfile:
@@ -40,6 +42,11 @@ async def _get_current_user(authorization: str) -> UserProfile:
     return UserProfile.model_validate(user_data)
 
 
+def _is_admin(user: UserProfile) -> bool:
+    level = (user.level or "").strip().lower()
+    return level == "admin"
+
+
 @router.get(
     "/{document_id}/permissions",
     response_model=DocumentPermissionsResponse,
@@ -51,6 +58,7 @@ async def get_permissions(
     authorization: str = Header(alias="Authorization"),
 ) -> DocumentPermissionsResponse:
     """Get all permissions for a document. Only document owner or editors can view permissions."""
+    log_info(logger, "get_permissions called", document_id=document_id)
     user = await _get_current_user(authorization)
 
     # Check if user has editor access to view permissions
@@ -64,7 +72,7 @@ async def get_permissions(
     # if document_id == "something.pdf":
     #     print("user permission:", user_permission)
 
-    if user_permission not in ["owner", "editor", "viewer"]:
+    if not (_is_admin(user) or user_permission in ["owner", "editor", "viewer"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only document owners and editors can view permissions",
@@ -72,6 +80,7 @@ async def get_permissions(
 
     try:
         permissions = await get_document_permissions(document_id)
+        log_debug(logger, "get_permissions resolved", document_id=document_id)
         return DocumentPermissionsResponse(**permissions)
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -89,6 +98,7 @@ async def add_user_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Add or update individual user permission for a document."""
+    log_info(logger, "add_user_permission called", document_id=document_id, target_user=payload.user_id)
     user = await _get_current_user(authorization)
 
     # Check if user has editor access
@@ -96,7 +106,7 @@ async def add_user_permission_endpoint(
 
     user_permission = await get_user_document_permission(document_id, user.id)
 
-    if user_permission != "editor" and user_permission != "owner":
+    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only document owners and editors can manage permissions",
@@ -110,6 +120,7 @@ async def add_user_permission_endpoint(
             user_email=payload.user_email,
             permission=payload.permission,
         )
+        log_info(logger, "add_user_permission succeeded", document_id=document_id, target_user=payload.user_id, permission=payload.permission)
         return MessageResponse(message="User permission added successfully.")
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -127,6 +138,7 @@ async def add_division_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Add or update division permission for a document."""
+    log_info(logger, "add_division_permission called", document_id=document_id, division=payload.division)
     user = await _get_current_user(authorization)
 
     # Check if user has editor access
@@ -134,7 +146,7 @@ async def add_division_permission_endpoint(
 
     user_permission = await get_user_document_permission(document_id, user.id)
 
-    if user_permission != "editor" and user_permission != "owner":
+    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only document owners and editors can manage permissions",
@@ -144,6 +156,7 @@ async def add_division_permission_endpoint(
         await add_division_permission(
             document_id=document_id, division=payload.division, permission=payload.permission
         )
+        log_info(logger, "add_division_permission succeeded", document_id=document_id, division=payload.division, permission=payload.permission)
         return MessageResponse(message="Division permission added successfully.")
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -161,6 +174,7 @@ async def remove_user_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Remove individual user permission from a document."""
+    log_info(logger, "remove_user_permission called", document_id=document_id, target_user=user_id)
     user = await _get_current_user(authorization)
 
     # Check if user has editor access
@@ -168,7 +182,7 @@ async def remove_user_permission_endpoint(
 
     user_permission = await get_user_document_permission(document_id, user.id)
 
-    if user_permission != "editor" and user_permission != "owner":
+    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only document owners and editors can manage permissions",
@@ -176,6 +190,7 @@ async def remove_user_permission_endpoint(
 
     try:
         await remove_user_permission(document_id=document_id, user_id=user_id)
+        log_info(logger, "remove_user_permission succeeded", document_id=document_id, target_user=user_id)
         return MessageResponse(message="User permission removed successfully.")
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -193,6 +208,7 @@ async def remove_division_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Remove division permission from a document."""
+    log_info(logger, "remove_division_permission called", document_id=document_id, division=division)
     user = await _get_current_user(authorization)
 
     # Check if user has editor access
@@ -200,7 +216,7 @@ async def remove_division_permission_endpoint(
 
     user_permission = await get_user_document_permission(document_id, user.id)
 
-    if user_permission != "editor" and user_permission != "owner":
+    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only document owners and editors can manage permissions",
@@ -208,6 +224,7 @@ async def remove_division_permission_endpoint(
 
     try:
         await remove_division_permission(document_id=document_id, division=division)
+        log_info(logger, "remove_division_permission succeeded", document_id=document_id, division=division)
         return MessageResponse(message="Division permission removed successfully.")
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

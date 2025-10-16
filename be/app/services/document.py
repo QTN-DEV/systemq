@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Literal, Iterable
 
+from app.logging_utils import get_logger, log_debug, log_info, log_warning
 from app.models.document import (
     DocumentBlock,
     DocumentHistory,
@@ -26,6 +27,8 @@ class DocumentNotFoundError(ValueError):
 
 
 ACTIVE_DOCUMENT = {"is_deleted": False}
+
+logger = get_logger(__name__)
 
 
 def _utcnow() -> datetime:
@@ -152,6 +155,13 @@ async def get_documents_by_parent(
         has_ancestor_folder_access,
     )
 
+    log_debug(
+        logger,
+        "listing documents",
+        parent_id=parent_id,
+        user_id=user_id,
+    )
+
     # Base query: children of the requested parent (or root children)
     if parent_id is None:
         query = DocumentItem.find(
@@ -165,6 +175,7 @@ async def get_documents_by_parent(
         )
 
     documents = await query.sort(DocumentItem.name).to_list()
+    log_debug(logger, "fetched candidate documents", count=len(documents), parent_id=parent_id)
 
     # Access-filter untuk listing normal
     if user_id:
@@ -178,6 +189,7 @@ async def get_documents_by_parent(
         for document in documents:
             if await check_document_access(document.document_id, user_id, "viewer"):
                 filtered.append(document)
+        log_debug(logger, "filtered accessible documents", original=len(documents), accessible=len(filtered), user_id=user_id)
         documents = filtered
 
         # === Virtual root injection (hanya saat root listing) ===
@@ -230,15 +242,17 @@ async def get_documents_by_parent(
                         virtuals.append(doc)
 
                 if virtuals:
-                    # append virtuals and dedup in case of overlap
                     documents = _uniq_by_id(documents + virtuals)
+                    log_debug(logger, "virtual documents injected", user_id=user_id, count=len(virtuals))
 
     # Normalize & serialize
     for document in documents:
         _normalize_content(document)
     # Sort by name for stable order
     documents.sort(key=lambda d: (d.name or "").lower())
-    return [_serialize_document(document) for document in documents]
+    result = [_serialize_document(document) for document in documents]
+    log_debug(logger, "document listing completed", parent_id=parent_id, user_id=user_id, result_count=len(result))
+    return result
 
 
 async def get_item_count(folder_id: str) -> int:
@@ -249,13 +263,16 @@ async def get_item_count(folder_id: str) -> int:
 
 
 async def get_document_by_id(document_id: str) -> DocumentItem:
+    log_debug(logger, "fetching document by id", document_id=document_id)
     document = await DocumentItem.find_one(
         DocumentItem.document_id == document_id,
         ACTIVE_DOCUMENT,
     )
     if document is None:
+        log_warning(logger, "document not found", document_id=document_id)
         raise DocumentNotFoundError(f"Document '{document_id}' not found")
     _normalize_content(document)
+    log_debug(logger, "document fetched", document_id=document_id, type=document.type)
     return document
 
 
@@ -435,6 +452,7 @@ async def get_edit_history(document_id: str) -> list[dict[str, Any]]:
 async def update_document(
     document_id: str, payload: dict[str, Any], editor: dict[str, str] | None = None
 ) -> dict[str, Any]:
+    log_info(logger, "update_document called", document_id=document_id, payload_keys=list(payload.keys()), editor_id=editor.get("id") if editor else None)
     document = await get_document_by_id(document_id)
 
     changes: dict[str, Any] = {}
@@ -479,6 +497,7 @@ async def update_document(
         document.parent_id = new_parent_id
 
     if not changes:
+        log_debug(logger, "update_document no changes", document_id=document_id)
         return _serialize_document(document)
 
     await _apply_path(document)
@@ -487,6 +506,7 @@ async def update_document(
     if editor is not None:
         document.last_modified_by = DocumentUserRef(id=editor["id"], name=editor["name"])  # type: ignore[arg-type]
     await document.save()
+    log_debug(logger, "update_document persisted", document_id=document_id, changes=list(changes.keys()))
 
     if document.type == "folder" or "parent_id" in changes:
         await _refresh_descendant_paths(document)
@@ -501,7 +521,9 @@ async def update_document(
         await _refresh_item_count(old_parent_id)
         await _refresh_item_count(document.parent_id)
 
-    return _serialize_document(document)
+    serialized = _serialize_document(document)
+    log_info(logger, "update_document completed", document_id=document_id, changes=list(changes.keys()))
+    return serialized
 
 
 async def _soft_delete(document: DocumentItem) -> None:

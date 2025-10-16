@@ -701,3 +701,19 @@ export async function getDocumentAccess(
     return { can_view: false, can_edit: false }
   }
 }
+
+export const canViewFromAccess = (access: DocumentAccess | null | undefined): boolean =>
+  Boolean(access?.can_view)
+
+export const canEditFromAccess = (access: DocumentAccess | null | undefined): boolean =>
+  Boolean(access?.can_edit)
+
+export async function canViewDocument(documentId: string): Promise<boolean> {
+  const access = await getDocumentAccess(documentId)
+  return access.can_view
+}
+
+export async function canEditDocument(documentId: string): Promise<boolean> {
+  const access = await getDocumentAccess(documentId)
+  return access.can_edit
+}
