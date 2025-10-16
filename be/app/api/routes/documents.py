@@ -192,11 +192,23 @@ async def get_document(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
     try:
-        document = await document_service.get_document_payload(document_id)
+        document_payload = await document_service.get_document_payload(document_id)
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    log_debug(logger, "get_document resolved", document_id=document_id, owner=document.owned_by.id)
-    return DocumentResponse.model_validate(document)
+    if isinstance(document_payload, dict):
+        owned_by_payload = document_payload.get("owned_by")
+    else:
+        owned_by_payload = getattr(document_payload, "owned_by", None)
+    owner_id = getattr(owned_by_payload, "id", None)
+    if owner_id is None and isinstance(owned_by_payload, dict):
+        owner_id = owned_by_payload.get("id")
+    log_debug(
+        logger,
+        "get_document resolved",
+        document_id=document_id,
+        owner=owner_id,
+    )
+    return DocumentResponse.model_validate(document_payload)
 
 
 @router.get(
