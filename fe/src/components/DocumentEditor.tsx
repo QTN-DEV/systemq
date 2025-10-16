@@ -1022,17 +1022,17 @@ function DocumentEditor({
 
   /** ---------- Keyboard ---------- */
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      // Allow default newline, then persist selection so caret stays on the new line
-      setTimeout(() => {
-        saveSelectionForBlock(blockId)
-      }, 0)
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // Allow newline inside current block, then store caret location
+        setTimeout(() => {
+          saveSelectionForBlock(blockId)
+        }, 0)
+      } else {
+        e.preventDefault()
+        addBlock(blockId)
+      }
       return
-    }
-
-    if (e.key === 'Enter' && e.shiftKey) {
-      e.preventDefault()
-      addBlock(blockId)
     } else if (e.key === 'Backspace') {
       const block = blocks.find((b) => b.id === blockId)
       if (!block) return

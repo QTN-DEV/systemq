@@ -90,8 +90,8 @@ async def _record_history(
 
 async def _purge_document_audit_trail(document_id: str) -> None:
     """Remove historical audit records for the provided document id."""
-    await DocumentHistory.get_motor_collection().delete_many({"document_id": document_id})
-    await EditHistoryEvent.get_motor_collection().delete_many({"document_id": document_id})
+    await DocumentHistory.find(DocumentHistory.document_id == document_id).delete()
+    await EditHistoryEvent.find(EditHistoryEvent.document_id == document_id).delete()
 
 
 async def _refresh_item_count(folder_id: str | None) -> None:
