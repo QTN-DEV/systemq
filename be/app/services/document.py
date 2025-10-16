@@ -88,6 +88,12 @@ async def _record_history(
     await history_entry.insert()
 
 
+async def _purge_document_audit_trail(document_id: str) -> None:
+    """Remove historical audit records for the provided document id."""
+    await DocumentHistory.get_motor_collection().delete_many({"document_id": document_id})
+    await EditHistoryEvent.get_motor_collection().delete_many({"document_id": document_id})
+
+
 async def _refresh_item_count(folder_id: str | None) -> None:
     if not folder_id:
         return
@@ -382,44 +388,23 @@ async def create_document(payload: DocumentCreate, owner: dict[str, Any]) -> dic
     return _serialize_document(document)
 
 
-COALESCE_MINUTES = 10
+async def record_edit_history(
+    document_id: str,
+    editor: dict[str, str],
+) -> None:
+    """Record an edit event for the document timeline.
 
-
-async def record_edit_history(document_id: str, editor: dict[str, str]) -> None:
-    """Coalesce edit events within COALESCE_MINUTES for the same editor and doc.
-
+    Each invocation inserts a new event so the frontend can show the full history.
     Always updates the document's last_modified and last_modified_by.
     """
     now = _utcnow()
-    cutoff_ts = now.timestamp() - COALESCE_MINUTES * 60
-    cutoff = datetime.fromtimestamp(cutoff_ts, tz=now.tzinfo)
-    # Beanie/Mongo: query last event by at desc
-    last = await EditHistoryEvent.find({"document_id": document_id}).sort("-at").first_or_none()
-
-    if last and last.editor_id == editor["id"]:
-        last_at = last.at
-        if last_at.tzinfo is None:
-            last_at = last_at.replace(tzinfo=UTC)
-        if last_at >= cutoff:
-            # update timestamp of last event
-            last.at = now
-            await last.save()
-        else:
-            event = EditHistoryEvent(
-                document_id=document_id,
-                editor_id=editor["id"],
-                editor_name=editor["name"],
-                at=now,
-            )
-            await event.insert()
-    else:
-        event = EditHistoryEvent(
-            document_id=document_id,
-            editor_id=editor["id"],
-            editor_name=editor["name"],
-            at=now,
-        )
-        await event.insert()
+    event = EditHistoryEvent(
+        document_id=document_id,
+        editor_id=editor["id"],
+        editor_name=editor["name"],
+        at=now,
+    )
+    await event.insert()
 
     # Update document metadata
     document = await get_document_by_id(document_id)
@@ -450,9 +435,20 @@ async def get_edit_history(document_id: str) -> list[dict[str, Any]]:
 
 
 async def update_document(
-    document_id: str, payload: dict[str, Any], editor: dict[str, str] | None = None
+    document_id: str,
+    payload: dict[str, Any],
+    editor: dict[str, str] | None = None,
+    *,
+    commit: bool = False,
 ) -> dict[str, Any]:
-    log_info(logger, "update_document called", document_id=document_id, payload_keys=list(payload.keys()), editor_id=editor.get("id") if editor else None)
+    log_info(
+        logger,
+        "update_document called",
+        document_id=document_id,
+        payload_keys=list(payload.keys()),
+        editor_id=editor.get("id") if editor else None,
+        commit=commit,
+    )
     document = await get_document_by_id(document_id)
 
     changes: dict[str, Any] = {}
@@ -540,11 +536,12 @@ async def _soft_delete(document: DocumentItem) -> None:
     for child in children:
         await _soft_delete(child)
 
+    await _purge_document_audit_trail(document.document_id)
+
 
 async def delete_document(document_id: str) -> dict[str, Any]:
     document = await get_document_by_id(document_id)
     await _soft_delete(document)
-    await _record_history(document, "deleted", {"deleted": True})
     await _refresh_item_count(document.parent_id)
     return _serialize_document(document)
 

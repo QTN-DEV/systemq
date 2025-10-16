@@ -309,7 +309,12 @@ async def create_document(
     summary="Update document metadata",
     response_description="Updated document representation after applying changes.",
 )
-async def update_document(document_id: str, payload: DocumentUpdate, authorization: str = Header(alias="Authorization")) -> DocumentResponse:
+async def update_document(
+    document_id: str,
+    payload: DocumentUpdate,
+    authorization: str = Header(alias="Authorization"),
+    commit: bool = Query(False),
+) -> DocumentResponse:
     # identify editor and enforce edit access
     try:
         token = auth_service.parse_bearer_token(authorization)
@@ -329,6 +334,7 @@ async def update_document(document_id: str, payload: DocumentUpdate, authorizati
             document_id,
             payload.model_dump(exclude_unset=True),
             editor={"id": user.id, "name": user.name},
+            commit=commit,
         )
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
