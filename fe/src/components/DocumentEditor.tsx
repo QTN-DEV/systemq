@@ -19,6 +19,8 @@ import {
   Bold,
   Italic,
   Underline,
+  Table,
+  Minus,
   Link as LinkIcon,
 } from 'lucide-react'
 import {
@@ -33,7 +35,12 @@ import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
 import { uploadImage, uploadFile, getFileUrl } from '../services/UploadService'
-import type { DocumentBlock } from '@/types/documents'
+import type {
+  DocumentBlock,
+  DocumentTableData,
+  DocumentTableRow,
+  DocumentTableCell,
+} from '@/types/documents'
 export type { DocumentBlock } from '@/types/documents'
 
 interface DocumentEditorProps {
@@ -98,6 +105,7 @@ const TypeMenu = ({
       { type: 'code' as const, icon: Code, label: 'Code' },
       { type: 'image' as const, icon: Image, label: 'Image' },
       { type: 'file' as const, icon: FileText, label: 'File' },
+      { type: 'table' as const, icon: Table, label: 'Table' },
     ].map(({ type, icon: Icon, label }) => (
       <button
         key={type}
@@ -121,6 +129,52 @@ const TypeMenu = ({
   </div>
 )
 
+const generateId = (): string => {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+  } catch {
+    // ignore and fallback to Math.random
+  }
+  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`
+}
+
+const createTableData = (rows = 3, columns = 3): DocumentTableData => {
+  const safeRows = Math.max(rows, 1)
+  const safeColumns = Math.max(columns, 1)
+  return {
+    rows: Array.from({ length: safeRows }).map((): DocumentTableRow => ({
+      id: generateId(),
+      cells: Array.from({ length: safeColumns }).map(
+        (): DocumentTableCell => ({
+          id: generateId(),
+          content: '',
+        }),
+      ),
+    })),
+  }
+}
+
+const cloneTableData = (
+  table: DocumentTableData | undefined,
+  fallbackRows = 3,
+  fallbackColumns = 3,
+): DocumentTableData => {
+  if (!table || table.rows.length === 0 || table.rows.some((row) => row.cells.length === 0)) {
+    return createTableData(fallbackRows, fallbackColumns)
+  }
+  return {
+    rows: table.rows.map((row) => ({
+      id: row.id ?? generateId(),
+      cells: row.cells.map((cell) => ({
+        id: cell.id ?? generateId(),
+        content: cell.content ?? '',
+      })),
+    })),
+  }
+}
+
 function DocumentEditor({
   initialBlocks = [],
   onSave,
@@ -142,6 +196,8 @@ function DocumentEditor({
   // Refs
   const blockRefs = useRef<{ [key: string]: HTMLElement | null }>({})
   const prevContentRef = useRef<{ [key: string]: string }>({})
+  const tableCellRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const tableCellContentRef = useRef<Record<string, string>>({})
   const savedSelectionRef = useRef<{
     blockId: string
     start: number
@@ -263,16 +319,15 @@ function DocumentEditor({
     sel.addRange(range)
   }
 
-  const saveSelectionForBlock = (blockId: string): void => {
-    const host = blockRefs.current[blockId]
+  const saveSelectionForBlock = (
+    blockId: string,
+    context?: { element?: HTMLElement; offsets?: { start: number; end: number; backward: boolean } | null },
+  ): void => {
+    const host = context?.element ?? blockRefs.current[blockId]
     if (!host) return
-    const sel = window.getSelection()
-    if (!sel) return
-    if (!sel.isCollapsed) return
-    const offsets = getSelectionOffsets(host)
-    if (offsets && offsets.start === offsets.end) {
-      savedSelectionRef.current = { blockId, ...offsets }
-    }
+    const offsets = context?.offsets ?? getSelectionOffsets(host)
+    if (!offsets) return
+    savedSelectionRef.current = { blockId, ...offsets }
   }
 
   const createAnchorHTML = (href: string, text?: string) =>
@@ -353,6 +408,22 @@ function DocumentEditor({
     })
   }, [showTypeMenu])
 
+  useEffect(() => {
+    if (readOnly) return
+    let needsUpdate = false
+    const nextBlocks = blocks.map((block) => {
+      if (block.type !== 'table') return block
+      const hasStructure =
+        block.table &&
+        block.table.rows.length > 0 &&
+        block.table.rows.every((row) => row.cells.length > 0)
+      if (hasStructure) return block
+      needsUpdate = true
+      return { ...block, table: createTableData() }
+    })
+    if (needsUpdate) setBlocks(nextBlocks)
+  }, [blocks, readOnly])
+
   /** ---------- Keep caret on re-render ---------- */
   useLayoutEffect(() => {
     if (!savedSelectionRef.current) return
@@ -399,13 +470,21 @@ function DocumentEditor({
   }
 
   /** ---------- Blocks ops ---------- */
-  const addBlock = (afterId: string, type: DocumentBlock['type'] = 'paragraph'): string => {
-    const newBlock: DocumentBlock = {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  const createBlock = (type: DocumentBlock['type'] = 'paragraph'): DocumentBlock => {
+    const block: DocumentBlock = {
+      id: generateId(),
       type,
       content: '',
       alignment: 'left',
     }
+    if (type === 'table') {
+      block.table = createTableData()
+    }
+    return block
+  }
+
+  const addBlock = (afterId: string, type: DocumentBlock['type'] = 'paragraph'): string => {
+    const newBlock = createBlock(type)
     const afterIndex = blocks.findIndex((block) => block.id === afterId)
     const newBlocks = [
       ...blocks.slice(0, afterIndex + 1),
@@ -429,6 +508,126 @@ function DocumentEditor({
       if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
     }
     setBlocks(blocks.map((block) => (block.id === id ? { ...block, ...updates } : block)))
+  }
+
+  const changeBlockType = (
+    blockId: string,
+    newType: DocumentBlock['type'],
+    options?: { rows?: number; columns?: number },
+  ): void => {
+    const target = blocks.find((b) => b.id === blockId)
+    const updates: Partial<DocumentBlock> = { type: newType }
+
+    if (newType === 'table') {
+      const rows = options?.rows ?? 3
+      const columns = options?.columns ?? 3
+      const newTable = createTableData(rows, columns)
+      updates.content = ''
+      updates.alignment = 'left'
+      updates.table = newTable
+      updates.url = undefined
+      updates.fileName = undefined
+      updates.fileSize = undefined
+      updateBlock(blockId, updates)
+      const firstCellId = newTable.rows[0]?.cells[0]?.id
+      if (firstCellId) {
+        setTimeout(() => {
+          const el = tableCellRefs.current[firstCellId]
+          if (el) {
+            blockRefs.current[blockId] = el
+            el.focus()
+          }
+        }, 0)
+      }
+      return
+    } else {
+      updates.table = undefined
+      if (target?.type === 'table') {
+        const firstCell = target.table?.rows?.[0]?.cells?.[0]
+        if (firstCell && typeof firstCell.content === 'string') {
+          updates.content = firstCell.content
+        }
+      }
+    }
+    updateBlock(blockId, updates)
+  }
+
+  const updateTableCell = (blockId: string, cellId: string, value: string): void => {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const tableData = cloneTableData(block.table)
+    const nextRows = tableData.rows.map((row) => ({
+      ...row,
+      cells: row.cells.map((cell) =>
+        cell.id === cellId ? { ...cell, content: value } : cell,
+      ),
+    }))
+    updateBlock(blockId, { table: { rows: nextRows } })
+  }
+
+  const addTableRow = (blockId: string): void => {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const tableData = cloneTableData(block.table)
+    const columnCount = tableData.rows[0]?.cells.length ?? 1
+    const newRow: DocumentTableRow = {
+      id: generateId(),
+      cells: Array.from({ length: Math.max(columnCount, 1) }).map(() => ({
+        id: generateId(),
+        content: '',
+      })),
+    }
+    updateBlock(blockId, { table: { rows: [...tableData.rows, newRow] } })
+  }
+
+  const addTableColumn = (blockId: string): void => {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const tableData = cloneTableData(block.table)
+    const nextRows = tableData.rows.map((row) => ({
+      ...row,
+      cells: [
+        ...row.cells,
+        {
+          id: generateId(),
+          content: '',
+        },
+      ],
+    }))
+    updateBlock(blockId, { table: { rows: nextRows } })
+  }
+
+  const removeTableRow = (blockId: string): void => {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const tableData = cloneTableData(block.table)
+    if (tableData.rows.length <= 1) return
+    const removed = tableData.rows[tableData.rows.length - 1]
+    removed?.cells.forEach((cell) => {
+      delete tableCellRefs.current[cell.id]
+      delete tableCellContentRef.current[cell.id]
+    })
+    updateBlock(blockId, { table: { rows: tableData.rows.slice(0, -1) } })
+  }
+
+  const removeTableColumn = (blockId: string): void => {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const tableData = cloneTableData(block.table)
+    const columnCount = tableData.rows[0]?.cells.length ?? 0
+    if (columnCount <= 1) return
+    const removedCells: string[] = []
+    const nextRows = tableData.rows.map((row) => {
+      const cells = row.cells.slice(0, -1)
+      const removedCell = row.cells[row.cells.length - 1]
+      if (removedCell) removedCells.push(removedCell.id)
+      return { ...row, cells }
+    })
+    removedCells.forEach((cellId) => {
+      delete tableCellRefs.current[cellId]
+      delete tableCellContentRef.current[cellId]
+    })
+    updateBlock(blockId, { table: { rows: nextRows } })
   }
 
   const deleteBlock = (id: string): void => {
@@ -604,6 +803,13 @@ function DocumentEditor({
       setLinkDialogText('')
       setLinkDialogUrl('')
       updateBlock(blockId, { content: '' })
+    }
+    const tableMatch = text.match(/^\/table(?:\s+(\d+)\s*[x×]\s*(\d+))?$/i)
+    if (tableMatch) {
+      const [, rowsStr, colsStr] = tableMatch
+      const rows = rowsStr ? Math.max(parseInt(rowsStr, 10) || 0, 1) : 3
+      const columns = colsStr ? Math.max(parseInt(colsStr, 10) || 0, 1) : 3
+      changeBlockType(blockId, 'table', { rows, columns })
     }
   }
 
@@ -942,6 +1148,7 @@ function DocumentEditor({
       case 'code': return 'Code block'
       case 'image': return 'Enter image URL or upload an image'
       case 'file': return 'Enter file name or upload a file'
+      case 'table': return 'Insert table content'
       default: return "Type '/' for commands"
     }
   }
@@ -1080,6 +1287,114 @@ function DocumentEditor({
               }}
               onPaste={(e): void => handlePaste(e, block.id)}
             />
+          </div>
+        )
+      }
+
+      case 'table': {
+        const tableData = cloneTableData(block.table)
+        const rowCount = tableData.rows.length
+        const columnCount = tableData.rows[0]?.cells.length ?? 0
+
+        return (
+          <div className="space-y-2">
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="min-w-full bg-white">
+                <tbody>
+                  {tableData.rows.map((row, rowIndex) => (
+                    <tr key={row.id ?? `row-${rowIndex}`}>
+                      {row.cells.map((cell, cellIndex) => (
+                        <td
+                          key={cell.id ?? `cell-${cellIndex}`}
+                          className="border border-gray-200 align-top p-0"
+                        >
+                          <div
+                            ref={(el): void => {
+                              if (el) {
+                                tableCellRefs.current[cell.id] = el
+                                const currentValue = cell.content ?? ''
+                                if (tableCellContentRef.current[cell.id] !== currentValue) {
+                                  el.textContent = currentValue
+                                  tableCellContentRef.current[cell.id] = currentValue
+                                }
+                              } else {
+                                delete tableCellRefs.current[cell.id]
+                              }
+                            }}
+                            className={`ce-editable w-full min-h-[2.5rem] px-3 py-2 text-sm outline-none ${
+                              readOnly ? 'bg-gray-50 cursor-default text-gray-700' : 'bg-white text-gray-900'
+                            }`}
+                            contentEditable={!readOnly}
+                            suppressContentEditableWarning
+                            data-placeholder="Type to add text"
+                            onFocus={(e): void => {
+                              blockRefs.current[block.id] = e.currentTarget
+                              setActiveBlockId(block.id)
+                            }}
+                            onMouseDown={() => {
+                              setActiveBlockId(block.id)
+                              isSelectingRef.current = true
+                            }}
+                            onKeyUp={() => saveSelectionForBlock(block.id)}
+                            onInput={(e): void => {
+                              const textValue = e.currentTarget.textContent ?? ''
+                              tableCellContentRef.current[cell.id] = textValue
+                              updateTableCell(block.id, cell.id, textValue)
+                              const offsets = getSelectionOffsets(e.currentTarget as HTMLElement)
+                              saveSelectionForBlock(block.id, { element: e.currentTarget as HTMLElement, offsets })
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {!readOnly && (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                <span className="text-gray-500">
+                  {rowCount} row{rowCount !== 1 ? 's' : ''} · {columnCount} column{columnCount !== 1 ? 's' : ''}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded border border-gray-200 px-2 py-1 font-medium text-gray-600 hover:bg-gray-50"
+                    onClick={() => addTableRow(block.id)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Row
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded border border-gray-200 px-2 py-1 font-medium text-gray-600 hover:bg-gray-50"
+                    onClick={() => addTableColumn(block.id)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Column
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded border border-gray-200 px-2 py-1 font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => removeTableRow(block.id)}
+                    disabled={rowCount <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                    Row
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded border border-gray-200 px-2 py-1 font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => removeTableColumn(block.id)}
+                    disabled={columnCount <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                    Column
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )
       }
@@ -1417,25 +1732,29 @@ function DocumentEditor({
                         { type: 'heading3' as const, icon: Heading3, label: 'Heading 3' },
                         { type: 'bulleted-list' as const, icon: List, label: 'Bulleted list' },
                         { type: 'numbered-list' as const, icon: ListOrdered, label: 'Numbered list' },
-                        { type: 'quote' as const, icon: Quote, label: 'Quote' },
-                        { type: 'code' as const, icon: Code, label: 'Code' },
-                        { type: 'image' as const, icon: Image, label: 'Image' },
-                        { type: 'file' as const, icon: FileText, label: 'File' },
-                      ].map(({ type, icon: Icon, label }) => (
-                        <button
-                          key={type}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
-                          onClick={() => { updateBlock(block.id, { type }); setShowGripMenu(null) }}
-                        >
-                          <Icon className="w-5 h-5 text-gray-400" />
-                          <div className="text-sm font-medium text-gray-900">{label}</div>
-                        </button>
-                      ))}
+                      { type: 'quote' as const, icon: Quote, label: 'Quote' },
+                      { type: 'code' as const, icon: Code, label: 'Code' },
+                      { type: 'image' as const, icon: Image, label: 'Image' },
+                      { type: 'file' as const, icon: FileText, label: 'File' },
+                      { type: 'table' as const, icon: Table, label: 'Table' },
+                    ].map(({ type, icon: Icon, label }) => (
+                      <button
+                        key={type}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
+                        onClick={() => {
+                          changeBlockType(block.id, type)
+                          setShowGripMenu(null)
+                        }}
+                      >
+                        <Icon className="w-5 h-5 text-gray-400" />
+                        <div className="text-sm font-medium text-gray-900">{label}</div>
+                      </button>
+                    ))}
                       <div className="border-t border-gray-100 my-1" />
                       <button
                         className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3"
                         onClick={() => {
-                          updateBlock(block.id, { type: 'paragraph' })
+                          changeBlockType(block.id, 'paragraph')
                           setShowGripMenu(null)
                           openLinkDialogForSelection(block.id)
                         }}
@@ -1459,10 +1778,13 @@ function DocumentEditor({
                 <div ref={typeMenuRef} className="relative">
                   <TypeMenu
                     blockId={block.id}
-                    onChangeBlockType={(id, t) => { updateBlock(id, { type: t }); setShowTypeMenu(null) }}
+                    onChangeBlockType={(id, t) => {
+                      changeBlockType(id, t)
+                      setShowTypeMenu(null)
+                    }}
                     placement={typeMenuPlacement}
                     onOpenLinkDialog={(id) => {
-                      updateBlock(id, { type: 'paragraph' })
+                      changeBlockType(id, 'paragraph')
                       setShowTypeMenu(null)
                       openLinkDialogForSelection(id)
                     }}

@@ -2,14 +2,40 @@ export type DocumentItemType = 'folder' | 'file'
 
 export type DocumentStatus = 'active' | 'archived' | 'shared' | 'private'
 
+export interface DocumentTableCell {
+  id: string
+  content: string
+}
+
+export interface DocumentTableRow {
+  id: string
+  cells: DocumentTableCell[]
+}
+
+export interface DocumentTableData {
+  rows: DocumentTableRow[]
+}
+
 export interface DocumentBlock {
   id: string
-  type: 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'bulleted-list' | 'numbered-list' | 'quote' | 'code' | 'image' | 'file'
+  type:
+  | 'paragraph'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'bulleted-list'
+  | 'numbered-list'
+  | 'quote'
+  | 'code'
+  | 'image'
+  | 'file'
+  | 'table'
   content: string
   alignment?: 'left' | 'center' | 'right'
   url?: string // For image src or file download URL
   fileName?: string // For file blocks
   fileSize?: string // For file blocks
+  table?: DocumentTableData // For table blocks
 }
 
 export interface DocumentOwner {
