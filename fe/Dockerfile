@@ -1,44 +1,23 @@
-# Tahap pertama: Build aplikasi
-FROM node:22 AS build
+FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Salin file package.json dan package-lock.json terlebih dahulu
-COPY package*.json ./
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependensi aplikasi
-RUN npm install
-
-# Salin seluruh file aplikasi ke dalam container
 COPY . .
-
-# Set environment variables untuk production
-ENV VITE_API_BASE_URL=https://api.yourdomain.com
-RUN echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > .env
-
-# Build aplikasi untuk production
 RUN npm run build
 
-# Tahap kedua: Serve aplikasi
-FROM node:22
+FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
-# Set environment variables untuk runtime
-ENV VITE_API_BASE_URL=https://api.yourdomain.com
+ENV NODE_ENV=production
 
-# Copy hasil build dari tahap sebelumnya
+RUN npm install --global serve@14.2.3
+
 COPY --from=build /app/dist ./dist
 
-COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+EXPOSE 4173
 
-# Install serve package globally
-RUN npm install -g serve
-
-# Expose port 5173
-EXPOSE 5173
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["serve", "-s", "dist", "-l", "5173"]
+CMD ["serve", "-s", "dist", "-l", "4173"]
