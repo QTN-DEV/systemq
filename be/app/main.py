@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
-import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi import Request
 
 from app.api.routes import router as api_router
 from app.db.beanie import lifespan_context

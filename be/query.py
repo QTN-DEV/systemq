@@ -1,6 +1,7 @@
 import os
-from pymongo import MongoClient
+
 from dotenv import load_dotenv
+from pymongo import MongoClient
 
 load_dotenv()
 
@@ -25,4 +26,3 @@ for user in db.users.find({}, projection).sort("email"):
     position = user.get("position") or "-"
     division = user.get("division") or "-"
     title = user.get("title") or "-"
-    print(f"- {email:30s} | name={name} | level={level} | position={position} | division={division} | title={title}")

@@ -3,8 +3,8 @@
 from fastapi import APIRouter
 
 from .auth import router as auth_router
-from .documents import router as documents_router
 from .document_permissions import router as document_permissions_router
+from .documents import router as documents_router
 from .employees import router as employees_router
 from .projects import router as projects_router
 from .root import router as root_router

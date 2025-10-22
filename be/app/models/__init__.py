@@ -6,13 +6,12 @@ from .enums import (
     EmploymentTypeLiteral,
     PositionLiteral,
 )
+from .health import SystemStatus
 from .password_reset_token import PasswordResetToken
+from .project import Project
+from .qdrive import QDrive, QDrivePermission
 from .session_token import SessionToken
 from .user import User
-from .document import DocumentItem, DocumentHistory, EditHistoryEvent
-from .project import Project
-from .health import SystemStatus
-from .qdrive import QDrive, QDrivePermission
 
 __all__ = [
     "ALLOWED_EMPLOYMENT_TYPES",
@@ -22,9 +21,6 @@ __all__ = [
     "PasswordResetToken",
     "SessionToken",
     "User",
-    "DocumentItem",
-    "DocumentHistory",
-    "EditHistoryEvent",
     "Project",
     "SystemStatus",
     "QDrive",

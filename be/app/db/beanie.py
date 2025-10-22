@@ -10,9 +10,6 @@ from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.models import (
-    DocumentHistory,
-    DocumentItem,
-    EditHistoryEvent,
     PasswordResetToken,
     Project,
     QDrive,
@@ -40,9 +37,6 @@ async def init_database() -> None:
             PasswordResetToken,
             Project,
             SessionToken,
-            DocumentItem,
-            DocumentHistory,
-            EditHistoryEvent,
             QDrive,
         ],
     )

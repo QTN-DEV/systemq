@@ -4,25 +4,18 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException, status
 
-from app.logging_utils import get_logger, log_debug, log_info, log_warning
+from app.logging_utils import get_logger, log_info
+from app.models.qdrive import QDrive, QDrivePermission
 from app.schemas import MessageResponse, UserProfile
 from app.schemas.document_permission import (
     AddDivisionPermissionRequest,
     AddUserPermissionRequest,
+    DivisionPermissionSchema,
+    DocumentPermissionSchema,
     DocumentPermissionsResponse,
-    UpdatePermissionRequest,
 )
 from app.services import auth as auth_service
 from app.services.auth import AuthenticationError, UserNotFoundError
-from app.services.document_permission import (
-    DocumentPermissionError,
-    add_division_permission,
-    add_user_permission,
-    get_document_permissions,
-    remove_division_permission,
-    remove_user_permission,
-)
-from app.services.document import DocumentNotFoundError
 
 router = APIRouter(prefix="/documents", tags=["Document Permissions"])
 logger = get_logger(__name__)
@@ -55,35 +48,38 @@ def _is_admin(user: UserProfile) -> bool:
 )
 async def get_permissions(
     document_id: str,
-    authorization: str = Header(alias="Authorization"),
 ) -> DocumentPermissionsResponse:
-    """Get all permissions for a document. Only document owner or editors can view permissions."""
+    """Get all permissions for a document."""
     log_info(logger, "get_permissions called", document_id=document_id)
-    user = await _get_current_user(authorization)
+    # Get QDrive
+    qdrive = await QDrive.find_one(QDrive.id == document_id)
+    if not qdrive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    # Check if user has editor access to view permissions
-    from app.services.document_permission import get_user_document_permission
+    user_permissions: list[DocumentPermissionSchema] = []
+    division_permissions: list[DivisionPermissionSchema] = []
+    for permission in qdrive.permissions:
+        resolved = await permission.resolve_fk()
+        if resolved["user"]:
+            user_permissions.append(
+                DocumentPermissionSchema(
+                    user_id=resolved["user"]["id"],
+                    user_name=resolved["user"]["name"],
+                    user_email=resolved["user"]["email"],
+                    permission=resolved["permission"],
+                )
+            )
+        elif resolved["division"]:
+            division_permissions.append(
+                DivisionPermissionSchema(
+                    division=resolved["division"]["id"],
+                    permission=resolved["permission"],
+                )
+            )
 
-    # if document_id == "something.pdf":
-    #     print("user id:", user.id)
-
-    user_permission = await get_user_document_permission(document_id, user.id)
-
-    # if document_id == "something.pdf":
-    #     print("user permission:", user_permission)
-
-    if not (_is_admin(user) or user_permission in ["owner", "editor", "viewer"]):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only document owners and editors can view permissions",
-        )
-
-    try:
-        permissions = await get_document_permissions(document_id)
-        log_debug(logger, "get_permissions resolved", document_id=document_id)
-        return DocumentPermissionsResponse(**permissions)
-    except DocumentNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return DocumentPermissionsResponse(
+        user_permissions=user_permissions, division_permissions=division_permissions
+    )
 
 
 @router.post(
@@ -98,32 +94,41 @@ async def add_user_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Add or update individual user permission for a document."""
-    log_info(logger, "add_user_permission called", document_id=document_id, target_user=payload.user_id)
     user = await _get_current_user(authorization)
 
-    # Check if user has editor access
-    from app.services.document_permission import get_user_document_permission
+    # Get QDrive
+    qdrive = await QDrive.find_one(QDrive.id == document_id)
+    if not qdrive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    user_permission = await get_user_document_permission(document_id, user.id)
+    # Check if user is admin or owner or editor or in-a-division-of-editor
+    is_user_admin = _is_admin(user)
+    is_user_owner = user.id == qdrive.creator_id
+    is_user_editor = user.id in [
+        permission.user_id for permission in qdrive.permissions if permission.permission == "editor"
+    ]
+    is_user_in_division_of_editor = user.division in [
+        permission.division_id
+        for permission in qdrive.permissions
+        if permission.permission == "editor"
+    ]
 
-    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
+    if not (is_user_admin or is_user_owner or is_user_editor or is_user_in_division_of_editor):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only document owners and editors can manage permissions",
+            detail="Only document owners, editors, and admins can manage permissions",
         )
 
-    try:
-        await add_user_permission(
-            document_id=document_id,
+    # Add user permission
+    qdrive.permissions.append(
+        QDrivePermission(
             user_id=payload.user_id,
-            user_name=payload.user_name,
-            user_email=payload.user_email,
             permission=payload.permission,
         )
-        log_info(logger, "add_user_permission succeeded", document_id=document_id, target_user=payload.user_id, permission=payload.permission)
-        return MessageResponse(message="User permission added successfully.")
-    except DocumentNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    )
+    await qdrive.save()
+
+    return MessageResponse(message="User permission added successfully.")
 
 
 @router.post(
@@ -138,28 +143,41 @@ async def add_division_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Add or update division permission for a document."""
-    log_info(logger, "add_division_permission called", document_id=document_id, division=payload.division)
     user = await _get_current_user(authorization)
 
-    # Check if user has editor access
-    from app.services.document_permission import get_user_document_permission
+    # Get QDrive
+    qdrive = await QDrive.find_one(QDrive.id == document_id)
+    if not qdrive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    user_permission = await get_user_document_permission(document_id, user.id)
+    # Check if user is admin or owner or editor or in-a-division-of-editor
+    is_user_admin = _is_admin(user)
+    is_user_owner = user.id == qdrive.creator_id
+    is_user_editor = user.id in [
+        permission.user_id for permission in qdrive.permissions if permission.permission == "editor"
+    ]
+    is_user_in_division_of_editor = user.division in [
+        permission.division_id
+        for permission in qdrive.permissions
+        if permission.permission == "editor"
+    ]
 
-    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
+    if not (is_user_admin or is_user_owner or is_user_editor or is_user_in_division_of_editor):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only document owners and editors can manage permissions",
+            detail="Only document owners, editors, and admins can manage permissions",
         )
 
-    try:
-        await add_division_permission(
-            document_id=document_id, division=payload.division, permission=payload.permission
+    # Add division permission
+    qdrive.permissions.append(
+        QDrivePermission(
+            division_id=payload.division,
+            permission=payload.permission,
         )
-        log_info(logger, "add_division_permission succeeded", document_id=document_id, division=payload.division, permission=payload.permission)
-        return MessageResponse(message="Division permission added successfully.")
-    except DocumentNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    )
+    await qdrive.save()
+
+    return MessageResponse(message="Division permission added successfully.")
 
 
 @router.delete(
@@ -174,26 +192,38 @@ async def remove_user_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Remove individual user permission from a document."""
-    log_info(logger, "remove_user_permission called", document_id=document_id, target_user=user_id)
     user = await _get_current_user(authorization)
 
-    # Check if user has editor access
-    from app.services.document_permission import get_user_document_permission
+    # Get QDrive
+    qdrive = await QDrive.find_one(QDrive.id == document_id)
+    if not qdrive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    user_permission = await get_user_document_permission(document_id, user.id)
+    # Check if user is admin or owner or editor or in-a-division-of-editor
+    is_user_admin = _is_admin(user)
+    is_user_owner = user.id == qdrive.creator_id
+    is_user_editor = user.id in [
+        permission.user_id for permission in qdrive.permissions if permission.permission == "editor"
+    ]
+    is_user_in_division_of_editor = user.division in [
+        permission.division_id
+        for permission in qdrive.permissions
+        if permission.permission == "editor"
+    ]
 
-    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
+    if not (is_user_admin or is_user_owner or is_user_editor or is_user_in_division_of_editor):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only document owners and editors can manage permissions",
         )
 
-    try:
-        await remove_user_permission(document_id=document_id, user_id=user_id)
-        log_info(logger, "remove_user_permission succeeded", document_id=document_id, target_user=user_id)
-        return MessageResponse(message="User permission removed successfully.")
-    except DocumentNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    # Remove user permission
+    qdrive.permissions = [
+        permission for permission in qdrive.permissions if permission.user_id != user_id
+    ]
+    await qdrive.save()
+
+    return MessageResponse(message="User permission removed successfully.")
 
 
 @router.delete(
@@ -208,23 +238,35 @@ async def remove_division_permission_endpoint(
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
     """Remove division permission from a document."""
-    log_info(logger, "remove_division_permission called", document_id=document_id, division=division)
     user = await _get_current_user(authorization)
 
-    # Check if user has editor access
-    from app.services.document_permission import get_user_document_permission
+    # Get QDrive
+    qdrive = await QDrive.find_one(QDrive.id == document_id)
+    if not qdrive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    user_permission = await get_user_document_permission(document_id, user.id)
+    # Check if user is admin or owner or editor or in-a-division-of-editor
+    is_user_admin = _is_admin(user)
+    is_user_owner = user.id == qdrive.creator_id
+    is_user_editor = user.id in [
+        permission.user_id for permission in qdrive.permissions if permission.permission == "editor"
+    ]
+    is_user_in_division_of_editor = user.division in [
+        permission.division_id
+        for permission in qdrive.permissions
+        if permission.permission == "editor"
+    ]
 
-    if not (_is_admin(user) or user_permission in {"editor", "owner"}):
+    if not (is_user_admin or is_user_owner or is_user_editor or is_user_in_division_of_editor):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only document owners and editors can manage permissions",
+            detail="Only document owners, editors, and admins can manage permissions",
         )
 
-    try:
-        await remove_division_permission(document_id=document_id, division=division)
-        log_info(logger, "remove_division_permission succeeded", document_id=document_id, division=division)
-        return MessageResponse(message="Division permission removed successfully.")
-    except DocumentNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    # Remove division permission
+    qdrive.permissions = [
+        permission for permission in qdrive.permissions if permission.division_id != division
+    ]
+    await qdrive.save()
+
+    return MessageResponse(message="Division permission removed successfully.")

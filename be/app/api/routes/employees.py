@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
 from typing import Literal
+
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
+from app.models.enums import ALLOWED_DIVISIONS
 from app.schemas import MessageResponse
 from app.schemas.employee import Employee, EmployeeCreate, EmployeeUpdate
-from app.models.enums import ALLOWED_DIVISIONS
 from app.services import employee as employee_service
 from app.services.employee import (
     EmployeeAlreadyExistsError,
