@@ -15,6 +15,7 @@ from app.models import (
     EditHistoryEvent,
     PasswordResetToken,
     Project,
+    QDrive,
     SessionToken,
     SystemStatus,
     User,
@@ -42,6 +43,7 @@ async def init_database() -> None:
             DocumentItem,
             DocumentHistory,
             EditHistoryEvent,
+            QDrive,
         ],
     )
 

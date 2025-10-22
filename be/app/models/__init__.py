@@ -12,6 +12,7 @@ from .user import User
 from .document import DocumentItem, DocumentHistory, EditHistoryEvent
 from .project import Project
 from .health import SystemStatus
+from .qdrive import QDrive, QDrivePermission
 
 __all__ = [
     "ALLOWED_EMPLOYMENT_TYPES",
@@ -26,4 +27,6 @@ __all__ = [
     "EditHistoryEvent",
     "Project",
     "SystemStatus",
+    "QDrive",
+    "QDrivePermission",
 ]
