@@ -13,12 +13,20 @@ from .auth import (
 from .document import (
     DistinctValuesResponse,
     DocumentBreadcrumbSchema,
+    DocumentCreate,
+    DocumentResponse,
+    DocumentUpdate,
     ItemCountResponse,
+    QDrivePermissionSchema,
 )
 
 __all__ = [
     "UserProfile",
     "DocumentBreadcrumbSchema",
+    "DocumentCreate",
+    "DocumentUpdate",
+    "DocumentResponse",
+    "QDrivePermissionSchema",
     "DistinctValuesResponse",
     "ItemCountResponse",
     "MessageResponse",

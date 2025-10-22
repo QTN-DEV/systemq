@@ -53,6 +53,7 @@ class QDrive(Document):
 
 
 class QDriveSnapshot(Document):
+    qdrive_id: str
     qdrive: QDrive
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     changer_id: str
