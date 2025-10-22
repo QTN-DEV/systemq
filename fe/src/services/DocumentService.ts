@@ -33,85 +33,142 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Update the headers to match the API schema
+// Backend API response structure - matches DocumentResponse schema
 interface ApiDocumentItem {
-  name: string;
-  type: string;
-  category: string | null;
-  status: string;
-  parent_id: string | null;
-  shared: boolean;
-  share_url: string | null;
   id: string;
-  owned_by: {
-    id: string;
-    name: string;
-    role: string;
-    avatar: string | null;
-  };
-  date_created: string;
-  last_modified: string;
-  size: string | null;
-  item_count: number;
-  path: string[];
-  content: DocumentBlock[];
-  last_modified_by?: {
-    id: string;
-    name: string;
-  } | null;
-  user_permissions?: {
-    user_id: string;
-    user_name: string;
-    user_email: string;
-    permission: string;
-  }[];
-  division_permissions?: {
-    division: string;
-    permission: string;
+  name: string;
+  type: "folder" | "file";
+  creator_id: string;
+  category: string | null;
+  parent_id: string | null;
+  content: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  permissions: {
+    user_id?: string;
+    division_id?: string;
+    permission: "viewer" | "editor";
+    user?: {
+      id: string;
+      name: string;
+      email: string;
+      position: string;
+      avatar: string | null;
+    };
+    division?: {
+      id: string;
+      name: string;
+    };
   }[];
 }
 
-// Transform API response to match our internal type
-function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
+// Cache for user info to avoid redundant API calls
+const userInfoCache = new Map<string, { name: string; role: string; avatar?: string }>();
+
+// Helper function to fetch user info by employee_id
+async function getUserInfo(employeeId: string): Promise<{ name: string; role: string; avatar?: string }> {
+  // Check cache first
+  if (userInfoCache.has(employeeId)) {
+    return userInfoCache.get(employeeId)!;
+  }
+
+  try {
+    // Try to fetch user info from the employees endpoint
+    const response = await api.get<{ id: string; name: string; position?: string; avatar?: string | null }>(`/employees/${encodeURIComponent(employeeId)}`);
+    const userInfo = {
+      name: response.data.name || 'Unknown',
+      role: (response.data.position?.toLowerCase().replace(/\s+/g, '_') || 'employee') as string,
+      avatar: response.data.avatar || undefined,
+    };
+
+    // Cache the result
+    userInfoCache.set(employeeId, userInfo);
+    return userInfo;
+  } catch (error) {
+    console.warn(`Failed to fetch user info for ${employeeId}:`, error);
+    // Return fallback info
+    const fallback = {
+      name: employeeId,
+      role: 'employee',
+      avatar: undefined,
+    };
+    userInfoCache.set(employeeId, fallback);
+    return fallback;
+  }
+}
+
+// Transform API response to match our internal type (async version)
+async function transformApiDocument(apiDoc: ApiDocumentItem): Promise<DocumentItem> {
+  // Parse content from string to DocumentBlock array
+  let contentBlocks: DocumentBlock[] = [];
+  if (apiDoc.content) {
+    try {
+      contentBlocks = JSON.parse(apiDoc.content);
+    } catch (e) {
+      // If content is plain text, wrap it in a paragraph block
+      contentBlocks = [{
+        id: 'default',
+        type: 'paragraph',
+        content: apiDoc.content
+      }];
+    }
+  }
+
+  // Determine status based on permissions
+  const hasPermissions = apiDoc.permissions && apiDoc.permissions.length > 0;
+  const status = hasPermissions ? "shared" : "private";
+
+  // Fetch creator info
+  const creatorInfo = await getUserInfo(apiDoc.creator_id);
+
   return {
     id: apiDoc.id,
     name: apiDoc.name,
-    type: apiDoc.type as "folder" | "file",
+    type: apiDoc.type,
     category: apiDoc.category ?? undefined,
-    status: apiDoc.status as "active" | "archived" | "shared" | "private",
+    status: status as "active" | "archived" | "shared" | "private",
     parentId: apiDoc.parent_id ?? undefined,
-    shared: apiDoc.shared,
-    shareUrl: apiDoc.share_url ?? undefined,
+    shared: hasPermissions,
+    shareUrl: undefined, // Not supported by backend
     ownedBy: {
-      id: apiDoc.owned_by.id,
-      name: apiDoc.owned_by.name,
-      role: apiDoc.owned_by.role as
-        | "admin"
-        | "manager"
-        | "employee"
-        | "secretary",
-      avatar: apiDoc.owned_by.avatar ?? undefined,
+      id: apiDoc.creator_id,
+      name: creatorInfo.name,
+      role: creatorInfo.role as "admin" | "manager" | "employee" | "secretary",
+      avatar: creatorInfo.avatar,
     },
-    dateCreated: apiDoc.date_created,
-    lastModified: apiDoc.last_modified,
-    lastModifiedBy: apiDoc.last_modified_by
-      ? { id: apiDoc.last_modified_by.id, name: apiDoc.last_modified_by.name }
-      : null,
-    size: apiDoc.size ?? undefined,
-    itemCount: apiDoc.item_count,
-    path: apiDoc.path,
-    content: apiDoc.content || [],
-    userPermissions: apiDoc.user_permissions?.map((perm) => ({
-      user_id: perm.user_id,
-      user_name: perm.user_name,
-      user_email: perm.user_email,
-      permission: perm.permission as "viewer" | "editor",
-    })),
-    divisionPermissions: apiDoc.division_permissions?.map((perm) => ({
-      division: perm.division,
-      permission: perm.permission as "viewer" | "editor",
-    })),
+    dateCreated: apiDoc.created_at,
+    lastModified: apiDoc.updated_at,
+    lastModifiedBy: null, // Not provided by backend
+    size: undefined, // Not provided by backend
+    itemCount: 0, // Will be fetched separately when needed
+    path: [], // Will be built using breadcrumbs endpoint
+    content: contentBlocks,
+    userPermissions: apiDoc.permissions
+      ?.filter(p => p.user_id && p.user)
+      .map((perm) => ({
+        user_id: perm.user!.id,
+        user_name: perm.user!.name,
+        user_email: perm.user!.email,
+        permission: perm.permission as "viewer" | "editor",
+      })),
+    divisionPermissions: apiDoc.permissions
+      ?.filter(p => p.division_id && p.division)
+      .map((perm) => ({
+        division: perm.division!.name,
+        permission: perm.permission as "viewer" | "editor",
+      })),
   };
+}
+
+// Batch transform with user info fetching
+async function transformApiDocuments(apiDocs: ApiDocumentItem[]): Promise<DocumentItem[]> {
+  // Pre-fetch all unique creator info in parallel
+  const uniqueCreatorIds = Array.from(new Set(apiDocs.map(doc => doc.creator_id)));
+  await Promise.all(uniqueCreatorIds.map(id => getUserInfo(id)));
+
+  // Transform all documents
+  return Promise.all(apiDocs.map(transformApiDocument));
 }
 
 /**
@@ -138,8 +195,9 @@ export async function searchDocuments(
     const session = useAuthStore.getState().getCurrentSession()
     const headers = session?.token ? { Authorization: `Bearer ${session.token}` } : undefined
 
-    const res = await api.get<ApiDocumentItem[]>(endpoint, { headers })
-    return res.data.map(transformApiDocument)
+    // Backend returns paginated response: { items: [], total: int, offset: int, limit: int }
+    const res = await api.get<{ items: ApiDocumentItem[], total: number, offset: number, limit: number }>(endpoint, { headers })
+    return transformApiDocuments(res.data.items)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('searchDocuments error:', err)
@@ -161,7 +219,7 @@ export async function getDocumentsByParentId(
       headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
       params: { _t: Date.now() },
     });
-    return response.data.map(transformApiDocument);
+    return transformApiDocuments(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching documents:", error);
@@ -169,16 +227,15 @@ export async function getDocumentsByParentId(
   }
 }
 
-// Get actual item count by making a specific API call
+// Get actual item count by using the dedicated backend endpoint
 export async function getActualItemCount(folderId: string): Promise<number> {
   try {
-    // Ensure Authorization header present for new BE requirement
     const session = useAuthStore.getState().getCurrentSession();
-    const response = await api.get<ApiDocumentItem[]>(
-      `/documents/?parent_id=${encodeURIComponent(folderId)}`,
+    const response = await api.get<{ count: number }>(
+      `/documents/${encodeURIComponent(folderId)}/item-count`,
       { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
     );
-    return response.data.length;
+    return response.data.count;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching item count:", error);
@@ -201,7 +258,7 @@ export async function getDocumentById(
         params: { _t: Date.now() },
       }
     );
-    return transformApiDocument(response.data);
+    return await transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching document by ID:", error);
@@ -209,25 +266,26 @@ export async function getDocumentById(
   }
 }
 
-// Updated async version of getFolderPathIds
+// Get folder path IDs using the backend endpoint
 export async function getFolderPathIds(
   folderId: string | null
 ): Promise<string[]> {
   if (!folderId) return [];
-  const folder = await getDocumentById(folderId, null);
-  if (!folder) return [];
-
-  const pathIds: string[] = [];
-  let currentFolder: DocumentItem | null = folder;
-  while (currentFolder?.parentId) {
-    pathIds.unshift(currentFolder.parentId);
-    currentFolder = await getDocumentById(currentFolder.parentId, null);
+  try {
+    const session = useAuthStore.getState().getCurrentSession();
+    const response = await api.get<string[]>(
+      `/documents/${encodeURIComponent(folderId)}/path-ids`,
+      { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
+    );
+    return response.data;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error fetching folder path IDs:", error);
+    return [];
   }
-  pathIds.push(folderId);
-  return pathIds;
 }
 
-// Updated async version of buildBreadcrumbs
+// Build breadcrumbs using the backend endpoint
 export async function buildBreadcrumbs(
   currentFolderId: string | null
 ): Promise<{ id: string; name: string; path: string[] }[]> {
@@ -236,110 +294,112 @@ export async function buildBreadcrumbs(
   ];
   if (!currentFolderId) return breadcrumbs;
 
-  const currentFolder = await getDocumentById(currentFolderId, null);
-  if (!currentFolder) return breadcrumbs;
+  try {
+    const session = useAuthStore.getState().getCurrentSession();
+    const response = await api.get<{ id: string; name: string; type: string }[]>(
+      `/documents/${encodeURIComponent(currentFolderId)}/breadcrumbs`,
+      { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
+    );
 
-  const pathIds: string[] = [];
-  let folder: DocumentItem | null = currentFolder;
-  while (folder?.parentId) {
-    pathIds.unshift(folder.parentId);
-    const parentFolder = await getDocumentById(folder.parentId, null);
-    folder = parentFolder;
-  }
-  pathIds.push(currentFolderId);
-
-  let currentPath: string[] = [];
-  for (const id of pathIds) {
-    const folderDoc = await getDocumentById(id, null);
-    if (folderDoc) {
-      currentPath = [...currentPath, folderDoc.name];
+    // Backend returns array of {id, name, type}, convert to breadcrumb format
+    let currentPath: string[] = [];
+    for (const item of response.data) {
       breadcrumbs.push({
-        id,
-        name: folderDoc.name,
-        path: currentPath.slice(0, -1),
+        id: item.id,
+        name: item.name,
+        path: [...currentPath],
       });
+      currentPath.push(item.name);
     }
-  }
 
-  return breadcrumbs;
+    return breadcrumbs;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error building breadcrumbs:", error);
+    return breadcrumbs;
+  }
 }
 
 export async function getDocumentTypes(
   searchQuery: string = ""
 ): Promise<string[]> {
-  // Get all documents to extract existing types
-  const allDocuments = await getDocumentsByParentId(null);
-  const existingTypes = Array.from(
-    new Set(
-      allDocuments
-        .filter((doc) => doc.type === "file")
-        .map((doc) => doc.category)
-        .filter(Boolean)
-    )
-  ) as string[];
+  try {
+    // Use backend endpoint to get distinct types
+    const response = await api.get<{ values: string[] }>('/documents/types');
+    const types = response.data.values || [];
 
-  const predefinedTypes = [
-    "Standard Operating Procedure",
-    "Policy Document",
-    "Charter",
-    "Meeting Notes",
-    "Template",
-    "Report",
-    "Manual",
-    "Guidelines",
-    "Contract",
-    "Proposal",
-    "Specification",
-    "Training Material",
-  ];
-
-  const allTypes = Array.from(new Set([...predefinedTypes, ...existingTypes]));
-  if (!searchQuery) return allTypes.sort();
-  const filtered = allTypes.filter((type) =>
-    type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  return filtered.length === 0 ? [searchQuery] : filtered.sort();
+    if (!searchQuery) return types.sort();
+    const filtered = types.filter((type) =>
+      type.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return filtered.length === 0 ? [searchQuery] : filtered.sort();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error fetching document types:", error);
+    // Fallback to predefined types
+    const predefinedTypes = [
+      "Standard Operating Procedure",
+      "Policy Document",
+      "Charter",
+      "Meeting Notes",
+      "Template",
+      "Report",
+      "Manual",
+      "Guidelines",
+      "Contract",
+      "Proposal",
+      "Specification",
+      "Training Material",
+    ];
+    if (!searchQuery) return predefinedTypes.sort();
+    const filtered = predefinedTypes.filter((type) =>
+      type.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return filtered.length === 0 ? [searchQuery] : filtered.sort();
+  }
 }
 
 export async function getDocumentCategories(
   searchQuery: string = ""
 ): Promise<string[]> {
-  // Get all documents to extract existing categories
-  const allDocuments = await getDocumentsByParentId(null);
-  const existing = Array.from(
-    new Set(
-      allDocuments
-        .filter((doc) => doc.category)
-        .map((doc) => doc.category)
-        .filter(Boolean)
-    )
-  ) as string[];
+  try {
+    // Use backend endpoint to get distinct categories
+    const response = await api.get<{ values: string[] }>('/documents/categories');
+    const categories = response.data.values || [];
 
-  const predefined = [
-    "Company Policies",
-    "Attendance",
-    "Charter",
-    "Meeting Notes",
-    "Templates",
-    "HR Policies",
-    "Financial",
-    "Operations",
-    "Legal",
-    "Marketing",
-    "Sales",
-    "Technical",
-    "Training",
-    "Compliance",
-    "Quality Assurance",
-    "Project Management",
-  ];
-
-  const all = Array.from(new Set([...predefined, ...existing]));
-  if (!searchQuery) return all.sort();
-  const filtered = all.filter((c) =>
-    c.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  return filtered.length === 0 ? [searchQuery] : filtered.sort();
+    if (!searchQuery) return categories.sort();
+    const filtered = categories.filter((c) =>
+      c.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return filtered.length === 0 ? [searchQuery] : filtered.sort();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error fetching document categories:", error);
+    // Fallback to predefined categories
+    const predefined = [
+      "Company Policies",
+      "Attendance",
+      "Charter",
+      "Meeting Notes",
+      "Templates",
+      "HR Policies",
+      "Financial",
+      "Operations",
+      "Legal",
+      "Marketing",
+      "Sales",
+      "Technical",
+      "Training",
+      "Compliance",
+      "Quality Assurance",
+      "Project Management",
+    ];
+    if (!searchQuery) return predefined.sort();
+    const filtered = predefined.filter((c) =>
+      c.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return filtered.length === 0 ? [searchQuery] : filtered.sort();
+  }
 }
 
 // Create new document or folder
@@ -350,17 +410,11 @@ export async function createDocument(
   authToken: string
 ): Promise<DocumentItem | null> {
   try {
+    // Backend expects: { name, type, category?, parent_id?, content?, permissions? }
     const payload = {
       name,
-      title: null,
       type,
-      category: null,
-      status: "active",
       parent_id: parentId,
-      shared: false,
-      share_url: null,
-      id: null,
-      content: [],
     };
 
     const response = await api.post<ApiDocumentItem>("/documents/", payload, {
@@ -369,7 +423,7 @@ export async function createDocument(
       },
     });
 
-    return transformApiDocument(response.data);
+    return await transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error creating document:", error);
@@ -401,7 +455,7 @@ export async function renameDocument(
         name: newName,
       }
     );
-    return transformApiDocument(response.data);
+    return await transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error renaming document:", error);
@@ -421,7 +475,7 @@ export async function moveDocument(
         parent_id: newParentId,
       }
     );
-    return transformApiDocument(response.data);
+    return await transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error moving document:", error);
@@ -436,9 +490,8 @@ export async function getAllAccessibleFolders(): Promise<DocumentItem[]> {
       params: { type: 'folder' }
     });
     // Filter to ensure only folders are returned and transform
-    const allFolders = response.data
-      .filter(item => item.type === 'folder')
-      .map(transformApiDocument);
+    const folders = response.data.filter(item => item.type === 'folder');
+    const allFolders = await transformApiDocuments(folders);
 
     // Filter folders by edit permissions
     const accessibleFolders: DocumentItem[] = []
@@ -475,14 +528,23 @@ export async function updateDocumentContent(
   options?: { commit?: boolean }
 ): Promise<DocumentItem | null> {
   try {
+    // Backend expects content as JSON string, not array
+    const backendPayload: any = {};
+    if (payload.category !== undefined) {
+      backendPayload.category = payload.category;
+    }
+    if (payload.content) {
+      backendPayload.content = JSON.stringify(payload.content);
+    }
+
     const response = await api.patch<ApiDocumentItem>(
       `/documents/${encodeURIComponent(documentId)}`,
-      payload,
+      backendPayload,
       {
         params: options?.commit !== undefined ? { commit: options.commit ? 'true' : 'false' } : undefined,
       }
     );
-    return transformApiDocument(response.data);
+    return await transformApiDocument(response.data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error updating document content:", error);
@@ -501,15 +563,20 @@ export async function getDocumentHistory(id: string): Promise<EditHistoryEvent[]
 
 // ===== DOCUMENT PERMISSION FUNCTIONS =====
 
-// Get document permissions
+// Get document permissions - backend doesn't have a dedicated permissions endpoint
+// Permissions are included in the main document response
 export async function getDocumentPermissions(
   documentId: string
 ): Promise<DocumentPermissions | null> {
   try {
-    const response = await api.get<DocumentPermissions>(
-      `/documents/${encodeURIComponent(documentId)}/permissions`
-    );
-    return response.data;
+    // Fetch the document which includes permissions
+    const doc = await getDocumentById(documentId, null);
+    if (!doc) return null;
+
+    return {
+      user_permissions: doc.userPermissions || [],
+      division_permissions: doc.divisionPermissions || [],
+    };
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching document permissions:", error);
@@ -517,17 +584,42 @@ export async function getDocumentPermissions(
   }
 }
 
-// Add user permission
+// Add user permission - update document with new permission
 export async function addUserPermission(
   documentId: string,
   permission: AddUserPermissionRequest
 ): Promise<boolean> {
   try {
-    await api.post(
-      `/documents/${encodeURIComponent(documentId)}/permissions/users`,
-      permission
+    // Get current document
+    const doc = await getDocumentById(documentId, null);
+    if (!doc) return false;
+
+    // Add new permission to existing permissions
+    const userPermissions = doc.userPermissions || [];
+    userPermissions.push({
+      user_id: permission.user_id,
+      user_name: permission.user_name || "Unknown",
+      user_email: permission.user_email || "",
+      permission: permission.permission as "viewer" | "editor",
+    });
+
+    // Update document with new permissions
+    const response = await api.patch(
+      `/documents/${encodeURIComponent(documentId)}`,
+      {
+        permissions: [
+          ...userPermissions.map(p => ({
+            user_id: p.user_id,
+            permission: p.permission,
+          })),
+          ...(doc.divisionPermissions || []).map(p => ({
+            division_id: p.division,
+            permission: p.permission,
+          })),
+        ],
+      }
     );
-    return true;
+    return response.status === 200;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error adding user permission:", error);
@@ -535,17 +627,40 @@ export async function addUserPermission(
   }
 }
 
-// Add division permission
+// Add division permission - update document with new permission
 export async function addDivisionPermission(
   documentId: string,
   permission: AddDivisionPermissionRequest
 ): Promise<boolean> {
   try {
-    await api.post(
-      `/documents/${encodeURIComponent(documentId)}/permissions/divisions`,
-      permission
+    // Get current document
+    const doc = await getDocumentById(documentId, null);
+    if (!doc) return false;
+
+    // Add new permission to existing permissions
+    const divisionPermissions = doc.divisionPermissions || [];
+    divisionPermissions.push({
+      division: permission.division,
+      permission: permission.permission as "viewer" | "editor",
+    });
+
+    // Update document with new permissions
+    const response = await api.patch(
+      `/documents/${encodeURIComponent(documentId)}`,
+      {
+        permissions: [
+          ...(doc.userPermissions || []).map(p => ({
+            user_id: p.user_id,
+            permission: p.permission,
+          })),
+          ...divisionPermissions.map(p => ({
+            division_id: p.division,
+            permission: p.permission,
+          })),
+        ],
+      }
     );
-    return true;
+    return response.status === 200;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error adding division permission:", error);
@@ -553,18 +668,36 @@ export async function addDivisionPermission(
   }
 }
 
-// Remove user permission
+// Remove user permission - update document without the permission
 export async function removeUserPermission(
   documentId: string,
   userId: string
 ): Promise<boolean> {
   try {
-    await api.delete(
-      `/documents/${encodeURIComponent(
-        documentId
-      )}/permissions/users/${encodeURIComponent(userId)}`
+    // Get current document
+    const doc = await getDocumentById(documentId, null);
+    if (!doc) return false;
+
+    // Remove the permission
+    const userPermissions = (doc.userPermissions || []).filter(p => p.user_id !== userId);
+
+    // Update document with new permissions
+    const response = await api.patch(
+      `/documents/${encodeURIComponent(documentId)}`,
+      {
+        permissions: [
+          ...userPermissions.map(p => ({
+            user_id: p.user_id,
+            permission: p.permission,
+          })),
+          ...(doc.divisionPermissions || []).map(p => ({
+            division_id: p.division,
+            permission: p.permission,
+          })),
+        ],
+      }
     );
-    return true;
+    return response.status === 200;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error removing user permission:", error);
@@ -572,18 +705,36 @@ export async function removeUserPermission(
   }
 }
 
-// Remove division permission
+// Remove division permission - update document without the permission
 export async function removeDivisionPermission(
   documentId: string,
   division: string
 ): Promise<boolean> {
   try {
-    await api.delete(
-      `/documents/${encodeURIComponent(
-        documentId
-      )}/permissions/divisions/${encodeURIComponent(division)}`
+    // Get current document
+    const doc = await getDocumentById(documentId, null);
+    if (!doc) return false;
+
+    // Remove the permission
+    const divisionPermissions = (doc.divisionPermissions || []).filter(p => p.division !== division);
+
+    // Update document with new permissions
+    const response = await api.patch(
+      `/documents/${encodeURIComponent(documentId)}`,
+      {
+        permissions: [
+          ...(doc.userPermissions || []).map(p => ({
+            user_id: p.user_id,
+            permission: p.permission,
+          })),
+          ...divisionPermissions.map(p => ({
+            division_id: p.division,
+            permission: p.permission,
+          })),
+        ],
+      }
     );
-    return true;
+    return response.status === 200;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error removing division permission:", error);

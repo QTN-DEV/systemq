@@ -54,7 +54,7 @@ class QDrive(Document):
 
 class QDriveSnapshot(Document):
     qdrive_id: str
-    qdrive: QDrive
+    qdrive: dict[str, Any]  # Store document as dict instead of nested Document
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     changer_id: str
 

@@ -1,0 +1,101 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "Internal Ops" [ref=e7]
+        - generic [ref=e8]: Internal Ops
+      - button [ref=e9]:
+        - img [ref=e10]
+    - generic [ref=e13]:
+      - img "Admin User" [ref=e14]
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Admin User
+        - paragraph [ref=e17]: System Administrator
+    - navigation [ref=e19]:
+      - link "Dashboard" [ref=e20] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e21]
+        - generic [ref=e26]: Dashboard
+      - link "Organizational Structure" [ref=e27] [cursor=pointer]:
+        - /url: /structure-organization
+        - img [ref=e28]
+        - generic [ref=e32]: Organizational Structure
+      - generic [ref=e33]:
+        - button "Documents" [ref=e34]:
+          - img [ref=e35]
+          - generic [ref=e38]: Documents
+          - img [ref=e39]
+        - generic [ref=e41]:
+          - link "My Documents" [ref=e42] [cursor=pointer]:
+            - /url: /documents
+          - link "Shared with Me" [ref=e43] [cursor=pointer]:
+            - /url: /documents/shared
+      - link "Project Management" [ref=e44] [cursor=pointer]:
+        - /url: /project-management
+        - img [ref=e45]
+        - generic [ref=e47]: Project Management
+    - generic [ref=e48]:
+      - link "Change Password" [ref=e49] [cursor=pointer]:
+        - /url: /change-password
+        - img [ref=e50]
+        - generic [ref=e53]: Change Password
+      - button "Sign out" [ref=e54]:
+        - img [ref=e55]
+        - generic [ref=e58]: Sign out
+  - main [ref=e59]:
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - button "Documents" [ref=e63]:
+          - img [ref=e64]
+          - generic [ref=e67]: Documents
+        - generic [ref=e68]:
+          - img [ref=e69]
+          - generic [ref=e72]: Test Project
+      - generic [ref=e74]:
+        - generic [ref=e76]:
+          - img [ref=e78]
+          - generic [ref=e80]:
+            - generic [ref=e81]: Test Project
+            - generic [ref=e82]:
+              - generic [ref=e83]: Owned by
+              - generic [ref=e84]:
+                - generic [ref=e85]: AU
+                - generic [ref=e86]: Admin User
+        - generic [ref=e87]:
+          - button "Share" [ref=e88]:
+            - img [ref=e89]
+            - generic [ref=e95]: Share
+          - button "Create New Folder" [ref=e96]:
+            - img [ref=e97]
+            - generic [ref=e98]: Create New Folder
+      - generic [ref=e99]:
+        - button "All" [ref=e101]
+        - generic [ref=e102]:
+          - img [ref=e103]
+          - textbox "Search" [ref=e106]
+      - generic [ref=e108]:
+        - img [ref=e109]
+        - paragraph [ref=e111]: Failed to create file. Please try again.
+      - generic [ref=e113]:
+        - generic "Error indicator" [ref=e114]:
+          - img [ref=e115]
+        - heading "Failed to Load Documents" [level=3] [ref=e117]
+        - paragraph [ref=e118]: There was an error loading your documents. Please check your connection and try again.
+        - button "Reload Page" [ref=e119]:
+          - img [ref=e120]
+          - generic [ref=e125]: Reload Page
+      - generic [ref=e127]:
+        - heading "Add New Document" [level=3] [ref=e128]
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - generic [ref=e131]: Document Name
+            - textbox "Document Name" [ref=e132]:
+              - /placeholder: Enter document name
+              - text: Test Document
+          - generic [ref=e133]:
+            - button "Cancel" [ref=e134]
+            - button "Create Document" [active] [ref=e135]
+```

@@ -60,7 +60,7 @@ async def _get_current_user(authorization: str) -> UserProfile:
 
 def _is_admin(user: UserProfile) -> bool:
     """Check if user is admin."""
-    return user.level and user.level.lower() == "admin"
+    return user.title and user.title.lower() == "system administrator"
 
 
 async def _get_ancestor_ids(document_id: str) -> list[str]:
@@ -92,7 +92,9 @@ async def _get_ancestor_ids(document_id: str) -> list[str]:
 async def _can_view_document(doc: QDrive, user: UserProfile) -> bool:
     """Check if user can view a document."""
     if _is_admin(user):
+        print("User is admin")
         return True
+    print("User is not admin")
 
     # Owner can view
     if doc.creator_id == user.id:
@@ -218,6 +220,9 @@ async def list_documents(
     for doc in documents:
         if await _can_view_document(doc, user):
             result.append(await _serialize_document(doc))
+
+    for x in result:
+        print(x["name"])
 
     return result
 
@@ -497,8 +502,9 @@ async def create_document(
 
     # Check parent access if parent_id is provided
     if payload.parent_id:
+        parent_id_obj = _to_object_id(payload.parent_id)
         parent = await QDrive.find_one(
-            QDrive.id == payload.parent_id, QDrive.deleted_at == None  # noqa: E711
+            QDrive.id == parent_id_obj, QDrive.deleted_at == None  # noqa: E711
         )
         if not parent:
             raise HTTPException(
@@ -567,9 +573,30 @@ async def update_document(
 
     # Create snapshot if commit is True
     if commit:
+        # Store document as dict for the snapshot
+        doc_dict = {
+            "id": str(doc.id),
+            "name": doc.name,
+            "type": doc.type,
+            "creator_id": doc.creator_id,
+            "category": doc.category,
+            "parent_id": doc.parent_id,
+            "content": doc.content,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+            "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
+            "deleted_at": doc.deleted_at.isoformat() if doc.deleted_at else None,
+            "permissions": [
+                {
+                    "user_id": p.user_id,
+                    "division_id": p.division_id,
+                    "permission": p.permission
+                }
+                for p in doc.permissions
+            ]
+        }
         snapshot = QDriveSnapshot(
             qdrive_id=str(doc.id),
-            qdrive=doc,
+            qdrive=doc_dict,
             changer_id=user.id,
         )
         await snapshot.insert()

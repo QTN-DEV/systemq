@@ -1,0 +1,84 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "Internal Ops" [ref=e7]
+        - generic [ref=e8]: Internal Ops
+      - button [ref=e9]:
+        - img [ref=e10]
+    - generic [ref=e13]:
+      - img "Admin User" [ref=e14]
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Admin User
+        - paragraph [ref=e17]: System Administrator
+    - navigation [ref=e19]:
+      - link "Dashboard" [ref=e20] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e21]
+        - generic [ref=e26]: Dashboard
+      - link "Organizational Structure" [ref=e27] [cursor=pointer]:
+        - /url: /structure-organization
+        - img [ref=e28]
+        - generic [ref=e32]: Organizational Structure
+      - generic [ref=e33]:
+        - button "Documents" [ref=e34]:
+          - img [ref=e35]
+          - generic [ref=e38]: Documents
+          - img [ref=e39]
+        - generic [ref=e41]:
+          - link "My Documents" [ref=e42] [cursor=pointer]:
+            - /url: /documents
+          - link "Shared with Me" [ref=e43] [cursor=pointer]:
+            - /url: /documents/shared
+      - link "Project Management" [ref=e44] [cursor=pointer]:
+        - /url: /project-management
+        - img [ref=e45]
+        - generic [ref=e47]: Project Management
+    - generic [ref=e48]:
+      - link "Change Password" [ref=e49] [cursor=pointer]:
+        - /url: /change-password
+        - img [ref=e50]
+        - generic [ref=e53]: Change Password
+      - button "Sign out" [ref=e54]:
+        - img [ref=e55]
+        - generic [ref=e58]: Sign out
+  - main [ref=e59]:
+    - generic [ref=e60]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - heading "Documents" [level=1] [ref=e64]
+          - paragraph [ref=e65]: Manage your documents, folders, and files in one centralized location.
+        - button "Create New Folder" [ref=e67]:
+          - img [ref=e68]
+          - generic [ref=e69]: Create New Folder
+      - generic [ref=e70]:
+        - button "All" [ref=e72]
+        - generic [ref=e73]:
+          - img [ref=e74]
+          - textbox "Search" [ref=e77]
+      - generic [ref=e79]:
+        - img [ref=e80]
+        - paragraph [ref=e82]: "Duplicate name: an item with this name already exists in this folder."
+      - generic [ref=e84]:
+        - generic "Error indicator" [ref=e85]:
+          - img [ref=e86]
+        - heading "Failed to Load Documents" [level=3] [ref=e88]
+        - paragraph [ref=e89]: There was an error loading your documents. Please check your connection and try again.
+        - button "Reload Page" [ref=e90]:
+          - img [ref=e91]
+          - generic [ref=e96]: Reload Page
+      - generic [ref=e98]:
+        - heading "Create New Folder" [level=3] [ref=e99]
+        - generic [ref=e100]:
+          - generic [ref=e101]:
+            - generic [ref=e102]: Folder Name
+            - textbox "Folder Name" [ref=e103]:
+              - /placeholder: Enter folder name
+              - text: Test Project
+          - generic [ref=e104]:
+            - button "Cancel" [ref=e105]
+            - button "Create Folder" [active] [ref=e106]
+```
