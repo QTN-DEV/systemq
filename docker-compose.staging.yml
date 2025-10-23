@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./be
+    container_name: systemq-backend
+    env_file:
+      - be/.env
+    volumes:
+      - ./be:/app
+      - ./be/static:/app/static
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./fe
+    container_name: systemq-frontend
+    ports:
+      - "3000:4173"

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { AuthSession, AuthenticatedUser } from '@/services/AuthService'
+import type { AuthSession, AuthenticatedUser } from '@/lib/shared/services/authService'
 
 interface AuthState {
   session: AuthSession | null
