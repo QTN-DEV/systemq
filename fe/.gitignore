@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .env
 pnpm-lock.yaml
+
+.cursor
+.qwen
+.claude
+.vscode

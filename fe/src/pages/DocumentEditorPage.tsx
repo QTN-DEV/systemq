@@ -18,7 +18,7 @@ import {
   renameDocument,
   getDocumentAccess,
   getDocumentHistory,
-} from '../services/DocumentService'
+} from '../lib/shared/services/DocumentService'
 import { useAuthStore } from '../stores/authStore'
 import type { DocumentItem, DocumentBlock, EditHistoryEvent } from '../types/documents'
 import EditHistorySidebar from '../components/EditHistorySidebar'

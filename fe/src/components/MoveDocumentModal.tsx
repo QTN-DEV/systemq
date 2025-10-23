@@ -9,10 +9,10 @@ import {
   import { useState, useEffect, useMemo, type ReactElement } from 'react'
   import Swal from 'sweetalert2'
   
-  import { 
+  import {
     getAllAccessibleFolders,
     moveDocument
-  } from '../services/DocumentService'
+  } from '../lib/shared/services/DocumentService'
   import type { DocumentItem } from '../types/documents'
   
   interface MoveDocumentModalProps {

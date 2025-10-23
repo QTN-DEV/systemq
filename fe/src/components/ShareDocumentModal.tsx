@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect, useCallback, type ReactElement } from 'react'
 
-import { 
+import {
   getDocumentPermissions,
   addUserPermission,
   addDivisionPermission,
@@ -15,7 +15,7 @@ import {
   removeDivisionPermission,
   searchForPermissions,
   type SearchResult
-} from '../services/DocumentService'
+} from '../lib/shared/services/DocumentService'
 import type { 
   DocumentPermissions, 
   PermissionLevel

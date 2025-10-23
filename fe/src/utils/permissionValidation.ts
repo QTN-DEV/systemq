@@ -1,4 +1,4 @@
-import { getDocumentById, getDocumentPermissions, getFolderPathIds } from '../services/DocumentService'
+import { getDocumentById, getDocumentPermissions, getFolderPathIds } from '../lib/shared/services/DocumentService'
 import type { DocumentPermission } from '../types/document-permissions'
 import type { PermissionLevel } from '../types/document-permissions'
 
