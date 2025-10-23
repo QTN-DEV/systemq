@@ -16,7 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react'
 import '@xyflow/react/dist/style.css'
 
-import { getEmployees, type EmployeeListItem } from '@/services/EmployeeService'
+import { getEmployees, type EmployeeListItem } from '@/lib/shared/services/EmployeeService'
 
 // Using shared Employee type from types/user-type
 

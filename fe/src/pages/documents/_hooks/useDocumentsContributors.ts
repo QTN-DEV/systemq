@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 
 import type { DocumentItem } from "@/types/documents";
 
@@ -14,7 +14,7 @@ export function useDocumentsContributors() {
       if (folders.length === 0) return;
 
       const { getDocumentPermissions } = await import(
-        "@/services/DocumentService"
+        "@/lib/shared/services/DocumentService"
       );
       const entries: Array<[string, string[]]> = [];
 

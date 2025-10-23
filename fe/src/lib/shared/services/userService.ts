@@ -1,29 +1,29 @@
-import { API_URL } from "@/config";
-import { ApiClient } from "../api/client";
+import usersData from '@/data/mockUsers.json'
+import type { User } from '@/types/user-type'
 
-class UserServiceAPI {
-  // Private Fields
-  private client: ApiClient;
-  // End Private Fields
+const users = usersData as User[]
 
-  // CTOR
-  constructor() {
-    this.client = new ApiClient({
-      baseURL: API_URL,
-    });
-  }
-  // End CTOR
-
-  // Private Methods
-  async getAllUsers(): Promise<string> {
-    return "Hello World";
-  }
-  // End Private Methods
-
-  // Public Methods
-
-  // End Public Methods
+export function getAllEmployees(): User[] {
+  return users
 }
 
+export function getEmployeeById(id: string): User | undefined {
+  return users.find(u => u.id === id)
+}
 
-export const userServiceAPI = new UserServiceAPI()
+export function searchEmployees(query: string): User[] {
+  const q = query.toLowerCase()
+  return users.filter(u =>
+    u.name.toLowerCase().includes(q) ||
+    u.email.toLowerCase().includes(q) ||
+    u.title.toLowerCase().includes(q) ||
+    u.id.toLowerCase().includes(q)
+  )
+}
+
+export function getSubordinates(userId: string): User[] {
+  const user = getEmployeeById(userId)
+  if (!user) return []
+  return users.filter(u => user.subordinates.includes(u.id))
+}
+
