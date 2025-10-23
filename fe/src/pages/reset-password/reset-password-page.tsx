@@ -5,7 +5,7 @@ import Swal from 'sweetalert2'
 import { logger } from '@/lib/logger'
 import { authService } from '@/lib/shared/services/authService'
 
-import logo from '../assets/logo.png'
+import logo from '../../assets/logo.png'
 
 function ResetPassword(): JSX.Element {
   const [newPassword, setNewPassword] = useState('')

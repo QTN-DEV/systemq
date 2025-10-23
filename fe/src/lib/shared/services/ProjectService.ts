@@ -1,5 +1,5 @@
-import projectsData from '../data/mockProjects.json'
-import type { Project } from '../types/project-type'
+import projectsData from '@/data/mockProjects.json'
+import type { Project } from '@/types/project-type'
 
 const projects = projectsData as Project[]
 
