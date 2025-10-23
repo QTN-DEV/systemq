@@ -3,19 +3,19 @@ import { Routes, Route } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
-import DashboardLayout from "./layouts/DashboardLayout";
+import DashboardLayout from "./components/layouts/DashboardLayout";
 import About from "./pages/about/about-page";
 import ChangePassword from "./pages/change-password/change-password-page";
 import Contact from "./pages/contact/contact-page";
 import Dashboard from "./pages/dashboard/dashboard-page";
-import DocumentEditorPage from "./pages/DocumentEditorPage";
+import DocumentEditorPage from "./pages/document-editor/page";
 import Documents from "./pages/documents/page";
-import EmployeeManagement from "./pages/EmployeeManagement";
-import ForgotPassword from "./pages/forgot-password/forgot-password";
+import EmployeeManagement from "./pages/employee-management/page";
 import Home from "./pages/home/home-page";
 import LoginPage from "./pages/login/login-page";
-import ResetPassword from "./pages/ResetPassword";
+import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
+import ForgotPassword from "./pages/forgot-password/forgot-password-page";
 
 function App(): ReactElement {
   return (
