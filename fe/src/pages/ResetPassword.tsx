@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
-import { resetPassword } from '@/services/AuthService'
+import { authService } from '@/lib/shared/services/authService'
 
 import logo from '../assets/logo.png'
 
@@ -76,7 +76,7 @@ function ResetPassword(): JSX.Element {
       setIsLoading(true)
 
       try {
-        const message = await resetPassword(token, newPassword)
+        const message = await authService.resetPassword({ token, newPassword })
         logger.log('Password reset successful:', { token })
 
         await Swal.fire({
