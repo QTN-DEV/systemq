@@ -20,20 +20,24 @@ import {
 } from "@/components/ui/sheet";
 
 const DIVISION_OPTIONS = [
-  "Marketing",
-  "Product",
-  "Graphic Design",
-  "Developer",
-  "UI/UX",
   "Internal Ops",
+  "Business Development",
+  "Developer",
+  "Finance",
+  "Graphic Design",
+  "Infrastructure",
+  "Marketing",
+  "UI/UX",
+  "Product",
+  "Ops Support",
 ] as const;
 
 const POSITION_OPTIONS = [
+  "Admin",
   "CEO",
   "Internal Ops",
-  "HR",
+  "Div Lead",
   "PM",
-  "Div. Lead",
   "Team Member",
 ] as const;
 

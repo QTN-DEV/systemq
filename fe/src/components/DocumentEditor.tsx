@@ -495,7 +495,11 @@ function DocumentEditor({
     setActiveBlockId(newBlock.id)
     setTimeout(() => {
       const element = blockRefs.current[newBlock.id]
-      if (element) element.focus()
+      if (element) {
+        element.focus()
+        // Scroll the new block into view
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
     }, 0)
     return newBlock.id
   }
@@ -1342,6 +1346,14 @@ function DocumentEditor({
                               updateTableCell(block.id, cell.id, textValue)
                               const offsets = getSelectionOffsets(e.currentTarget as HTMLElement)
                               saveSelectionForBlock(block.id, { element: e.currentTarget as HTMLElement, offsets })
+                            }}
+                            onCopy={(e): void => {
+                              // Allow default copy behavior for table cells
+                              e.stopPropagation()
+                            }}
+                            onPaste={(e): void => {
+                              // Allow default paste behavior for table cells
+                              e.stopPropagation()
                             }}
                           />
                         </td>

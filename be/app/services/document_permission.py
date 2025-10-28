@@ -77,11 +77,19 @@ def _is_admin(user: User | None) -> bool:
     """Return True if user should be treated as a global admin."""
     if not user:
         return False
+    
+    # Check position field for "Admin"
+    position = (user.position or "").strip()
+    if position == "Admin":
+        log_info(logger, "granting admin override (position)", user_id=user.employee_id, position=position)
+        return True
+    
+    # Also check level field for backward compatibility
     level = (user.level or "").strip().lower()
     log_debug(logger, "checking admin override", user_id=user.employee_id, level=level)
     is_admin = level in ADMIN_LEVELS
     if is_admin:
-        log_info(logger, "granting admin override", user_id=user.employee_id, level=level)
+        log_info(logger, "granting admin override (level)", user_id=user.employee_id, level=level)
     return is_admin
 
 

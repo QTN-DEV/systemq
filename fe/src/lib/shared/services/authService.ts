@@ -5,7 +5,7 @@ import type { Position, User } from "@/types/user-type";
 
 // Types
 export interface AuthenticatedUser extends User {
-  role: "employee" | "hr" | "internalops" | "pm" | "ceo";
+  role: "admin" | "employee" | "internalops" | "pm" | "ceo";
 }
 
 export interface AuthSession {
@@ -148,24 +148,23 @@ class AuthServiceAPI {
 
   private derivePosition(value: string | null | undefined): Position {
     const normalized = value?.toLowerCase() ?? "";
+    if (normalized.includes("admin")) return "Admin";
     if (normalized.includes("ceo")) return "CEO";
     if (normalized.includes("internal") || normalized.includes("operation"))
       return "Internal Ops";
-    if (normalized.includes("hr") || normalized.includes("human resource"))
-      return "HR";
     if (normalized.includes("project") || normalized.includes("pm"))
       return "PM";
     if (normalized.includes("lead") || normalized.includes("head"))
-      return "Div. Lead";
+      return "Div Lead";
     return "Team Member";
   }
 
   private deriveRole(position: Position): AuthenticatedUser["role"] {
     switch (position) {
+      case "Admin":
+        return "admin";
       case "CEO":
         return "ceo";
-      case "HR":
-        return "hr";
       case "Internal Ops":
         return "internalops";
       case "PM":
