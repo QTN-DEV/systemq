@@ -31,18 +31,23 @@ export interface AddDivisionPermissionRequest {
 
 // Available divisions from the backend enum
 export type Division = 
-  | 'Marketing'
-  | 'Graphic Design'
-  | 'Developer'
-  | 'UI/UX'
   | 'Internal Ops'
+  | 'Business Development'
+  | 'Developer'
+  | 'Finance'
+  | 'Graphic Design'
+  | 'Infrastructure'
+  | 'Marketing'
+  | 'UI/UX'
+  | 'Product'
+  | 'Ops Support'
 
 // Available positions from the backend enum
 export type Position = 
+  | 'Admin'
   | 'CEO'
   | 'Internal Ops'
-  | 'HR'
-  | 'Div. Lead'
+  | 'Div Lead'
   | 'PM'
   | 'Team Member'
 

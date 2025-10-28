@@ -5,18 +5,23 @@ from collections.abc import Set
 
 
 DivisionLiteral = Literal[
-    "Marketing",
-    "Graphic Design",
-    "Developer",
-    "UI/UX",
     "Internal Ops",
+    "Business Development",
+    "Developer",
+    "Finance",
+    "Graphic Design",
+    "Infrastructure",
+    "Marketing",
+    "UI/UX",
+    "Product",
+    "Ops Support",
 ]
 
 PositionLiteral = Literal[
+    "Admin",
     "CEO",
     "Internal Ops",
-    "HR",
-    "Div. Lead",
+    "Div Lead",
     "PM",
     "Team Member",
 ]
@@ -24,19 +29,23 @@ PositionLiteral = Literal[
 EmploymentTypeLiteral = Literal["full-time", "part-time", "intern"]
 
 ALLOWED_DIVISIONS: Final[set[str]] = {
-    "Marketing",
-    "Graphic Design",
-    "Developer",
-    "UI/UX",
     "Internal Ops",
-    "Product"
+    "Business Development",
+    "Developer",
+    "Finance",
+    "Graphic Design",
+    "Infrastructure",
+    "Marketing",
+    "UI/UX",
+    "Product",
+    "Ops Support",
 }
 
 ALLOWED_POSITIONS: Final[set[str]] = {
+    "Admin",
     "CEO",
     "Internal Ops",
-    "HR",
-    "Div. Lead",
+    "Div Lead",
     "PM",
     "Team Member",
 }

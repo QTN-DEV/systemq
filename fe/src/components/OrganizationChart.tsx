@@ -44,16 +44,16 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
   const getPositionClasses = (position: string | undefined): { card: string; avatar: string } => {
     // Match EmployeeManagement.tsx color palette
     switch (position) {
+      case 'Admin':
+        return { card: 'border-red-500 bg-red-50', avatar: 'bg-red-500' }
       case 'CEO':
         return { card: 'border-purple-500 bg-purple-50', avatar: 'bg-purple-500' }
       case 'Internal Ops':
         return { card: 'border-blue-500 bg-blue-50', avatar: 'bg-blue-500' }
-      case 'HR':
-        return { card: 'border-red-500 bg-red-50', avatar: 'bg-red-500' }
+      case 'Div Lead':
+        return { card: 'border-green-500 bg-green-50', avatar: 'bg-green-500' }
       case 'PM':
         return { card: 'border-pink-500 bg-pink-50', avatar: 'bg-pink-500' }
-      case 'Div. Lead':
-        return { card: 'border-green-500 bg-green-50', avatar: 'bg-green-500' }
       case 'Team Member':
         return { card: 'border-gray-500 bg-gray-50', avatar: 'bg-gray-500' }
       default:
@@ -101,8 +101,8 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
           <div className="flex-1 min-w-0">
             {/* Name on top */}
             <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">{employee.name}</h3>
-            {/* Title • Position on bottom */}
-            <p className="text-xs text-gray-600 leading-tight truncate">{employee.title ?? ''} • {employee.position ?? ''}</p>
+            {/* Title only */}
+            <p className="text-xs text-gray-600 leading-tight truncate">{employee.title ?? ''}</p>
           </div>
         </div>
       </div>
@@ -341,10 +341,6 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Name</span>
                 <span className="font-medium text-gray-900">{selectedEmployee.name}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Position</span>
-                <span className="font-medium text-gray-900">{selectedEmployee.position ?? '-'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Level</span>
