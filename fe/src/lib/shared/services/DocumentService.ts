@@ -1,7 +1,6 @@
-import axios from "axios";
-
 import { useAuthStore } from "@/stores/authStore";
 import { config } from "@/lib/config";
+import apiClient from "@/lib/shared/api/client";
 
 import type {
   DocumentPermissions,
@@ -16,24 +15,13 @@ if (config.isDev) {
   console.log("Document API base:", config.apiBaseUrl);
 }
 
-const api = axios.create({
-  baseURL: config.apiBaseUrl,
-  timeout: 15000,
-});
-
-// Add authentication interceptor
-api.interceptors.request.use((config) => {
+// Helper to ensure auth token is set before API calls
+const ensureAuth = () => {
   const session = useAuthStore.getState().getCurrentSession();
   if (session?.token) {
-    config.headers.Authorization = `Bearer ${session.token}`;
+    apiClient.setAuthHeader(session.token);
   }
-  // Disable caching for GET to avoid stale reads after save
-  if (config.method === 'get') {
-    config.headers['Cache-Control'] = 'no-cache';
-    config.headers['Pragma'] = 'no-cache';
-  }
-  return config;
-});
+};
 
 // Update the headers to match the API schema
 interface ApiDocumentItem {
@@ -130,6 +118,7 @@ export async function searchDocuments(
   offset = 0
 ): Promise<DocumentItem[]> {
   try {
+    ensureAuth();
     const params = new URLSearchParams()
     params.set('q', q)
     params.set('limit', String(limit))
@@ -137,11 +126,9 @@ export async function searchDocuments(
     types?.forEach(t => params.append('types', t))
 
     const endpoint = `/documents/search?${params.toString()}`
-    const session = useAuthStore.getState().getCurrentSession()
-    const headers = session?.token ? { Authorization: `Bearer ${session.token}` } : undefined
-
-    const res = await api.get<ApiDocumentItem[]>(endpoint, { headers })
-    return res.data.map(transformApiDocument)
+    
+    const data = await apiClient.get<ApiDocumentItem[]>(endpoint)
+    return data.map(transformApiDocument)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('searchDocuments error:', err)
@@ -154,16 +141,15 @@ export async function getDocumentsByParentId(
   parentId: string | null | undefined
 ): Promise<DocumentItem[]> {
   try {
+    ensureAuth();
     const endpoint = parentId
       ? `/documents/?parent_id=${encodeURIComponent(parentId)}`
       : "/documents/";
-    // Ensure Authorization header present for new BE requirement
-    const session = useAuthStore.getState().getCurrentSession();
-    const response = await api.get<ApiDocumentItem[]>(endpoint, {
-      headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
+    
+    const data = await apiClient.get<ApiDocumentItem[]>(endpoint, {
       params: { _t: Date.now() },
     });
-    return response.data.map(transformApiDocument);
+    return data.map(transformApiDocument);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching documents:", error);
@@ -174,13 +160,11 @@ export async function getDocumentsByParentId(
 // Get actual item count by making a specific API call
 export async function getActualItemCount(folderId: string): Promise<number> {
   try {
-    // Ensure Authorization header present for new BE requirement
-    const session = useAuthStore.getState().getCurrentSession();
-    const response = await api.get<ApiDocumentItem[]>(
-      `/documents/?parent_id=${encodeURIComponent(folderId)}`,
-      { headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined }
+    ensureAuth();
+    const data = await apiClient.get<ApiDocumentItem[]>(
+      `/documents/?parent_id=${encodeURIComponent(folderId)}`
     );
-    return response.data.length;
+    return data.length;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching item count:", error);
@@ -194,16 +178,14 @@ export async function getDocumentById(
   _parentId: string | null
 ): Promise<DocumentItem | null> {
   try {
-    // Ensure Authorization header present for new BE requirement
-    const session = useAuthStore.getState().getCurrentSession();
-    const response = await api.get<ApiDocumentItem>(
+    ensureAuth();
+    const data = await apiClient.get<ApiDocumentItem>(
       `/documents/${encodeURIComponent(id)}`,
       {
-        headers: session?.token ? { Authorization: `Bearer ${session.token}` } : undefined,
         params: { _t: Date.now() },
       }
     );
-    return transformApiDocument(response.data);
+    return transformApiDocument(data);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching document by ID:", error);
@@ -365,13 +347,13 @@ export async function createDocument(
       content: [],
     };
 
-    const response = await api.post<ApiDocumentItem>("/documents/", payload, {
+    const response = await apiClient.post<ApiDocumentItem>("/documents/", payload, {
       headers: {
         Authorization: authToken,
       },
     });
 
-    return transformApiDocument(response.data);
+    return transformApiDocument(response);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error creating document:", error);
@@ -382,7 +364,7 @@ export async function createDocument(
 // Delete document or folder
 export async function deleteDocument(documentId: string): Promise<boolean> {
   try {
-    await api.delete(`/documents/${ encodeURIComponent(documentId)}`);
+    await apiClient.delete(`/documents/${ encodeURIComponent(documentId)}`);
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -397,13 +379,13 @@ export async function renameDocument(
   newName: string
 ): Promise<DocumentItem | null> {
   try {
-    const response = await api.patch<ApiDocumentItem>(
+    const response = await apiClient.patch<ApiDocumentItem>(
       `/documents/${encodeURIComponent(documentId)}`,
       {
         name: newName,
       }
     );
-    return transformApiDocument(response.data);
+    return transformApiDocument(response);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error renaming document:", error);
@@ -417,13 +399,13 @@ export async function moveDocument(
   newParentId: string | null
 ): Promise<DocumentItem | null> {
   try {
-    const response = await api.patch<ApiDocumentItem>(
+    const response = await apiClient.patch<ApiDocumentItem>(
       `/documents/${encodeURIComponent(documentId)}`,
       {
         parent_id: newParentId,
       }
     );
-    return transformApiDocument(response.data);
+    return transformApiDocument(response);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error moving document:", error);
@@ -434,11 +416,11 @@ export async function moveDocument(
 // Get all accessible folders for move operation
 export async function getAllAccessibleFolders(): Promise<DocumentItem[]> {
   try {
-    const response = await api.get<ApiDocumentItem[]>('/documents/', {
+    const response = await apiClient.get<ApiDocumentItem[]>('/documents/', {
       params: { type: 'folder' }
     });
     // Filter to ensure only folders are returned and transform
-    const allFolders = response.data
+    const allFolders = response
       .filter(item => item.type === 'folder')
       .map(transformApiDocument);
 
@@ -477,14 +459,14 @@ export async function updateDocumentContent(
   options?: { commit?: boolean }
 ): Promise<DocumentItem | null> {
   try {
-    const response = await api.patch<ApiDocumentItem>(
+    const response = await apiClient.patch<ApiDocumentItem>(
       `/documents/${encodeURIComponent(documentId)}`,
       payload,
       {
         params: options?.commit !== undefined ? { commit: options.commit ? 'true' : 'false' } : undefined,
       }
     );
-    return transformApiDocument(response.data);
+    return transformApiDocument(response);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error updating document content:", error);
@@ -494,11 +476,11 @@ export async function updateDocumentContent(
 
 // ===== EDIT HISTORY =====
 export async function getDocumentHistory(id: string): Promise<EditHistoryEvent[]> {
-  const res = await api.get<EditHistoryEvent[]>(
+  ensureAuth();
+  const data = await apiClient.get<EditHistoryEvent[]>(
     `/documents/${encodeURIComponent(id)}/history`
   )
-  if (res.status === 200) return res.data
-  throw new Error('Failed to fetch edit history')
+  return data;
 }
 
 // ===== DOCUMENT PERMISSION FUNCTIONS =====
@@ -508,10 +490,10 @@ export async function getDocumentPermissions(
   documentId: string
 ): Promise<DocumentPermissions | null> {
   try {
-    const response = await api.get<DocumentPermissions>(
+    const response = await apiClient.get<DocumentPermissions>(
       `/documents/${encodeURIComponent(documentId)}/permissions`
     );
-    return response.data;
+    return response;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error fetching document permissions:", error);
@@ -525,7 +507,7 @@ export async function addUserPermission(
   permission: AddUserPermissionRequest
 ): Promise<boolean> {
   try {
-    await api.post(
+    await apiClient.post(
       `/documents/${encodeURIComponent(documentId)}/permissions/users`,
       permission
     );
@@ -543,7 +525,7 @@ export async function addDivisionPermission(
   permission: AddDivisionPermissionRequest
 ): Promise<boolean> {
   try {
-    await api.post(
+    await apiClient.post(
       `/documents/${encodeURIComponent(documentId)}/permissions/divisions`,
       permission
     );
@@ -561,7 +543,7 @@ export async function removeUserPermission(
   userId: string
 ): Promise<boolean> {
   try {
-    await api.delete(
+    await apiClient.delete(
       `/documents/${encodeURIComponent(
         documentId
       )}/permissions/users/${encodeURIComponent(userId)}`
@@ -580,7 +562,7 @@ export async function removeDivisionPermission(
   division: string
 ): Promise<boolean> {
   try {
-    await api.delete(
+    await apiClient.delete(
       `/documents/${encodeURIComponent(
         documentId
       )}/permissions/divisions/${encodeURIComponent(division)}`
@@ -610,13 +592,13 @@ export async function searchForPermissions(
   query: string
 ): Promise<SearchResult[]> {
   try {
-    const response = await api.get<SearchUserResult[]>(
+    const response = await apiClient.get<SearchUserResult[]>(
       `/employees/search?q=${encodeURIComponent(query)}`
     );
     const results: SearchResult[] = [];
 
     // Process each result and determine if it's a user or division
-    response.data.forEach((item) => {
+    response.forEach((item) => {
       // Check if this is a division by looking at the structure
       // Divisions typically don't have email, position, or avatar
       if (!item.email && !item.position && !item.avatar) {
@@ -651,10 +633,10 @@ export async function searchForPermissions(
 // Keep the original searchUsers function for backward compatibility
 export async function searchUsers(query: string): Promise<SearchUserResult[]> {
   try {
-    const response = await api.get<SearchUserResult[]>(
+    const response = await apiClient.get<SearchUserResult[]>(
       `/employees/search?q=${encodeURIComponent(query)}`
     );
-    return response.data;
+    return response;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Error searching users:", error);
@@ -679,7 +661,7 @@ export async function getDocumentAccess(
     const endpoint = `/documents/${encodeURIComponent(documentId)}/access`
     const session = useAuthStore.getState().getCurrentSession()
 
-    const res = await api.get<DocumentAccess>(endpoint, {
+    const res = await apiClient.get<DocumentAccess>(endpoint, {
       headers: session?.token
         ? { Authorization: `Bearer ${session.token}` }
         : undefined,
@@ -687,9 +669,9 @@ export async function getDocumentAccess(
 
     // fallback aman kalau BE tidak mengirim field
     return {
-      can_view: Boolean(res.data?.can_view),
-      can_edit: Boolean(res.data?.can_edit),
-      detail: res.data?.detail,
+      can_view: Boolean(res?.can_view),
+      can_edit: Boolean(res?.can_edit),
+      detail: res?.detail,
     }
   } catch (error: any) {
     // 401/403: treat as no access

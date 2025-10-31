@@ -1,20 +1,12 @@
-import axios from 'axios'
-
 import { useAuthStore } from '@/stores/authStore'
-import { config } from '@/lib/config'
+import apiClient from '@/lib/shared/api/client'
 
-const api = axios.create({
-  baseURL: config.apiBaseUrl,
-  timeout: 30000
-})
-
-api.interceptors.request.use((config) => {
+const ensureAuth = () => {
   const session = useAuthStore.getState().getCurrentSession()
   if (session?.token) {
-    config.headers.Authorization = `Bearer ${session.token}`
+    apiClient.setAuthHeader(session.token)
   }
-  return config
-})
+};
 
 export interface CreateUserPayload {
   id?: string | null
@@ -33,8 +25,9 @@ export interface CreateUserPayload {
 }
 
 export async function createEmployee(payload: CreateUserPayload): Promise<unknown> {
-  const response = await api.post('/employees/', payload)
-  return response.data
+  ensureAuth();
+  const response = await apiClient.post('/employees/', payload)
+  return response
 }
 
 export interface EmployeeListItem {
@@ -53,8 +46,9 @@ export interface EmployeeListItem {
 }
 
 export async function getEmployees(): Promise<EmployeeListItem[]> {
-  const response = await api.get<EmployeeListItem[]>('/employees/')
-  return response.data
+  ensureAuth();
+  const response = await apiClient.get<EmployeeListItem[]>('/employees/')
+  return response
 }
 
 export type UpdateEmployeePayload = Partial<{
@@ -72,32 +66,35 @@ export type UpdateEmployeePayload = Partial<{
 }>
 
 export async function updateEmployee(employeeId: string, payload: UpdateEmployeePayload): Promise<EmployeeListItem> {
-  const response = await api.put<EmployeeListItem>(`/employees/${employeeId}`, payload)
-  return response.data
+  ensureAuth();
+  const response = await apiClient.put<EmployeeListItem>(`/employees/${employeeId}`, payload)
+  return response
 }
 
 export async function deactivateEmployee(employeeId: string): Promise<{ message: string }> {
-  const response = await api.post<{ message: string }>(`/employees/${employeeId}/deactivate`, {}, {
+  ensureAuth();
+  const response = await apiClient.post<{ message: string }>(`/employees/${employeeId}/deactivate`, {}, {
     headers: {
       'Content-Type': 'application/json'
     }
   })
-  return response.data
+  return response
 }
 
 export async function getInactiveEmployees(search?: string): Promise<EmployeeListItem[]> {
+  ensureAuth();
   const params = search ? { search } : {}
-  const response = await api.get<EmployeeListItem[]>('/employees/inactive', { params })
-  return response.data
+  const response = await apiClient.get<EmployeeListItem[]>('/employees/inactive', { params })
+  return response
 }
 
 export async function activateEmployee(employeeId: string): Promise<{ message: string }> {
-  const response = await api.post<{ message: string }>(`/employees/${employeeId}/activate`, {}, {
+  ensureAuth();
+  const response = await apiClient.post<{ message: string }>(`/employees/${employeeId}/activate`, {}, {
     headers: {
       'Content-Type': 'application/json'
     }
   })
-  return response.data
+  return response
 }
-
 

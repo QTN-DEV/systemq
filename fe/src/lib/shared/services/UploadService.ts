@@ -1,23 +1,15 @@
-import axios from 'axios'
-
 import { logger } from '@/lib/logger'
 import { useAuthStore } from '@/stores/authStore'
+import { config } from '@/lib/config'
+import apiClient from '@/lib/shared/api/client'
 
-const API_BASE_URL = 'https://api.systemq.qtn.ai'
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 60000 // Increased timeout for file uploads
-})
-
-// Add authentication interceptor
-api.interceptors.request.use((config) => {
+// Helper to ensure auth token is set before API calls
+const ensureAuth = () => {
   const session = useAuthStore.getState().getCurrentSession()
   if (session?.token) {
-    config.headers.Authorization = `Bearer ${session.token}`
+    apiClient.setAuthHeader(session.token)
   }
-  return config
-})
+};
 
 export interface UploadResponse {
   url: string
@@ -31,17 +23,18 @@ export interface UploadResponse {
  * @returns Promise with upload metadata
  */
 export async function uploadImage(file: File): Promise<UploadResponse> {
+  ensureAuth();
   const formData = new FormData()
   formData.append('file', file)
 
   try {
-    const response = await api.post<UploadResponse>('/uploads/images', formData, {
+    const response = await apiClient.post<UploadResponse>('/uploads/images', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     })
 
-    return response.data
+    return response
   } catch (error) {
     logger.error('Image upload failed:', error)
     throw new Error('Failed to upload image')
@@ -54,17 +47,18 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
  * @returns Promise with upload metadata
  */
 export async function uploadFile(file: File): Promise<UploadResponse> {
+  ensureAuth();
   const formData = new FormData()
   formData.append('file', file)
 
   try {
-    const response = await api.post<UploadResponse>('/uploads/files', formData, {
+    const response = await apiClient.post<UploadResponse>('/uploads/files', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     })
 
-    return response.data
+    return response
   } catch (error) {
     logger.error('File upload failed:', error)
     throw new Error('Failed to upload file')
@@ -80,5 +74,5 @@ export function getFileUrl(relativePath: string): string {
   if (relativePath.startsWith('http')) {
     return relativePath
   }
-  return `${API_BASE_URL}${relativePath}`
+  return `${config.apiBaseUrl}${relativePath}`
 }

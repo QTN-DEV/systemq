@@ -228,3 +228,14 @@ const apiClient = new ApiClient({
 });
 
 export default apiClient;
+
+// Factory function to create API client with custom config
+export const createApiClient = (config?: Partial<ApiConfig>): ApiClient => {
+  return new ApiClient({
+    baseURL: appConfig.apiBaseUrl,
+    timeout: 30000,
+    retries: 3,
+    retryDelay: 1000,
+    ...config,
+  });
+};
