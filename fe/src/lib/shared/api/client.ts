@@ -1,4 +1,4 @@
-import { API_URL } from "@/config";
+import { config as appConfig } from "@/lib/config";
 import { GlobalErrorHandler } from "@/utils/errorHandler";
 import axios, {
   type AxiosInstance,
@@ -52,7 +52,7 @@ export class ApiClient {
         // Add timestamp for request tracking
         config.metadata = { startTime: Date.now() };
 
-        if (import.meta.env.DEV ?? false) {
+        if (appConfig.isDev) {
           console.log(
             `🚀 ${config.method?.toUpperCase()} ${config.url}`,
             config.data ? { data: config.data } : ""
@@ -72,7 +72,7 @@ export class ApiClient {
         const duration =
           Date.now() - (response.config.metadata?.startTime || 0);
 
-        if (import.meta.env.DEV) {
+        if (appConfig.isDev) {
           console.log(
             `✅ ${response.config.method?.toUpperCase()} ${
               response.config.url
@@ -221,7 +221,7 @@ export class ApiClient {
 
 // Default API client instance
 const apiClient = new ApiClient({
-  baseURL: API_URL,
+  baseURL: appConfig.apiBaseUrl,
   timeout: 30000,
   retries: 3,
   retryDelay: 1000,

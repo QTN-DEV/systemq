@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import type { AuthenticatedUser } from "@/lib/shared/services/authService";
 import type { DocumentItem, DocumentBreadcrumb } from "@/types/documents";
 
 import {
@@ -17,7 +18,7 @@ import {
 
 export interface GlobalDocumentsState {
   // User
-  currentUser: ReturnType<typeof useAuthStore>["user"];
+  currentUser: AuthenticatedUser | null;
 
   // Data
   currentFolderId: string | null;
@@ -121,7 +122,7 @@ export interface GlobalDocumentsState {
 }
 
 export function useGlobalDocuments(): GlobalDocumentsState {
-  const currentUser = useAuthStore((state) => state.user);
+  const currentUser = useAuthStore((state) => state.user) as AuthenticatedUser | null;
 
   // Data Hooks
   const {
@@ -316,13 +317,13 @@ export function useGlobalDocuments(): GlobalDocumentsState {
 
     // Data
     currentFolderId,
-    currentFolder,
+    currentFolder: currentFolder ?? null,
     displayItems,
     breadcrumbs,
     isSharedView,
     canEditFolder,
     isLoadingItems,
-    itemsError,
+    itemsError: itemsError ? itemsError.message : null,
     refetchItems,
     effectiveSegments,
 

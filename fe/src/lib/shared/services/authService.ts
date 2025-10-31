@@ -1,7 +1,9 @@
-import { API_URL } from "@/config";
+import { config } from "@/lib/config";
 import { useAuthStore } from "@/stores/authStore";
 import { ApiClient } from "../api/client";
 import type { Position, User } from "@/types/user-type";
+
+const API_URL = config.apiBaseUrl;
 
 // Types
 export interface AuthenticatedUser extends User {
