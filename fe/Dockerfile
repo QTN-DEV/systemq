@@ -1,36 +1,26 @@
-## Multi-stage build for frontend (Vite + Bun in monorepo)
+## Multi-stage build for frontend (Vite + Bun)
 
-# Build stage with Bun to leverage workspace and speed
+# Build stage installs dependencies and compiles the app
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-# Copy minimal files first to leverage cache
-COPY bun.lock package.json ./
-COPY backend/package.json ./backend/package.json
-COPY frontend/package.json ./frontend/package.json
-COPY serve-backend/package.json ./serve-backend/package.json
-COPY packages/types/package.json ./packages/types/package.json
+# Copy dependency manifests separately to leverage Docker layer cache
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-# Install all workspace deps with frozen lockfile
-RUN bun install
-
-# Copy the rest of the repo
+# Copy the rest of the frontend source and build it
 COPY . .
-
-# Build backend first (to generate types if needed), then build frontend
-RUN bun run build:backend \
- && bun run build:frontend
-
+RUN bun run build
 
 # Runtime stage using Node to statically serve built assets
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Copy build output
-COPY --from=builder /app/frontend/dist ./dist
+# Copy build output from the builder stage
+COPY --from=builder /app/dist ./dist
 
 # Copy entrypoint to inject env at runtime
-COPY frontend/docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh \
  && npm install -g serve
 

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: systemq-staging-be
-  namespace: internal-ops
+  namespace: systemq-stg
 spec:
   replicas: 1
   selector:
@@ -35,7 +35,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: systemq-staging-fe
-  namespace: internal-ops
+  namespace: systemq-stg
 spec:
   replicas: 1
   selector:

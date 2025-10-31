@@ -1,8 +1,8 @@
 services:
   systemq-prod-be:
     build:
-      context: ./
-      dockerfile: be/Dockerfile
+      context: ./be
+      dockerfile: Dockerfile
 
     image: quantumteknologi/systemq-prod-be:c140630f
     container_name: systemq-prod-be
@@ -14,8 +14,8 @@ services:
 
   systemq-prod-fe:
     build:
-      context: ./
-      dockerfile: fe/Dockerfile
+      context: ./fe
+      dockerfile: Dockerfile
     ports:
       - "${PORT:-5173}:5173"
 

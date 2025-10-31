@@ -47,7 +47,7 @@ echo "💾 Stashing current modifications..."
 #git stash || true
 
 echo "⬇️  Pulling latest updates from ${branch_name}..."
-git pull --rebase origin "$branch_name"
+# git pull --rebase origin "$branch_name"
 
 echo "📤 Restoring stashed local changes..."
 #git stash pop || true
@@ -96,8 +96,8 @@ echo ""
 echo "3️⃣  DEPLOYMENT KUBERNETES"
 echo "----------------------------------------"
 echo "🚀 Triggering deployment to Kubernetes..."
-kubectl delete -f k8s/deployment.yml -n $KUBERNETES_NAMESPACE
-kubectl apply -f k8s/deployment.yml -n $KUBERNETES_NAMESPACE
+kubectl delete -f k8s/staging-deployment.yml --namespace=$KUBERNETES_NAMESPACE
+kubectl apply -f k8s/staging-deployment.yml --namespace=$KUBERNETES_NAMESPACE
 echo "✅ Kubernetes deployment triggered"
 echo ""
 echo "========================================"

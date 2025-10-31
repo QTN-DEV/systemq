@@ -96,8 +96,8 @@ echo ""
 echo "3️⃣  DEPLOYMENT KUBERNETES"
 echo "----------------------------------------"
 echo "🚀 Triggering deployment to Kubernetes..."
-kubectl delete -f k8s/deployment.yml -n $KUBERNETES_NAMESPACE
-kubectl apply -f k8s/deployment.yml -n $KUBERNETES_NAMESPACE
+kubectl delete -f k8s/production-deployment.yml -n $KUBERNETES_NAMESPACE
+kubectl apply -f k8s/production-deployment.yml -n $KUBERNETES_NAMESPACE
 echo "✅ Kubernetes deployment triggered"
 echo ""
 echo "========================================"
