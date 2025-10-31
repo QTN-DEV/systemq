@@ -9,8 +9,8 @@ set -u
 # Print commands and their arguments as they are executed (useful for debugging)
 # set -x
 
-BACKEND_IMAGE=quantumteknologi/systemq-staging-be:c140630f
-FRONTEND_IMAGE=quantumteknologi/systemq-staging-fe:c140630f
+BACKEND_IMAGE=quantumteknologi/systemq-staging-be:latest
+FRONTEND_IMAGE=quantumteknologi/systemq-staging-fe:latest
 BACKEND_SERVICE_NAME=systemq-staging-be
 FRONTEND_SERVICE_NAME=systemq-staging-fe
 KUBERNETES_NAMESPACE=systemq-stg
@@ -47,7 +47,7 @@ echo "💾 Stashing current modifications..."
 #git stash || true
 
 echo "⬇️  Pulling latest updates from ${branch_name}..."
-# git pull --rebase origin "$branch_name"
+git pull --rebase origin "$branch_name"
 
 echo "📤 Restoring stashed local changes..."
 #git stash pop || true
