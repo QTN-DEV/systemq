@@ -123,11 +123,7 @@ const nodeTypes = {
   employee: EmployeeNode,
 }
 
-interface OrganizationChartProps {
-  className?: string
-}
-
-export default function OrganizationChart({ className = '' }: OrganizationChartProps): ReactElement {
+export default function OrganizationChart(): ReactElement {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null)
 
