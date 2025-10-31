@@ -13,7 +13,7 @@ BACKEND_IMAGE=quantumteknologi/systemq-staging-be:latest
 FRONTEND_IMAGE=quantumteknologi/systemq-staging-fe:latest
 BACKEND_SERVICE_NAME=systemq-staging-be
 FRONTEND_SERVICE_NAME=systemq-staging-fe
-KUBERNETES_NAMESPACE=systemq-staging
+KUBERNETES_NAMESPACE=systemq-stg
 
 # Use current branch name, or allow override via env/argument
 if [ -n "${BRANCH_NAME:-}" ]; then
