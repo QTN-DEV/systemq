@@ -2,16 +2,7 @@
 // In production, this should be set via VITE_API_BASE_URL environment variable
 const DEFAULT_API_BASE_URL = 'http://localhost:47430';
 
-// Helper to safely access import.meta.env
-const getEnv = (): Record<string, any> => {
-  try {
-    return import.meta.env;
-  } catch {
-    return {};
-  }
-};
-
-const env = getEnv();
+const env = import.meta.env;
 
 // Parse comma-separated values into array
 export const parseList = (value: string | undefined): string[] => {
