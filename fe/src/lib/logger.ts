@@ -1,4 +1,6 @@
-const isDev = import.meta.env.DEV;
+import { config } from './config';
+
+const isDev = config.isDev;
 
 export const logger = {
     log: (...args: unknown[]): void => {

@@ -265,7 +265,7 @@ export default function OrganizationChart(): ReactElement {
   }, [])
 
   return (
-    <div className={`h-full w-full ${className}`}>
+    <div className="h-full w-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}

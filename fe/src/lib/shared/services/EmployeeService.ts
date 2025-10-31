@@ -1,13 +1,10 @@
 import axios from 'axios'
 
 import { useAuthStore } from '@/stores/authStore'
-
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.systemq.qtn.ai'
-
-// console.log('QB base:', API_BASE_URL)
+import { config } from '@/lib/config'
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: config.apiBaseUrl,
   timeout: 30000
 })
 

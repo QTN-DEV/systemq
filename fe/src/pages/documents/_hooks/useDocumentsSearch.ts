@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { searchDocuments } from "@/lib/shared/services/DocumentService";
-import type { DocumentItem } from "@/types/documents";
 
 export function useDocumentsSearch() {
   const [globalQuery, setGlobalQuery] = useState("");

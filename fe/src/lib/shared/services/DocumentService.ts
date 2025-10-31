@@ -1,21 +1,23 @@
 import axios from "axios";
 
 import { useAuthStore } from "@/stores/authStore";
+import { config } from "@/lib/config";
 
 import type {
   DocumentPermissions,
   AddUserPermissionRequest,
   AddDivisionPermissionRequest,
   SearchUserResult,
-} from "../types/document-permissions";
-import type { DocumentItem, DocumentBlock } from "../types/document-type";
-import type { EditHistoryEvent } from "../types/documents";
+} from "@/types/document-permissions";
+import type { DocumentItem, DocumentBlock } from "@/types/document-type";
+import type { EditHistoryEvent } from "@/types/documents";
 
-const API_BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL ?? "https://api.systemq.qtn.ai";
-console.log("Document API base:", API_BASE_URL);
+if (config.isDev) {
+  console.log("Document API base:", config.apiBaseUrl);
+}
+
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: config.apiBaseUrl,
   timeout: 15000,
 });
 

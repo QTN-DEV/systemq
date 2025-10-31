@@ -5,7 +5,6 @@ import {
   createDocument,
   deleteDocument,
   renameDocument,
-  getDocumentsByParentId,
 } from "@/lib/shared/services/DocumentService";
 import { useAuthStore } from "@/stores/authStore";
 import type { DocumentItem } from "@/types/documents";

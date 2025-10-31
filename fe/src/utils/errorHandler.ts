@@ -1,6 +1,7 @@
 import type { ErrorInfo } from "react";
 
 import { AxiosError } from "axios";
+import { config } from "@/lib/config";
 
 export interface AppError extends Error {
   code?: string;
@@ -17,7 +18,7 @@ export class GlobalErrorHandler {
     // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
 
     // For development, log detailed error information
-    if (import.meta.env.DEV) {
+    if (config.isDev) {
       console.group("🔴 Error Details");
       console.error("Error:", error);
       console.error("Stack:", error.stack);
