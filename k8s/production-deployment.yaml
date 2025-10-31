@@ -18,7 +18,7 @@ spec:
       containers:
         - name: systemq-prod-be
           # replace with your PROD backend image/tag
-          image: quantumteknologi/systemq-prod-be:latest
+          image: quantumteknologi/systemq-prod-be:c140630f
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -51,7 +51,7 @@ spec:
       containers:
         - name: systemq-prod-fe
           # replace with your PROD FE image/tag
-          image: quantumteknologi/systemq-prod-fe:latest
+          image: quantumteknologi/systemq-prod-fe:c140630f
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

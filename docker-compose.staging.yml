@@ -2,9 +2,9 @@ services:
   systemq-staging-be:
     build:
       context: ./
-      dockerfile: serve-be/Dockerfile
+      dockerfile: be/Dockerfile
 
-    image: quantumteknologi/systemq-staging-be:latest
+    image: quantumteknologi/systemq-staging-be:c140630f
     container_name: systemq-staging-be
     ports:
       - "${PORT:-3000}:3000"
@@ -19,6 +19,6 @@ services:
     ports:
       - "${PORT:-5173}:5173"
 
-    image: quantumteknologi/systemq-staging-fe:latest
+    image: quantumteknologi/systemq-staging-fe:c140630f
     container_name: systemq-staging-fe
     restart: always
