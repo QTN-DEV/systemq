@@ -54,8 +54,6 @@ spec:
           image: quantumteknologi/systemq-staging-fe:latest
           imagePullPolicy: Always
           envFrom:
-            - configMapRef:
-                name: systemq-staging-configs
             - secretRef:
                 name: systemq-staging-secrets
           # container port usually 5173 for Vite; change to 80 if your FE serves on 80
