@@ -1,6 +1,28 @@
 # SystemQ Backend
 
-FastAPI-based backend service for the SystemQ platform. It provides health monitoring, authentication, project management, employee management, and document management endpoints, database access through Beanie ODM, and SMTP-backed password recovery workflows.
+Modern backend service for the SystemQ platform built with **Hexagonal Architecture + Domain-Driven Design (DDD) + CQRS + Direct State Storage**. It provides health monitoring, user management, project management, employee management, and document management using a clean, scalable architecture.
+
+## Architecture
+
+This backend follows **Hexagonal Architecture** principles with the following layers:
+
+### Domain Layer (`domain/`)
+Contains the core business logic, entities, value objects, and domain events. This layer is independent of any external frameworks or technologies.
+
+### Application Layer (`application/`)
+Contains use cases, command/query handlers, and application services. Implements CQRS pattern with separate command and query buses.
+
+### Infrastructure Layer (`infrastructure/`)
+Contains adapters for external services, database implementations, and repository patterns.
+
+### Presentation Layer (`presentation/`)
+Contains API controllers and DTOs for HTTP interfaces.
+
+### Key Patterns Implemented
+- **Domain-Driven Design (DDD)**: Aggregates, Value Objects, Domain Events
+- **CQRS**: Separate Command and Query handlers
+- **Direct State Storage**: State stored directly in MongoDB using Beanie ODM
+- **Dependency Injection**: Clean separation of concerns
 
 ## Prerequisites
 
@@ -48,6 +70,20 @@ Use the provided script to start Uvicorn with four workers:
 ```
 
 The script activates the virtual environment and runs the application on `http://0.0.0.0:8000`.
+
+## Running the Demo
+
+To see the hexagonal architecture in action, run the example:
+
+```bash
+python example_usage.py
+```
+
+This demonstrates:
+- Creating users with domain events
+- Querying users through CQRS
+- Direct state storage in database
+- Clean separation of concerns
 
 Interactive API documentation is published at `http://localhost:8000/docs` (Swagger UI) and `http://localhost:8000/redoc` (ReDoc).
 
