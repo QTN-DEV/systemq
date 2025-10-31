@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: systemq-staging-be
+  namespace: internal-ops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: systemq-staging-be
+  template:
+    metadata:
+      labels:
+        app: systemq-staging-be
+    spec:
+      imagePullSecrets:
+        - name: systemq-secret
+      containers:
+        - name: systemq-staging-be
+          # replace image tag with your staging image if different
+          image: quantumteknologi/systemq-staging-be:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: systemq-staging-configs
+            - secretRef:
+                name: systemq-staging-secrets
+          ports:
+            - containerPort: 8000
+---
+# =========================
+# STAGING: Frontend Deployment
+# =========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: systemq-staging-fe
+  namespace: internal-ops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: systemq-staging-fe
+  template:
+    metadata:
+      labels:
+        app: systemq-staging-fe
+    spec:
+      imagePullSecrets:
+        - name: systemq-secret
+      containers:
+        - name: systemq-staging-fe
+          # replace image tag with your staging FE image if different
+          image: quantumteknologi/systemq-staging-fe:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: systemq-staging-configs
+            - secretRef:
+                name: systemq-staging-secrets
+          # container port usually 5173 for Vite; change to 80 if your FE serves on 80
+          ports:
+            - containerPort: 5173
