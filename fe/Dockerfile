@@ -1,31 +1,42 @@
-## Multi-stage build for frontend (Vite + Bun)
+# Tahap pertama: Build aplikasi
+FROM node:22 AS build
 
-# Build stage installs dependencies and compiles the app
-FROM oven/bun:1 AS builder
+# Set working directory
 WORKDIR /app
 
-# Copy dependency manifests separately to leverage Docker layer cache
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# Salin file package.json dan package-lock.json (atau yarn.lock) terlebih dahulu untuk memanfaatkan cache layer Docker
+COPY package*.json ./
 
-# Copy the rest of the frontend source and build it
+# Install dependensi aplikasi
+RUN npm install --legacy-peer-deps
+
+# Salin seluruh file aplikasi ke dalam container
 COPY . .
-RUN bun run build
+RUN echo "VITE_API_BASE_URL=PLACEHOLDER_API_URL" > .env
 
-# Runtime stage using Node to statically serve built assets
-FROM node:22-alpine AS runner
+# Build aplikasi untuk production
+RUN npm run build
+
+# Tahap kedua: Serve aplikasi
+FROM node:22
+
 WORKDIR /app
 
-# Copy build output from the builder stage
-COPY --from=builder /app/dist ./dist
+# Copy hasil build dari tahap sebelumnya
+COPY --from=build /app/dist ./dist
 
-# Copy entrypoint to inject env at runtime
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh \
- && npm install -g serve
-
-ENV NODE_ENV=production
-EXPOSE 5173
+RUN chmod +x /docker-entrypoint.sh
+RUN ls -lah / && head -n 1 /docker-entrypoint.sh && file /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
+
+
+# Install serve package globally
+RUN npm install -g serve
+
+# Expose port 5173 untuk mengakses aplikasi
+EXPOSE 5173
+
+# Jalankan serve untuk menyajikan aplikasi
 CMD ["serve", "-s", "dist", "-l", "5173"]
