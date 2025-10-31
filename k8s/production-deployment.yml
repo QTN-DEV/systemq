@@ -21,8 +21,6 @@ spec:
           image: quantumteknologi/systemq-prod-be:latest
           imagePullPolicy: Always
           envFrom:
-            - configMapRef:
-                name: systemq-prod-configs
             - secretRef:
                 name: systemq-prod-secrets
           ports:
