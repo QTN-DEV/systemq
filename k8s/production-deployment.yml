@@ -14,7 +14,7 @@ spec:
         app: systemq-prod-be
     spec:
       imagePullSecrets:
-        - name: systemq-secret
+        - name: qtn-dockerhub
       containers:
         - name: systemq-prod-be
           # replace with your PROD backend image/tag
@@ -47,7 +47,7 @@ spec:
         app: systemq-prod-fe
     spec:
       imagePullSecrets:
-        - name: systemq-secret
+        - name: qtn-dockerhub
       containers:
         - name: systemq-prod-fe
           # replace with your PROD FE image/tag

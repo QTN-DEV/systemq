@@ -14,7 +14,7 @@ spec:
         app: systemq-staging-be
     spec:
       imagePullSecrets:
-        - name: systemq-secret
+        - name: qtn-dockerhub
       containers:
         - name: systemq-staging-be
           # replace image tag with your staging image if different
@@ -47,7 +47,7 @@ spec:
         app: systemq-staging-fe
     spec:
       imagePullSecrets:
-        - name: systemq-secret
+        - name: qtn-dockerhub
       containers:
         - name: systemq-staging-fe
           # replace image tag with your staging FE image if different
