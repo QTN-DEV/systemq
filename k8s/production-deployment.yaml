@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: systemq-prod-be
+  namespace: internal-ops
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: systemq-prod-be
+  template:
+    metadata:
+      labels:
+        app: systemq-prod-be
+    spec:
+      imagePullSecrets:
+        - name: systemq-secret
+      containers:
+        - name: systemq-prod-be
+          # replace with your PROD backend image/tag
+          image: quantumteknologi/systemq-prod-be:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: systemq-prod-configs
+            - secretRef:
+                name: systemq-prod-secrets
+          ports:
+            - containerPort: 8000
+---
+# =========================
+# PROD: Frontend Deployment
+# =========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: systemq-prod-fe
+  namespace: internal-ops
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: systemq-prod-fe
+  template:
+    metadata:
+      labels:
+        app: systemq-prod-fe
+    spec:
+      imagePullSecrets:
+        - name: systemq-secret
+      containers:
+        - name: systemq-prod-fe
+          # replace with your PROD FE image/tag
+          image: quantumteknologi/systemq-prod-fe:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: systemq-prod-configs
+            - secretRef:
+                name: systemq-prod-secrets
+          ports:
+            - containerPort: 5173
