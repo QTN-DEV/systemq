@@ -1,8 +1,8 @@
 services:
   systemq-staging-be:
     build:
-      context: ./
-      dockerfile: be/Dockerfile
+      context: ./be
+      dockerfile: Dockerfile
 
     image: quantumteknologi/systemq-staging-be:c140630f
     container_name: systemq-staging-be
@@ -14,8 +14,8 @@ services:
 
   systemq-staging-fe:
     build:
-      context: ./
-      dockerfile: fe/Dockerfile
+      context: ./fe
+      dockerfile: Dockerfile
     ports:
       - "${PORT:-5173}:5173"
 
