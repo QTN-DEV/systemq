@@ -21,8 +21,6 @@ spec:
           image: quantumteknologi/systemq-staging-be:latest
           imagePullPolicy: Always
           envFrom:
-            - configMapRef:
-                name: systemq-staging-configs
             - secretRef:
                 name: systemq-staging-secrets
           ports:
