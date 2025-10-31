@@ -9,8 +9,8 @@ set -u
 # Print commands and their arguments as they are executed (useful for debugging)
 # set -x
 
-BACKEND_IMAGE=quantumteknologi/systemq-staging-be:latest
-FRONTEND_IMAGE=quantumteknologi/systemq-staging-fe:latest
+BACKEND_IMAGE=quantumteknologi/systemq-staging-be:c140630f
+FRONTEND_IMAGE=quantumteknologi/systemq-staging-fe:c140630f
 BACKEND_SERVICE_NAME=systemq-staging-be
 FRONTEND_SERVICE_NAME=systemq-staging-fe
 KUBERNETES_NAMESPACE=systemq-stg
@@ -64,11 +64,11 @@ if [ "${CLEAR_CACHE:-false}" = "true" ]; then
     docker builder prune -f
     BUILD_ARGS="--no-cache"
 else
-    BUILD_ARGS="--no-cache"
+    BUILD_ARGS=""
 fi
 
 echo "🔨 Building docker image..."
-if ! docker compose -f docker-compose.prod.yml $BUILD_ARGS; then
+if ! docker compose -f docker-compose.staging.yml build $BUILD_ARGS; then
     echo "❌ Failed to build docker image"
     echo "💡 If the build fails with cache errors, try running: CLEAR_CACHE=true ./deploy.sh"
     exit 1
