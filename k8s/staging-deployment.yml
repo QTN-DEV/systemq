@@ -18,7 +18,7 @@ spec:
       containers:
         - name: systemq-staging-be
           # replace image tag with your staging image if different
-          image: quantumteknologi/systemq-staging-be:c140630f
+          image: quantumteknologi/systemq-staging-be:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -51,7 +51,7 @@ spec:
       containers:
         - name: systemq-staging-fe
           # replace image tag with your staging FE image if different
-          image: quantumteknologi/systemq-staging-fe:c140630f
+          image: quantumteknologi/systemq-staging-fe:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

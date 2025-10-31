@@ -4,7 +4,7 @@ services:
       context: ./be
       dockerfile: Dockerfile
 
-    image: quantumteknologi/systemq-staging-be:c140630f
+    image: quantumteknologi/systemq-staging-be:latest
     container_name: systemq-staging-be
     ports:
       - "${PORT:-3000}:3000"
@@ -19,6 +19,6 @@ services:
     ports:
       - "${PORT:-5173}:5173"
 
-    image: quantumteknologi/systemq-staging-fe:c140630f
+    image: quantumteknologi/systemq-staging-fe:latest
     container_name: systemq-staging-fe
     restart: always

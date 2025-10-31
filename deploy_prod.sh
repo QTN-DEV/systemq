@@ -9,8 +9,8 @@ set -u
 # Print commands and their arguments as they are executed (useful for debugging)
 # set -x
 
-BACKEND_IMAGE=quantumteknologi/systemq-prod-be:c140630f
-FRONTEND_IMAGE=quantumteknologi/systemq-prod-fe:c140630f
+BACKEND_IMAGE=quantumteknologi/systemq-prod-be:latest
+FRONTEND_IMAGE=quantumteknologi/systemq-prod-fe:latest
 BACKEND_SERVICE_NAME=systemq-prod-be
 FRONTEND_SERVICE_NAME=systemq-prod-fe
 KUBERNETES_NAMESPACE=systemq
