@@ -38,7 +38,12 @@ async def migrate_positions():
     
     # Connect to MongoDB
     client = AsyncIOMotorClient(mongodb_uri)
-    db_name = mongodb_uri.split("/")[-1].split("?")[0] or "systemq"
+    
+    # Get database name from MONGODB_DATABASE env var or extract from URI
+    db_name = os.getenv("MONGODB_DATABASE")
+    if not db_name:
+        db_name = mongodb_uri.split("/")[-1].split("?")[0] or "systemq"
+    
     db = client[db_name]
     users_collection = db["users"]
     

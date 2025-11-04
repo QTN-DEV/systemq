@@ -123,7 +123,11 @@ const nodeTypes = {
   employee: EmployeeNode,
 }
 
-export default function OrganizationChart(): ReactElement {
+interface OrganizationChartProps {
+  className?: string
+}
+
+export default function OrganizationChart({ className = '' }: OrganizationChartProps): ReactElement {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null)
 
@@ -265,7 +269,7 @@ export default function OrganizationChart(): ReactElement {
   }, [])
 
   return (
-    <div className="h-full w-full">
+    <div className={`h-full w-full ${className}`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -287,7 +291,10 @@ export default function OrganizationChart(): ReactElement {
         elementsSelectable={false}
         edgesFocusable={false}
         nodesFocusable={false}
-        draggable={false}
+        panOnDrag={true}
+        panOnScroll={true}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
       >
         <Controls 
           className="bg-white shadow-lg border border-gray-200 rounded-lg" 
