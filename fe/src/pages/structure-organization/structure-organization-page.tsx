@@ -14,10 +14,8 @@ export default function StructureOrganization(): ReactElement {
       </div>
 
       {/* Organization Chart */}
-      <div className="flex-1 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden relative">
-        <div className="absolute inset-0">
-          <OrganizationChart />
-        </div>
+      <div className="flex-1 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden">
+        <OrganizationChart className="h-full w-full" />
       </div>
     </div>
   )
