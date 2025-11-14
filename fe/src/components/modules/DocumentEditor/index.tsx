@@ -22,15 +22,33 @@ import type { DocumentBlock } from '@/types/documents'
 
 export type { DocumentBlock } from '@/types/documents'
 
+/**
+ * DocumentEditorModular
+ * 
+ * A modular, block-based rich text editor component with support for multiple content types.
+ * 
+ * Features:
+ * - Block-based editing (paragraphs, headings, lists, code, quotes)
+ * - Rich media support (images, files, tables)
+ * - Text formatting (bold, italic, underline)
+ * - Inline links with hover toolbar
+ * - Drag-and-drop reordering
+ * - File upload via drag-drop or paste
+ * - Command palette (type "/" for options)
+ * - Auto-save functionality
+ * - Read-only mode support
+ * 
+ * @param initialBlocks - Initial content blocks to render
+ * @param onSave - Callback triggered on content changes (debounced)
+ * @param readOnly - Whether the editor is in read-only mode
+ */
 function DocumentEditorModular({
   initialBlocks = [],
   onSave,
   readOnly = false,
 }: DocumentEditorProps): ReactElement {
-  // Flag to skip selection restoration after Shift+Enter
   const skipNextSelectionRestore = useRef(false)
   
-  // Table management (initialized first to get refs)
   const {
     tableCellRefs,
     tableCellContentRef,
@@ -41,7 +59,6 @@ function DocumentEditorModular({
     removeTableColumn: removeTableColumnFn,
   } = useTableManagement()
 
-  // Block management (needs tableCellRefs but not savedSelectionRef initially)
   const {
     blocks,
     setBlocks,
@@ -56,15 +73,15 @@ function DocumentEditorModular({
     changeBlockType: changeBlockTypeInternal,
   } = useBlockManagement(initialBlocks, readOnly, tableCellRefs)
 
-  // Selection (needs blocks for useLayoutEffect)
   const { savedSelectionRef, isSelectingRef, saveSelectionForBlock } = useSelection(blocks)
 
-  // Wrapper for updateBlock that saves selection
+  /**
+   * Preserves cursor position during content updates
+   */
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
     const el = blockRefs.current[id] || null
     const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
     
-    // Save selection before updating content to preserve cursor position
     if (isContentUpdate && el && document.activeElement === el && (el as HTMLElement).isContentEditable) {
       const offsets = getSelectionOffsets(el as HTMLElement)
       if (offsets) {
@@ -75,7 +92,9 @@ function DocumentEditorModular({
     updateBlockInternal(id, updates)
   }
 
-  // Wrapper for changeBlockType that handles table cell focus
+  /**
+   * Handles block type conversion with special focus management for tables
+   */
   const changeBlockType = (
     blockId: string,
     newType: DocumentBlock['type'],
@@ -83,7 +102,6 @@ function DocumentEditorModular({
   ): void => {
     changeBlockTypeInternal(blockId, newType, options)
     
-    // Focus on first table cell after creation
     if (newType === 'table') {
       setTimeout(() => {
         const block = blocks.find((b) => b.id === blockId)
@@ -103,7 +121,6 @@ function DocumentEditorModular({
     saveSelectionForBlock(blockId, blockRefs.current, context)
   }
 
-  // File upload
   const { uploadingBlocks, handleFileUpload, insertFilesAsBlocks } = useFileUpload(
     blocks,
     setBlocks,
@@ -111,10 +128,8 @@ function DocumentEditorModular({
     addBlock,
   )
 
-  // Image state
   const { hoveredImageId, setHoveredImageId } = useImageState()
 
-  // Menu state
   const {
     showTypeMenu,
     setShowTypeMenu,
@@ -126,7 +141,6 @@ function DocumentEditorModular({
     typeMenuPlacement,
   } = useMenuState()
 
-  // Drag and drop
   const {
     draggedBlockId,
     dragOverBlockId,
@@ -137,7 +151,6 @@ function DocumentEditorModular({
     handleDragEnd,
   } = useDragAndDrop(readOnly, moveBlock, insertFilesAsBlocks)
 
-  // Text formatting
   const {
     showTextToolbar,
     setShowTextToolbar,
@@ -147,7 +160,6 @@ function DocumentEditorModular({
     handleFormat,
   } = useTextFormatting(readOnly, blockRefs, updateBlock)
 
-  // Link management
   const {
     showLinkDialog,
     setShowLinkDialog,
@@ -155,7 +167,6 @@ function DocumentEditorModular({
     setLinkDialogText,
     linkDialogUrl,
     setLinkDialogUrl,
-    linkDialogBlockId,
     setLinkDialogBlockId,
     showLinkToolbar,
     linkToolbarPos,
@@ -168,7 +179,6 @@ function DocumentEditorModular({
     closeLinkDialog,
   } = useLinkManagement(readOnly, blockRefs, savedSelectionRef, updateBlock)
 
-  // Command detection
   const { handleCommandDetection } = useCommandDetection({
     readOnly,
     setShowLinkDialog,
@@ -179,7 +189,6 @@ function DocumentEditorModular({
     changeBlockType,
   })
 
-  // Keyboard handlers
   const { handleKeyDown } = useKeyboardHandlers({
     blocks,
     setBlocks,
@@ -193,12 +202,9 @@ function DocumentEditorModular({
     skipNextSelectionRestore,
   })
 
-  // Autosave
   useAutosave(blocks, onSave, initialBlocks)
 
-  // Keep caret position on re-render
   useLayoutEffect(() => {
-    // Skip restoration if flag is set (e.g., after Shift+Enter)
     if (skipNextSelectionRestore.current) {
       skipNextSelectionRestore.current = false
       return
@@ -221,7 +227,9 @@ function DocumentEditorModular({
     } catch { }
   }, [blocks, blockRefs, savedSelectionRef])
 
-  // Migrate legacy 'link' blocks to paragraph with anchor
+  /**
+   * Converts legacy 'link' block types to modern paragraph blocks with inline anchors
+   */
   useEffect(() => {
     setBlocks((prev) =>
       prev.map((b) => {
