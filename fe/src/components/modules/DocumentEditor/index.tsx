@@ -1,4 +1,4 @@
-import { type ReactElement, useEffect, useLayoutEffect } from 'react'
+import { type ReactElement, useEffect, useLayoutEffect, useRef } from 'react'
 import { Plus, GripVertical, X } from 'lucide-react'
 
 import type { DocumentEditorProps } from './_types'
@@ -27,6 +27,9 @@ function DocumentEditorModular({
   onSave,
   readOnly = false,
 }: DocumentEditorProps): ReactElement {
+  // Flag to skip selection restoration after Shift+Enter
+  const skipNextSelectionRestore = useRef(false)
+  
   // Table management (initialized first to get refs)
   const {
     tableCellRefs,
@@ -186,6 +189,8 @@ function DocumentEditorModular({
     deleteBlock,
     setShowTypeMenu,
     saveSelectionForBlock: saveSelection,
+    savedSelectionRef,
+    skipNextSelectionRestore,
   })
 
   // Autosave
@@ -193,6 +198,12 @@ function DocumentEditorModular({
 
   // Keep caret position on re-render
   useLayoutEffect(() => {
+    // Skip restoration if flag is set (e.g., after Shift+Enter)
+    if (skipNextSelectionRestore.current) {
+      skipNextSelectionRestore.current = false
+      return
+    }
+    
     if (!savedSelectionRef.current) return
     const { blockId, start, end, backward } = savedSelectionRef.current
     if (start !== end) return
