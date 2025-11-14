@@ -1,16 +1,18 @@
-import { type RefObject } from 'react'
+import { type RefObject, type Dispatch, type SetStateAction } from 'react'
 import type { DocumentBlock } from '@/types/documents'
 import { getSelectionOffsets, setSelectionOffsets } from '../_utils/selection'
 
 interface KeyboardHandlersParams {
   blocks: DocumentBlock[]
-  setBlocks: (blocks: DocumentBlock[]) => void
+  setBlocks: Dispatch<SetStateAction<DocumentBlock[]>>
   setActiveBlockId: (id: string | null) => void
   blockRefs: RefObject<{ [key: string]: HTMLElement | null }>
   addBlock: (afterId: string, type?: DocumentBlock['type']) => string
   deleteBlock: (id: string) => void
   setShowTypeMenu: (id: string | null) => void
   saveSelectionForBlock?: (blockId: string) => void
+  savedSelectionRef?: RefObject<{ blockId: string; start: number; end: number; backward: boolean } | null>
+  skipNextSelectionRestore?: RefObject<boolean>
 }
 
 export const useKeyboardHandlers = ({
@@ -22,16 +24,42 @@ export const useKeyboardHandlers = ({
   deleteBlock,
   setShowTypeMenu,
   saveSelectionForBlock,
+  savedSelectionRef,
+  skipNextSelectionRestore,
 }: KeyboardHandlersParams) => {
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
+    // Filter out modifier keys and other non-actionable keys
+    const modifierKeys = ['Control', 'Shift', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape']
+    if (modifierKeys.includes(e.key)) {
+      return
+    }
+    
     if (e.key === 'Enter') {
       if (e.shiftKey) {
-        // Allow newline inside current block, then store caret location
-        if (saveSelectionForBlock) {
-          setTimeout(() => {
-            saveSelectionForBlock(blockId)
-          }, 0)
+        e.preventDefault()
+        
+        // Get current selection
+        const selection = window.getSelection()
+        if (!selection || selection.rangeCount === 0) return
+        
+        const range = selection.getRangeAt(0)
+        
+        // Insert <br> element
+        const br = document.createElement('br')
+        range.deleteContents()
+        range.insertNode(br)
+        
+        // Move cursor after the <br>
+        range.setStartAfter(br)
+        range.setEndAfter(br)
+        selection.removeAllRanges()
+        selection.addRange(range)
+        
+        // Set flag to skip next selection restoration
+        if (skipNextSelectionRestore) {
+          skipNextSelectionRestore.current = true
         }
+        
         return
       } else {
         e.preventDefault()
@@ -40,7 +68,10 @@ export const useKeyboardHandlers = ({
       return
     } else if (e.key === 'Backspace') {
       const block = blocks.find((b) => b.id === blockId)
-      if (!block) return
+      if (!block) {
+        return
+      }
+      
       const host = blockRefs.current?.[blockId] as HTMLElement | null
       const offsets = host ? getSelectionOffsets(host) : null
       const caretAtStart = offsets ? offsets.start === 0 && offsets.end === 0 : false
@@ -52,45 +83,8 @@ export const useKeyboardHandlers = ({
       }
 
       if (caretAtStart) {
-        const currentIndex = blocks.findIndex((b) => b.id === blockId)
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : -1
-        if (prevIndex >= 0) {
-          const prevBlock = blocks[prevIndex]
-          const mergeableTypes: DocumentBlock['type'][] = [
-            'paragraph',
-            'heading1',
-            'heading2',
-            'heading3',
-            'bulleted-list',
-            'numbered-list',
-            'quote',
-            'code',
-          ]
-          if (
-            mergeableTypes.includes(prevBlock.type) &&
-            mergeableTypes.includes(block.type)
-          ) {
-            e.preventDefault()
-            const prevText = prevBlock.content || ''
-            const mergedContent = `${prevText}${block.content || ''}`
-            const caretPosition = prevText.length
-            setBlocks(
-              blocks.map((b, i) => {
-                if (i === prevIndex) return { ...prevBlock, content: mergedContent }
-                if (i === currentIndex) return null
-                return b
-              }).filter((b): b is DocumentBlock => b !== null)
-            )
-            setActiveBlockId(prevBlock.id)
-            setTimeout(() => {
-              const prevEl = blockRefs.current?.[prevBlock.id]
-              if (prevEl) {
-                prevEl.focus()
-                setSelectionOffsets(prevEl, caretPosition, caretPosition, false)
-              }
-            }, 0)
-          }
-        }
+        e.preventDefault()
+        return
       }
     } else if (e.key === 'ArrowUp' && !e.shiftKey) {
       const host = blockRefs.current?.[blockId] as HTMLElement | null
