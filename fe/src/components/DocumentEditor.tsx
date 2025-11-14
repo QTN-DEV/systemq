@@ -1,11 +1,13 @@
 /**
- * This file is not removed yet, cause the refactor may take sometime until it is ready
- * Eventually, this file will be removed and replaced by the new modular DocumentEditor
- * that is in the components/modules/DocumentEditor folder
+ * Legacy DocumentEditor Component
  * 
- * This is for reference of the old code, if there exists any bug after the new modular
- * DocumentEditor is used in the document editor page
- * @ganadipa 2025-11
+ * @deprecated This is the original monolithic implementation maintained for backward compatibility.
+ * New development should use the modular version at components/modules/DocumentEditor.
+ * 
+ * This file serves as a reference implementation and fallback during the migration period.
+ * It will be removed once the modular version is fully tested and stable in production.
+ * 
+ * @see components/modules/DocumentEditor for the current implementation
  */
 import {
   List,
