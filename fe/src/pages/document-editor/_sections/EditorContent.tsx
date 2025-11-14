@@ -1,7 +1,7 @@
 import { Tag } from 'lucide-react';
 import type { ReactElement } from 'react';
 
-import DocumentEditor from '@/components/DocumentEditor';
+import DocumentEditor from '@/components/modules/DocumentEditor';
 import SearchableDropdown from '@/components/SearchableDropdown';
 import { getDocumentCategories } from '@/lib/shared/services/DocumentService';
 import type { DocumentItem, DocumentBlock } from '@/types/documents';

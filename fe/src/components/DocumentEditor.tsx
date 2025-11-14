@@ -1,4 +1,12 @@
-// src/components/DocumentEditor.tsx
+/**
+ * This file is not removed yet, cause the refactor may take sometime until it is ready
+ * Eventually, this file will be removed and replaced by the new modular DocumentEditor
+ * that is in the components/modules/DocumentEditor folder
+ * 
+ * This is for reference of the old code, if there exists any bug after the new modular
+ * DocumentEditor is used in the document editor page
+ * @ganadipa 2025-11
+ */
 import {
   List,
   ListOrdered,
