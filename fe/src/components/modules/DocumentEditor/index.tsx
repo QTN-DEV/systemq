@@ -71,7 +71,7 @@ function DocumentEditorModular({
     deleteBlock,
     moveBlock,
     changeBlockType: changeBlockTypeInternal,
-  } = useBlockManagement(initialBlocks, readOnly, tableCellRefs)
+  } = useBlockManagement(initialBlocks, readOnly)
 
   const { savedSelectionRef, isSelectingRef, saveSelectionForBlock } = useSelection(blocks)
 

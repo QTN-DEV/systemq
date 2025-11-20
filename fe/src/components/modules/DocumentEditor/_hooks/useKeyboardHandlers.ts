@@ -17,14 +17,11 @@ interface KeyboardHandlersParams {
 
 export const useKeyboardHandlers = ({
   blocks,
-  setBlocks,
   setActiveBlockId,
   blockRefs,
   addBlock,
   deleteBlock,
   setShowTypeMenu,
-  saveSelectionForBlock,
-  savedSelectionRef,
   skipNextSelectionRestore,
 }: KeyboardHandlersParams) => {
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {

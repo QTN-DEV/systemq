@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import type { DocumentBlock } from '@/types/documents'
 import { generateId, createTableData } from '../_utils'
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS } from '../_constants'
-import type { TableCellRefs } from '../_types'
+// import type { TableCellRefs } from '../_types'
 
 export const useBlockManagement = (
   initialBlocks: DocumentBlock[], 
   readOnly: boolean,
-  tableCellRefs?: React.MutableRefObject<TableCellRefs>
 ) => {
   const [blocks, setBlocks] = useState<DocumentBlock[]>(
     initialBlocks.length > 0
