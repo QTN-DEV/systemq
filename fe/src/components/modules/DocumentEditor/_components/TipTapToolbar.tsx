@@ -20,8 +20,13 @@ import {
   Table,
   Undo,
   Redo,
+  Upload,
 } from 'lucide-react'
-import { useState, type ReactElement } from 'react'
+import { useRef, useState, type ReactElement } from 'react'
+import Swal from 'sweetalert2'
+
+import { logger } from '@/lib/logger'
+import { getFileUrl, uploadImage } from '@/lib/shared/services/UploadService'
 
 interface TipTapToolbarProps {
   editor: Editor | null
@@ -70,6 +75,8 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps): ReactElement | nu
   const [imageUrl, setImageUrl] = useState('')
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [showImageInput, setShowImageInput] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!editor?.view || editor.isDestroyed) {
     return null
@@ -88,6 +95,51 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps): ReactElement | nu
       editor.chain().focus().setImage({ src: imageUrl.trim() }).run()
       setImageUrl('')
       setShowImageInput(false)
+    }
+  }
+
+  const handleFileUpload = async (file: File): Promise<void> => {
+    if (!file.type.startsWith('image/')) {
+      void Swal.fire({
+        toast: true,
+        icon: 'error',
+        title: 'Please select an image file',
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+      })
+      return
+    }
+
+    setIsUploadingImage(true)
+    try {
+      const uploadResult = await uploadImage(file)
+      const imageUrl = getFileUrl(uploadResult.url)
+      editor.chain().focus().setImage({ src: imageUrl }).run()
+      setShowImageInput(false)
+    } catch (error) {
+      logger.error('Failed to upload image:', error)
+      void Swal.fire({
+        toast: true,
+        icon: 'error',
+        title: 'Failed to upload image. Please try again.',
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+      })
+    } finally {
+      setIsUploadingImage(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0]
+    if (file) {
+      void handleFileUpload(file)
     }
   }
 
@@ -305,42 +357,80 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps): ReactElement | nu
             <ImageIcon className="w-4 h-4" />
           </ToolbarButton>
           {showImageInput && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg p-2 z-10 min-w-[300px]">
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleImageInsert()
-                  } else if (e.key === 'Escape') {
-                    setShowImageInput(false)
-                    setImageUrl('')
-                  }
-                }}
-                placeholder="Enter image URL"
-                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                autoFocus
-              />
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={handleImageInsert}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Insert
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowImageInput(false)
-                    setImageUrl('')
-                  }}
-                  className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 z-10 min-w-[320px]">
+              {isUploadingImage ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Uploading image...</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* File Upload Option */}
+                  <div className="mb-3">
+                    <label className="flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400 transition-colors bg-gray-50">
+                      <Upload className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm text-gray-700">Upload image file</span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                        disabled={isUploadingImage}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 text-center">PNG, JPG, GIF up to 10MB</p>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-2 my-3">
+                    <div className="flex-1 h-px bg-gray-300" />
+                    <span className="text-xs text-gray-500">or</span>
+                    <div className="flex-1 h-px bg-gray-300" />
+                  </div>
+
+                  {/* URL Input Option */}
+                  <div>
+                    <input
+                      type="url"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleImageInsert()
+                        } else if (e.key === 'Escape') {
+                          setShowImageInput(false)
+                          setImageUrl('')
+                        }
+                      }}
+                      placeholder="Enter image URL"
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={handleImageInsert}
+                        disabled={!imageUrl.trim()}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Insert
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowImageInput(false)
+                          setImageUrl('')
+                        }}
+                        className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
