@@ -22,7 +22,8 @@ export function useSidebarMenu(): {
   }, [userRole]);
 
   const currentRole = useMemo(() => {
-    return menuConfig.roles?.[userRole] ?? {
+    const roles = menuConfig.roles as Record<string, { name: string; color: string; permissions: string[] }> | undefined
+    return roles?.[userRole] ?? {
       name: "Employee",
       color: "blue",
     };

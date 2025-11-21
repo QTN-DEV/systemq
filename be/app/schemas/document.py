@@ -40,7 +40,8 @@ class DocumentUpdate(BaseModel):
     parent_id: str | None = None
     shared: bool | None = None
     share_url: str | None = None
-    content: list[DocumentBlock] | None = None
+    content: list[DocumentBlock] | None = None  # Legacy block-based format
+    content_html: str | None = None  # New HTML-based format (TipTap)
 
 
 class DocumentResponse(DocumentBase):
@@ -52,7 +53,8 @@ class DocumentResponse(DocumentBase):
     size: str | None = None
     item_count: int | None = None
     path: list[str] = Field(default_factory=list)
-    content: list[DocumentBlock] = Field(default_factory=list)
+    content: list[DocumentBlock] = Field(default_factory=list)  # Legacy block-based format
+    content_html: str | None = None  # New HTML-based format (TipTap)
 
     class Config:
         json_encoders = {

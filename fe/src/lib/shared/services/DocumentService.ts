@@ -450,7 +450,8 @@ export async function getAllAccessibleFolders(): Promise<DocumentItem[]> {
 // Update document content payload interface
 export interface UpdateDocumentContentPayload {
   category?: string | null;
-  content: DocumentBlock[];
+  content?: DocumentBlock[]; // Legacy block-based format
+  content_html?: string | null; // New HTML-based format (TipTap)
 }
 
 // Update document content (for files only)

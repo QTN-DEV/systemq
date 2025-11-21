@@ -4,24 +4,24 @@ import EditHistorySidebar from '@/components/EditHistorySidebar';
 import ShareDocumentModal from '@/components/ShareDocumentModal';
 import { useAuthStore } from '@/stores/authStore';
 
-import { useDocumentEditor, useDocumentAccess, useDocumentHistory } from './_hooks';
-import { EditorHeader, EditorContent, NotFoundSection } from './_sections';
+import { useTipTapEditor, useDocumentAccess, useDocumentHistory } from './_hooks';
+import { EditorHeader, EditorContentTipTap, NotFoundSection } from './_sections';
 
 export default function DocumentEditorPage(): ReactElement {
   const getCurrentSession = useAuthStore((s) => s.getCurrentSession);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Custom hooks
+  // Custom hooks - Using TipTap editor
   const {
     fileId,
     document,
-    blocks,
+    contentHtml,
     fileName,
     documentCategory,
     handleSave,
     handleNameChange,
     handleCategoryChange,
-  } = useDocumentEditor();
+  } = useTipTapEditor();
 
   const { canEdit } = useDocumentAccess(fileId);
 
@@ -60,11 +60,12 @@ export default function DocumentEditorPage(): ReactElement {
                 showHistory ? 'xl:pr-8 2xl:pr-12' : ''
               }`}
             >
-              <EditorContent
+              <EditorContentTipTap
                 document={document}
                 fileName={fileName}
                 documentCategory={documentCategory}
-                blocks={blocks}
+                contentHtml={contentHtml}
+                initialBlocks={document?.content} // For migration: convert blocks if HTML missing
                 canEdit={canEdit}
                 onNameChange={handleNameChange}
                 onCategoryChange={handleCategoryChange}
