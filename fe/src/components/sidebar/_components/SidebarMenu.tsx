@@ -33,7 +33,7 @@ export function SidebarMenu({
   docsOpen,
   onToggleDocsOpen,
 }: SidebarMenuProps): React.ReactElement {
-  const { filteredMenuItems, isPathActive, isDocsPathActive, isSharedDocsActive } =
+  const { filteredMenuItems, isPathActive, isDocsPathActive, isSharedDocsActive, isSystemAdmin } =
     useSidebarMenu();
 
   return (
@@ -58,6 +58,7 @@ export function SidebarMenu({
                 isOpen={docsOpen}
                 onToggle={onToggleDocsOpen}
                 isSharedActive={isShared}
+                isSystemAdmin={isSystemAdmin}
               />
             );
           }

@@ -13,6 +13,7 @@ interface SidebarDocsMenuProps {
   isOpen: boolean;
   onToggle: () => void;
   isSharedActive: boolean;
+  isSystemAdmin: boolean;
 }
 
 export function SidebarDocsMenu({
@@ -23,6 +24,7 @@ export function SidebarDocsMenu({
   isOpen,
   onToggle,
   isSharedActive,
+  isSystemAdmin,
 }: SidebarDocsMenuProps): React.ReactElement {
   if (isCollapsed) {
     return (
@@ -83,17 +85,19 @@ export function SidebarDocsMenu({
         >
           <Link to="/documents">My Documents</Link>
         </Button>
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "w-full justify-start",
-            isSharedActive && "text-primary bg-primary/10"
-          )}
-        >
-          <Link to="/documents/shared">Shared with Me</Link>
-        </Button>
+        {!isSystemAdmin && (
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "w-full justify-start",
+              isSharedActive && "text-primary bg-primary/10"
+            )}
+          >
+            <Link to="/documents/shared">Shared with Me</Link>
+          </Button>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );
