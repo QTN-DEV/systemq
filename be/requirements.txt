@@ -25,3 +25,4 @@ websockets==15.0.1
 motor
 pydantic[email]
 python-multipart
+boto3

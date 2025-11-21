@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-import os
+import mimetypes
 import uuid
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.services import s3
+
 # Configure upload settings
-UPLOAD_DIR = Path("static/uploads")
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 
@@ -28,9 +28,6 @@ ALLOWED_FILE_EXTENSIONS = {
     ".json", ".xml", ".yaml", ".yml",
     ".py", ".js", ".html", ".css", ".md"
 }
-
-# Ensure upload directory exists
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class UploadResponse(BaseModel):
@@ -65,8 +62,10 @@ def generate_unique_filename(original_filename: str) -> str:
     return f"{unique_id}{extension}"
 
 
-async def save_upload_file(upload_file: UploadFile, allowed_extensions: set[str], max_size: int) -> dict[str, Any]:
-    """Save uploaded file and return metadata."""
+async def save_upload_file(
+    upload_file: UploadFile, allowed_extensions: set[str], max_size: int
+) -> dict[str, Any]:
+    """Save uploaded file to S3 and return metadata."""
     if not upload_file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -89,26 +88,34 @@ async def save_upload_file(upload_file: UploadFile, allowed_extensions: set[str]
     if file_size > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File size {format_file_size(file_size)} exceeds maximum allowed size {format_file_size(max_size)}"
+            detail=(
+                f"File size {format_file_size(file_size)} exceeds "
+                f"maximum allowed size {format_file_size(max_size)}"
+            )
         )
 
     # Generate unique filename
     unique_filename = generate_unique_filename(upload_file.filename)
-    file_path = UPLOAD_DIR / unique_filename
-
-    # Save file
+    
+    # Determine content type
+    content_type, _ = mimetypes.guess_type(upload_file.filename)
+    
+    # Upload to S3
     try:
-        with open(file_path, "wb") as f:
-            f.write(file_content)
+        public_url = s3.upload_file_to_s3(
+            file_content=file_content,
+            object_key=unique_filename,
+            content_type=content_type
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save file: {str(e)}"
+            detail=f"Failed to upload file to storage: {str(e)}"
         ) from e
 
-    # Return file metadata
+    # Return file metadata with full S3 URL
     return {
-        "url": f"/static/uploads/{unique_filename}",
+        "url": public_url,
         "fileName": upload_file.filename,
         "fileSize": format_file_size(file_size)
     }
@@ -145,30 +152,11 @@ async def upload_file(file: UploadFile = File(...)) -> UploadResponse:
 
 @router.get(
     "/files/{filename}",
-    summary="Download uploaded file",
-    response_description="The requested file."
+    summary="Get uploaded file URL",
+    response_description="Redirect to the file URL in S3 storage."
 )
-async def get_uploaded_file(filename: str) -> FileResponse:
-    """Serve uploaded files."""
-    file_path = UPLOAD_DIR / filename
-
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found"
-        )
-
-    # Security check: ensure the file is within the upload directory
-    try:
-        file_path.resolve().relative_to(UPLOAD_DIR.resolve())
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
-        ) from e
-
-    return FileResponse(
-        path=file_path,
-        filename=filename,
-        media_type="application/octet-stream"
-    )
+async def get_uploaded_file(filename: str) -> dict[str, str]:
+    """Get the public URL for an uploaded file."""
+    # Files are now stored in S3, return the S3 URL
+    file_url = s3.get_file_url(filename)
+    return {"url": file_url}
