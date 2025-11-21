@@ -50,13 +50,7 @@ export interface GlobalDocumentsState {
   categories: string[];
   filteredItems: DocumentItem[];
 
-  // Pagination
-  currentPage: number;
-  setCurrentPage: (page: number) => void;
-  rowsPerPage: number;
-  setRowsPerPage: (rows: number) => void;
-  totalPages: number;
-  startIndex: number;
+  // Items (no pagination - all items shown)
   paginatedItems: DocumentItem[];
   foldersOnPage: DocumentItem[];
   documentsOnPage: DocumentItem[];
@@ -155,14 +149,8 @@ export function useGlobalDocuments(): GlobalDocumentsState {
   const { activeFilter, setActiveFilter, categories, filteredItems } =
     useDocumentsFilter(displayItems);
 
-  // Pagination Hook
+  // Items Hook (no pagination - shows all items)
   const {
-    currentPage,
-    setCurrentPage,
-    rowsPerPage,
-    setRowsPerPage,
-    totalPages,
-    startIndex,
     paginatedItems,
     foldersOnPage,
     documentsOnPage,
@@ -357,13 +345,7 @@ export function useGlobalDocuments(): GlobalDocumentsState {
     categories,
     filteredItems,
 
-    // Pagination
-    currentPage,
-    setCurrentPage,
-    rowsPerPage,
-    setRowsPerPage,
-    totalPages,
-    startIndex,
+    // Items (no pagination)
     paginatedItems,
     foldersOnPage,
     documentsOnPage,

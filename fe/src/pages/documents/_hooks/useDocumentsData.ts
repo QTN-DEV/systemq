@@ -83,19 +83,30 @@ export function useDocumentsData(): {
         )))
   );
 
-  // Filter items based on view (My vs Shared)
-  // System Administrators see all documents globally in "My Documents" view
+  // Filter items based on view (My vs Shared) and ensure only items in current folder are shown
+  // When at root (currentFolderId === null), only show items with no parent
+  // When in a subfolder, only show items with parentId matching currentFolderId
   const displayItems = useMemo(() => {
-    if (!currentUser) return currentItems;
+    // First, filter by parent folder to ensure we only show items in the current folder
+    let filtered = currentItems;
+    if (currentFolderId === null) {
+      // At root: only show items with no parent
+      filtered = currentItems.filter((item) => !item.parentId);
+    } else {
+      // In subfolder: only show items with parentId matching currentFolderId
+      filtered = currentItems.filter((item) => item.parentId === currentFolderId);
+    }
     
-    // System Administrators see all documents in "My Documents" view
+    if (!currentUser) return filtered;
+    
+    // System Administrators see all documents in "My Documents" view (but still filtered by parent)
     if (!isSharedView && isSystemAdmin) {
-      return currentItems; // Show all documents for System Admin in "My Documents"
+      return filtered; // Show all documents for System Admin in "My Documents" (but only in current folder)
     }
     
     const myId = currentUser.id;
     
-    return currentItems.filter((item: DocumentItem) => {
+    return filtered.filter((item: DocumentItem) => {
       if (isSharedView) {
         // Shared view: show items not owned by current user
         return item.ownedBy?.id !== myId;
@@ -104,7 +115,7 @@ export function useDocumentsData(): {
         return item.ownedBy?.id === myId;
       }
     });
-  }, [currentItems, currentUser, isSharedView, isSystemAdmin]);
+  }, [currentItems, currentUser, isSharedView, isSystemAdmin, currentFolderId]);
 
   return {
     currentFolderId,
