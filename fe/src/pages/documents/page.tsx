@@ -45,7 +45,6 @@ export default function DocumentsPage(): ReactElement {
         activeFilter={docs.activeFilter}
         onFilterChange={(filter) => {
           docs.setActiveFilter(filter);
-          docs.setCurrentPage(1);
         }}
         globalQuery={docs.globalQuery}
         onQueryChange={docs.setGlobalQuery}
@@ -110,16 +109,6 @@ export default function DocumentsPage(): ReactElement {
             docs.setShowPermissionModal(true);
           }}
           onCreateFile={() => docs.setShowCreateFile(true)}
-          currentPage={docs.currentPage}
-          totalPages={docs.totalPages}
-          rowsPerPage={docs.rowsPerPage}
-          startIndex={docs.startIndex}
-          totalItems={docs.filteredItems.length}
-          onPageChange={docs.setCurrentPage}
-          onRowsPerPageChange={(rows) => {
-            docs.setRowsPerPage(rows);
-            docs.setCurrentPage(1);
-          }}
         />
       )}
 

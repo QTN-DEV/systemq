@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 
 import type { DocumentItem } from "@/types/documents";
 
-import { DocumentsGrid, DocumentsPagination } from "../_components";
+import { DocumentsGrid } from "../_components";
 
 interface MainContentSectionProps {
   paginatedItems: DocumentItem[];
@@ -21,13 +21,6 @@ interface MainContentSectionProps {
   onDelete: (item: DocumentItem) => void;
   onShare: (item: DocumentItem) => void;
   onCreateFile: () => void;
-  currentPage: number;
-  totalPages: number;
-  rowsPerPage: number;
-  startIndex: number;
-  totalItems: number;
-  onPageChange: (page: number) => void;
-  onRowsPerPageChange: (rows: number) => void;
 }
 
 export function MainContentSection({
@@ -47,13 +40,6 @@ export function MainContentSection({
   onDelete,
   onShare,
   onCreateFile,
-  currentPage,
-  totalPages,
-  rowsPerPage,
-  startIndex,
-  totalItems,
-  onPageChange,
-  onRowsPerPageChange,
 }: MainContentSectionProps): ReactElement {
   return (
     <>
@@ -107,16 +93,6 @@ export function MainContentSection({
             ? "No shared documents available."
             : "No documents yet."
         }
-      />
-
-      <DocumentsPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        rowsPerPage={rowsPerPage}
-        startIndex={startIndex}
-        totalItems={totalItems}
-        onPageChange={onPageChange}
-        onRowsPerPageChange={onRowsPerPageChange}
       />
     </>
   );
