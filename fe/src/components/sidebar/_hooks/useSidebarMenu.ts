@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 import menuConfig from "@/config/menuConfig.json";
+import { useAuthStore } from "@/stores/authStore";
 
 import { useSidebarUser } from "./useSidebarUser";
 
@@ -11,9 +12,11 @@ export function useSidebarMenu(): {
   isPathActive: (path: string) => boolean
   isDocsPathActive: () => boolean
   isSharedDocsActive: () => boolean
+  isSystemAdmin: boolean
 } {
   const { userRole } = useSidebarUser();
   const location = useLocation();
+  const currentUser = useAuthStore((state) => state.user);
 
   const filteredMenuItems = useMemo(() => {
     return menuConfig.menuItems.filter(
@@ -28,6 +31,19 @@ export function useSidebarMenu(): {
       color: "blue",
     };
   }, [userRole]);
+
+  // Check if user is System Administrator
+  const isSystemAdmin = useMemo(() => {
+    return Boolean(
+      currentUser &&
+      (currentUser.position === "Admin" ||
+        currentUser.role === "admin" ||
+        (typeof currentUser.level === "string" &&
+          ["admin", "administrator", "superadmin", "principal"].includes(
+            currentUser.level.toLowerCase()
+          )))
+    );
+  }, [currentUser]);
 
   const isPathActive = (path: string): boolean => {
     return (
@@ -56,5 +72,6 @@ export function useSidebarMenu(): {
     isPathActive,
     isDocsPathActive,
     isSharedDocsActive,
+    isSystemAdmin,
   };
 }
