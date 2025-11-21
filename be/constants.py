@@ -50,3 +50,11 @@ SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "admin@quantumteknologi.com"
 print("SMTP_FROM_EMAIL:", SMTP_FROM_EMAIL)
 SMTP_USE_TLS: bool = _get_bool("SMTP_USE_TLS", False)
 DEFAULT_PASSWORD: str = os.getenv("DEFAULT_PASSWORD", "change-me")
+
+# MinIO S3 Configuration
+MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "192.168.166.13:9000")
+MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "VHhenBeNEZpPoD9f94LI")
+MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "91uSO3DYuPIwJr7D3nY5OhsI4YBQywOvLRr3YqAd")
+MINIO_BUCKET_NAME: str = os.getenv("MINIO_BUCKET_NAME", "systemq-uploads")
+MINIO_USE_SSL: bool = _get_bool("MINIO_USE_SSL", True)
+MINIO_PUBLIC_HOST: str = os.getenv("MINIO_PUBLIC_HOST", "bucket.quantumteknologi.com")
