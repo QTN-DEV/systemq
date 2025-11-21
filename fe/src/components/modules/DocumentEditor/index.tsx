@@ -1,7 +1,8 @@
-import { type ReactElement, useEffect, useLayoutEffect, useRef } from 'react'
 import { Plus, GripVertical, X } from 'lucide-react'
+import { type ReactElement, useEffect, useLayoutEffect, useRef } from 'react'
 
-import type { DocumentEditorProps } from './_types'
+import type { DocumentBlock } from '@/types/documents'
+
 import { PlaceholderStyles, BlockRenderer, GripMenu, TypeMenu, TextToolbar, LinkToolbar, LinkDialog } from './_components'
 import {
   useBlockManagement,
@@ -17,8 +18,9 @@ import {
   useKeyboardHandlers,
   useCommandDetection,
 } from './_hooks'
+import type { DocumentEditorProps } from './_types'
 import { getBlockPlaceholder, createAnchorHTML, normalizeAnchors, setSelectionOffsets, getSelectionOffsets } from './_utils'
-import type { DocumentBlock } from '@/types/documents'
+
 
 export type { DocumentBlock } from '@/types/documents'
 
@@ -84,8 +86,8 @@ function DocumentEditorModular({
     const el = blockRefs.current[id] || null
     const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
     
-    if (isContentUpdate && el && document.activeElement === el && (el as HTMLElement).isContentEditable) {
-      const offsets = getSelectionOffsets(el as HTMLElement)
+    if (isContentUpdate && el && document.activeElement === el && (el).isContentEditable) {
+      const offsets = getSelectionOffsets(el)
       if (offsets) {
         savedSelectionRef.current = { blockId: id, ...offsets }
         // eslint-disable-next-line no-console
@@ -285,11 +287,11 @@ function DocumentEditorModular({
       try {
         document.execCommand('insertHTML', false, createAnchorHTML(plain))
       } catch {
-        ;(el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(plain))
+        ;(el).insertAdjacentHTML('beforeend', createAnchorHTML(plain))
       }
 
-      normalizeAnchors(el as HTMLElement)
-      updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+      normalizeAnchors(el)
+      updateBlock(blockId, { content: (el).innerHTML })
     }
   }
 

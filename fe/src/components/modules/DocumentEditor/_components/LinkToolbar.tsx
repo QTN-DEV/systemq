@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react'
 import { Link as LinkIcon, X } from 'lucide-react'
+import type { ReactElement } from 'react'
+
 import type { ToolbarPosition } from '../_types'
 
 interface LinkToolbarProps {

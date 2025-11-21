@@ -28,8 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getProjectsByIds } from "@/lib/shared/services/ProjectService";
 import type { EmployeeListItem } from "@/lib/shared/services/EmployeeService";
+import { getProjectsByIds } from "@/lib/shared/services/ProjectService";
 
 import {
   getAvatarFallbackColor,

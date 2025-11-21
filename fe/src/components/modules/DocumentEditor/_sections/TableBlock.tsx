@@ -1,9 +1,11 @@
-import type { ReactElement } from 'react'
 import { Plus, Minus } from 'lucide-react'
+import type { ReactElement } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
-import { cloneTableData } from '../_utils/table'
-import { getSelectionOffsets } from '../_utils/selection'
+
 import type { TableCellRefs } from '../_types'
+import { getSelectionOffsets } from '../_utils/selection'
+import { cloneTableData } from '../_utils/table'
 
 interface TableBlockProps {
   block: DocumentBlock

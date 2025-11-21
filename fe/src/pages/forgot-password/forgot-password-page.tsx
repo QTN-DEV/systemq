@@ -2,10 +2,8 @@ import { useState, type JSX } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 
-import { logger } from "@/lib/logger";
-import { authService } from "@/lib/shared/services/authService";
 
-import logo from "../../assets/logo.png";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,10 +11,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
+import { authService } from "@/lib/shared/services/authService";
 import { cn } from "@/lib/utils";
+
+import logo from "../../assets/logo.png";
 
 function ForgotPassword(): JSX.Element {
   const [email, setEmail] = useState("");

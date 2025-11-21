@@ -1,7 +1,9 @@
 import { useRef } from 'react'
+
 import type { DocumentBlock, DocumentTableRow } from '@/types/documents'
-import { cloneTableData, generateId } from '../_utils'
+
 import type { TableCellRefs } from '../_types'
+import { cloneTableData, generateId } from '../_utils'
 
 export const useTableManagement = () => {
   const tableCellRefs = useRef<TableCellRefs>({})

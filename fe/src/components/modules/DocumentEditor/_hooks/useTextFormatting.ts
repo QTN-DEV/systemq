@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+
 import type { ToolbarPosition, FormatState } from '../_types'
 
 export const useTextFormatting = (
@@ -28,10 +29,10 @@ export const useTextFormatting = (
       const range = sel.getRangeAt(0)
       const containerEl =
         range.commonAncestorContainer instanceof Element
-          ? (range.commonAncestorContainer as Element)
+          ? (range.commonAncestorContainer)
           : range.commonAncestorContainer.parentElement
       if (!containerEl) return
-      const host = containerEl.closest('.ce-editable') as HTMLElement | null
+      const host = containerEl.closest('.ce-editable')
       if (!host) {
         setShowTextToolbar(false)
         setToolbarBlockId(null)
@@ -75,7 +76,7 @@ export const useTextFormatting = (
     } catch {}
     if (toolbarBlockId) {
       const el = blockRefs.current[toolbarBlockId]
-      if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+      if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
       try {
         setFormatState({
           bold: document.queryCommandState('bold'),

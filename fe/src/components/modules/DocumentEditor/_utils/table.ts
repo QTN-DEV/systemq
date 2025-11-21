@@ -1,4 +1,5 @@
 import type { DocumentTableData, DocumentTableRow, DocumentTableCell } from '@/types/documents'
+
 import { generateId } from './idGenerator'
 
 export const createTableData = (rows = 3, columns = 3): DocumentTableData => {

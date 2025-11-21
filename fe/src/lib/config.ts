@@ -12,8 +12,8 @@ export const parseList = (value: string | undefined): string[] => {
 
 export const config = {
   apiBaseUrl: (env.VITE_API_BASE_URL as string) || DEFAULT_API_BASE_URL,
-  isDev: (env.DEV as boolean) ?? (env.MODE === 'development'),
-  mode: (env.MODE as string) || 'development',
+  isDev: (env.DEV) ?? (env.MODE === 'development'),
+  mode: (env.MODE) || 'development',
   // Example of parsing lists from env vars if needed:
   // allowedOrigins: parseList(env.VITE_ALLOWED_ORIGINS as string),
 } as const;

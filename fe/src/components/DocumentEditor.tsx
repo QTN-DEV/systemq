@@ -9,6 +9,7 @@
  * 
  * @see components/modules/DocumentEditor for the current implementation
  */
+import { isAxiosError } from 'axios'
 import {
   List,
   ListOrdered,
@@ -40,17 +41,17 @@ import {
   useLayoutEffect,
   type ReactElement,
 } from 'react'
-import { isAxiosError } from 'axios'
 import Swal from 'sweetalert2'
 
 import { logger } from '@/lib/logger'
-import { uploadImage, uploadFile, getFileUrl } from '../lib/shared/services/UploadService'
 import type {
   DocumentBlock,
   DocumentTableData,
   DocumentTableRow,
   DocumentTableCell,
 } from '@/types/documents'
+
+import { uploadImage, uploadFile, getFileUrl } from '../lib/shared/services/UploadService'
 export type { DocumentBlock } from '@/types/documents'
 
 interface DocumentEditorProps {
@@ -510,8 +511,8 @@ function DocumentEditor({
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
     const el = blockRefs.current[id] || null
     const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
-    if (isContentUpdate && el && document.activeElement === el && (el as HTMLElement).isContentEditable) {
-      const offsets = getSelectionOffsets(el as HTMLElement)
+    if (isContentUpdate && el && document.activeElement === el && (el).isContentEditable) {
+      const offsets = getSelectionOffsets(el)
       if (offsets) savedSelectionRef.current = { blockId: id, ...offsets }
     }
     setBlocks(blocks.map((block) => (block.id === id ? { ...block, ...updates } : block)))
@@ -850,11 +851,11 @@ function DocumentEditor({
         document.execCommand('insertHTML', false, createAnchorHTML(plain))
       } catch {
         // fallback: append
-        (el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(plain))
+        (el).insertAdjacentHTML('beforeend', createAnchorHTML(plain))
       }
 
-      normalizeAnchors(el as HTMLElement)
-      updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+      normalizeAnchors(el)
+      updateBlock(blockId, { content: (el).innerHTML })
     }
   }
 
@@ -955,7 +956,7 @@ function DocumentEditor({
       linkEditAnchor.classList.add('inline-editor-link')
       linkEditAnchor.setAttribute('data-inline-link', '1')
       if (text) linkEditAnchor.textContent = text
-      updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+      updateBlock(blockId, { content: (el).innerHTML })
       setLinkEditAnchor(null)
       setShowLinkDialog(false)
       return
@@ -963,17 +964,17 @@ function DocumentEditor({
 
     // Sisipkan inline di selection/end — selalu sebagai paragraph
     const saved = savedSelectionRef.current
-    let start = (el as HTMLElement).innerText.length
+    let start = (el).innerText.length
     let end = start
     if (saved && saved.blockId === blockId) { start = saved.start; end = saved.end }
     try {
-      const range = buildRangeWithin(el as HTMLElement, start, end)
+      const range = buildRangeWithin(el, start, end)
       replaceRangeWithAnchor(range, href, text)
     } catch {
-      (el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(href, text))
+      (el).insertAdjacentHTML('beforeend', createAnchorHTML(href, text))
     }
-    normalizeAnchors(el as HTMLElement)
-    updateBlock(blockId, { type: 'paragraph', content: (el as HTMLElement).innerHTML })
+    normalizeAnchors(el)
+    updateBlock(blockId, { type: 'paragraph', content: (el).innerHTML })
     setShowLinkDialog(false)
   }
 
@@ -986,9 +987,9 @@ function DocumentEditor({
     if (readOnly) return
     const onMouseOver = (e: MouseEvent): void => {
       const t = e.target as HTMLElement
-      const anchor = t?.closest('a') as HTMLAnchorElement | null
+      const anchor = t?.closest('a')
       if (!anchor) return
-      const host = anchor.closest('.ce-editable') as HTMLElement | null
+      const host = anchor.closest('.ce-editable')
       if (!host) return
       const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
       if (!blockId) return
@@ -1022,7 +1023,7 @@ function DocumentEditor({
     const span = document.createElement('span')
     span.textContent = text
     linkEditAnchor.replaceWith(span)
-    updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+    updateBlock(blockId, { content: (el).innerHTML })
     setShowLinkToolbar(false)
     setLinkEditAnchor(null)
   }
@@ -1039,11 +1040,11 @@ function DocumentEditor({
         e.preventDefault()
         addBlock(blockId)
       }
-      return
+      
     } else if (e.key === 'Backspace') {
       const block = blocks.find((b) => b.id === blockId)
       if (!block) return
-      const host = blockRefs.current[blockId] as HTMLElement | null
+      const host = blockRefs.current[blockId]
       const offsets = host ? getSelectionOffsets(host) : null
       const caretAtStart = offsets ? offsets.start === 0 && offsets.end === 0 : false
 
@@ -1099,7 +1100,7 @@ function DocumentEditor({
         }
       }
     } else if (e.key === 'ArrowUp' && !e.shiftKey) {
-      const host = blockRefs.current[blockId] as HTMLElement | null
+      const host = blockRefs.current[blockId]
       const offsets = host ? getSelectionOffsets(host) : null
       if (!offsets || offsets.start !== 0 || offsets.end !== 0) return
       const currentIndex = blocks.findIndex((b) => b.id === blockId)
@@ -1112,12 +1113,12 @@ function DocumentEditor({
       setTimeout(() => {
         prevEl.focus()
         const length = (prevBlock.content ?? '').length
-        if ((prevEl as HTMLElement).isContentEditable) {
-          setSelectionOffsets(prevEl as HTMLElement, length, length, false)
+        if ((prevEl).isContentEditable) {
+          setSelectionOffsets(prevEl, length, length, false)
         }
       }, 0)
     } else if (e.key === 'ArrowDown' && !e.shiftKey) {
-      const host = blockRefs.current[blockId] as HTMLElement | null
+      const host = blockRefs.current[blockId]
       const offsets = host ? getSelectionOffsets(host) : null
       const textLength = host?.textContent?.length ?? 0
       if (!offsets || offsets.start !== textLength || offsets.end !== textLength) return
@@ -1130,8 +1131,8 @@ function DocumentEditor({
       setActiveBlockId(nextBlock.id)
       setTimeout(() => {
         nextEl.focus()
-        if ((nextEl as HTMLElement).isContentEditable) {
-          setSelectionOffsets(nextEl as HTMLElement, 0, 0, false)
+        if ((nextEl).isContentEditable) {
+          setSelectionOffsets(nextEl, 0, 0, false)
         }
       }, 0)
     } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
@@ -1175,7 +1176,7 @@ function DocumentEditor({
       }),
     )
     // sekali di mount saja
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   /** ---------- Render block ---------- */
@@ -1208,7 +1209,7 @@ function DocumentEditor({
               }
               normalizeAnchors(el as unknown as HTMLElement)
             }}
-            className={`ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
+            className={`ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none focus:bg-primary/5 rounded hover:bg-primary/5  transition-all duration-200 ${typeClass}`}
             contentEditable={!readOnly}
             suppressContentEditableWarning
             data-placeholder={getBlockPlaceholder(block.type)}
@@ -1614,7 +1615,7 @@ function DocumentEditor({
               }
               normalizeAnchors(el as unknown as HTMLElement)
             }}
-            className="ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none"
+            className="ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none focus:bg-primary/5 rounded hover:bg-primary/5  transition-all duration-200"
             contentEditable={!readOnly}
             suppressContentEditableWarning
             data-placeholder={getBlockPlaceholder(block.type)}
@@ -1648,10 +1649,10 @@ function DocumentEditor({
       }
       const range = sel.getRangeAt(0)
       const containerEl = range.commonAncestorContainer instanceof Element
-        ? (range.commonAncestorContainer as Element)
+        ? (range.commonAncestorContainer)
         : range.commonAncestorContainer.parentElement
       if (!containerEl) return
-      const host = containerEl.closest('.ce-editable') as HTMLElement | null
+      const host = containerEl.closest('.ce-editable')
       if (!host) {
         setShowTextToolbar(false)
         setToolbarBlockId(null)
@@ -1837,7 +1838,7 @@ function DocumentEditor({
             onClick={() => {
               try { document.execCommand('bold') } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
@@ -1855,7 +1856,7 @@ function DocumentEditor({
             onClick={() => {
               try { document.execCommand('italic') } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),
@@ -1873,7 +1874,7 @@ function DocumentEditor({
             onClick={() => {
               try { document.execCommand('underline') } catch { }
               const el = blockRefs.current[toolbarBlockId]
-              if (el) updateBlock(toolbarBlockId, { content: (el as HTMLElement).innerHTML })
+              if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
               try {
                 setFormatState({
                   bold: document.queryCommandState('bold'),

@@ -1,4 +1,3 @@
-import type { DocumentBlock } from '@/types/documents'
 import {
   List,
   ListOrdered,
@@ -12,6 +11,8 @@ import {
   FileText,
   Table,
 } from 'lucide-react'
+
+import type { DocumentBlock } from '@/types/documents'
 
 export const BLOCK_TYPE_OPTIONS = [
   { type: 'paragraph' as const, icon: Type, label: 'Text' },

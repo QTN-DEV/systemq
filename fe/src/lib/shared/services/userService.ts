@@ -1,5 +1,6 @@
-import usersData from '@/data/mockUsers.json'
 import type { User } from '@/types/user-type'
+
+import usersData from '@/data/mockUsers.json'
 
 const users = usersData as User[]
 

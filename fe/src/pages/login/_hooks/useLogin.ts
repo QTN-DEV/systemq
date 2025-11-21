@@ -2,9 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
+import { logger } from "@/lib/logger";
 import { authService, type AuthSession } from "@/lib/shared/services/authService";
 import { useAuthStore } from "@/stores/authStore";
-import { logger } from "@/lib/logger";
 
 export interface LoginFormData {
   email: string;

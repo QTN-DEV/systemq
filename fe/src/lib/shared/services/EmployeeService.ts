@@ -1,5 +1,5 @@
-import { useAuthStore } from '@/stores/authStore'
 import apiClient from '@/lib/shared/api/client'
+import { useAuthStore } from '@/stores/authStore'
 
 const ensureAuth = () => {
   const session = useAuthStore.getState().getCurrentSession()

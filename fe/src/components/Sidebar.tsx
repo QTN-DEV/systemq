@@ -2,16 +2,16 @@ import { type ReactElement } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { useSidebar } from "./sidebar/_hooks/useSidebar";
-import { useSidebarActions } from "./sidebar/_hooks/useSidebarActions";
-import { useSidebarMenu } from "./sidebar/_hooks/useSidebarMenu";
-import { useSidebarUser } from "./sidebar/_hooks/useSidebarUser";
 import {
   SidebarHeader,
   SidebarUser,
   SidebarMenu,
   SidebarFooter,
 } from "./sidebar/_components";
+import { useSidebar } from "./sidebar/_hooks/useSidebar";
+import { useSidebarActions } from "./sidebar/_hooks/useSidebarActions";
+import { useSidebarMenu } from "./sidebar/_hooks/useSidebarMenu";
+import { useSidebarUser } from "./sidebar/_hooks/useSidebarUser";
 
 function Sidebar(): ReactElement {
   // Hooks - Business Logic

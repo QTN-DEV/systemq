@@ -1,7 +1,9 @@
 import { useRef, useLayoutEffect, useEffect } from 'react'
+
+import type { DocumentBlock } from '@/types/documents'
+
 import type { SavedSelection, BlockRefs } from '../_types'
 import { getSelectionOffsets } from '../_utils'
-import type { DocumentBlock } from '@/types/documents'
 
 export const useSelection = (blocks: DocumentBlock[]) => {
   const savedSelectionRef = useRef<SavedSelection | null>(null)

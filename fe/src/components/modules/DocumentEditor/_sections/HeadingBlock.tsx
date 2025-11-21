@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
+
 import { normalizeAnchors } from '../_utils/link'
 
 interface HeadingBlockProps {
@@ -52,7 +54,7 @@ export const HeadingBlock = ({
         }
         normalizeAnchors(el as unknown as HTMLElement)
       }}
-      className={`ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
+      className={`ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none focus:bg-primary/5 rounded hover:bg-primary/5  transition-all duration-200 ${typeClass}`}
       contentEditable={!readOnly}
       suppressContentEditableWarning
       data-placeholder={placeholder}

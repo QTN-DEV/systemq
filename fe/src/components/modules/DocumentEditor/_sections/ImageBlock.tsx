@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react'
 import { AlignLeft, AlignCenter, AlignRight, Image } from 'lucide-react'
+import type { ReactElement } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
 
 interface ImageBlockProps {

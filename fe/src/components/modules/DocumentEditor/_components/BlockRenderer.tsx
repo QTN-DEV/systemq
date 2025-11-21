@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
+
 import {
   ParagraphBlock,
   HeadingBlock,

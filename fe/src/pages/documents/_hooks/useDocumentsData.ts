@@ -29,7 +29,7 @@ export function useDocumentsData() {
     queryKey: ["document", currentFolderId],
     queryFn: () =>
       currentFolderId ? getDocumentById(currentFolderId, null) : null,
-    enabled: !!currentFolderId,
+    enabled: Boolean(currentFolderId),
   });
 
   // Fetch items in current folder
@@ -54,7 +54,7 @@ export function useDocumentsData() {
     queryKey: ["document-access", currentFolderId],
     queryFn: () =>
       currentFolderId ? getDocumentAccess(currentFolderId) : null,
-    enabled: !!currentFolderId,
+    enabled: Boolean(currentFolderId),
   });
 
   const canEditFolder = folderAccess?.can_edit ?? false;

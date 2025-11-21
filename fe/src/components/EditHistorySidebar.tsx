@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useMemo, type ReactElement } from 'react'
+
 import type { EditHistoryEvent } from '../types/documents'
 
 interface EditHistorySidebarProps {

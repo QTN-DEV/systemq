@@ -1,6 +1,7 @@
 import { type RefObject, type Dispatch, type SetStateAction } from 'react'
 
 import type { DocumentBlock } from '@/types/documents'
+
 import { getSelectionOffsets, setSelectionOffsets } from '../_utils/selection'
 
 interface KeyboardHandlersParams {
@@ -68,7 +69,7 @@ export const useKeyboardHandlers = ({
           // Additionally check if that's the end of the entire content
           // Recompute current offset in the entire element plain text
           let totalOffset = 0
-          let walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+          const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
           let found = false
           while (walker.nextNode()) {
             if (walker.currentNode === range.endContainer) {
@@ -142,19 +143,19 @@ export const useKeyboardHandlers = ({
         // eslint-disable-next-line no-console
         console.log('[Shift+Enter] Input event dispatched')
         
-        return
+        
       } else {
         e.preventDefault()
         addBlock(blockId)
       }
-      return
+      
     } else if (e.key === 'Backspace') {
       const block = blocks.find((b) => b.id === blockId)
       if (!block) {
         return
       }
       
-      const host = blockRefs.current?.[blockId] as HTMLElement | null
+      const host = blockRefs.current?.[blockId]
       const offsets = host ? getSelectionOffsets(host) : null
       const caretAtStart = offsets ? offsets.start === 0 && offsets.end === 0 : false
 
@@ -166,10 +167,10 @@ export const useKeyboardHandlers = ({
 
       if (caretAtStart) {
         e.preventDefault()
-        return
+        
       }
     } else if (e.key === 'ArrowUp' && !e.shiftKey) {
-      const host = blockRefs.current?.[blockId] as HTMLElement | null
+      const host = blockRefs.current?.[blockId]
       const offsets = host ? getSelectionOffsets(host) : null
       if (!offsets || offsets.start !== 0 || offsets.end !== 0) return
       const currentIndex = blocks.findIndex((b) => b.id === blockId)
@@ -182,12 +183,12 @@ export const useKeyboardHandlers = ({
       setTimeout(() => {
         prevEl.focus()
         const length = (prevBlock.content ?? '').length
-        if ((prevEl as HTMLElement).isContentEditable) {
-          setSelectionOffsets(prevEl as HTMLElement, length, length, false)
+        if ((prevEl).isContentEditable) {
+          setSelectionOffsets(prevEl, length, length, false)
         }
       }, 0)
     } else if (e.key === 'ArrowDown' && !e.shiftKey) {
-      const host = blockRefs.current?.[blockId] as HTMLElement | null
+      const host = blockRefs.current?.[blockId]
       const offsets = host ? getSelectionOffsets(host) : null
       const textLength = host?.textContent?.length ?? 0
       if (!offsets || offsets.start !== textLength || offsets.end !== textLength) return
@@ -200,8 +201,8 @@ export const useKeyboardHandlers = ({
       setActiveBlockId(nextBlock.id)
       setTimeout(() => {
         nextEl.focus()
-        if ((nextEl as HTMLElement).isContentEditable) {
-          setSelectionOffsets(nextEl as HTMLElement, 0, 0, false)
+        if ((nextEl).isContentEditable) {
+          setSelectionOffsets(nextEl, 0, 0, false)
         }
       }, 0)
     } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
