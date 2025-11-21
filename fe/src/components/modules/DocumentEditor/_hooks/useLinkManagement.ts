@@ -16,7 +16,25 @@ export const useLinkManagement = (
   blockRefs: React.MutableRefObject<{ [key: string]: HTMLElement | null }>,
   savedSelectionRef: React.MutableRefObject<SavedSelection | null>,
   updateBlock: (id: string, updates: Partial<DocumentBlock>) => void,
-) => {
+): {
+  showLinkDialog: boolean
+  setShowLinkDialog: (show: boolean) => void
+  linkDialogText: string
+  setLinkDialogText: (text: string) => void
+  linkDialogUrl: string
+  setLinkDialogUrl: (url: string) => void
+  linkDialogBlockId: string | null
+  setLinkDialogBlockId: (id: string | null) => void
+  showLinkToolbar: boolean
+  linkToolbarPos: ToolbarPosition
+  linkToolbarBlockId: string | null
+  linkToolbarRef: React.RefObject<HTMLDivElement | null>
+  openLinkDialogForSelection: (blockId: string) => void
+  applyLinkFromDialog: () => void
+  unlinkAnchor: () => void
+  openLinkEditDialog: () => void
+  closeLinkDialog: () => void
+} => {
   // Link dialog state
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [linkDialogText, setLinkDialogText] = useState('')
@@ -45,7 +63,7 @@ export const useLinkManagement = (
       setLinkDialogUrl('')
       return
     }
-    const textLen = (host.innerText || '').length
+    const textLen = (host.innerText ?? '').length
     savedSelectionRef.current = { blockId, start: textLen, end: textLen, backward: false }
     setShowLinkDialog(true)
     setLinkDialogBlockId(blockId)
@@ -116,7 +134,7 @@ export const useLinkManagement = (
       setShowLinkToolbar(false)
       return
     }
-    const text = linkEditAnchor.textContent || ''
+    const text = linkEditAnchor.textContent ?? ''
     const span = document.createElement('span')
     span.textContent = text
     linkEditAnchor.replaceWith(span)
@@ -130,8 +148,8 @@ export const useLinkManagement = (
     setShowLinkToolbar(false)
     setShowLinkDialog(true)
     setLinkDialogBlockId(linkToolbarBlockId)
-    setLinkDialogText(linkEditAnchor.textContent || '')
-    setLinkDialogUrl(linkEditAnchor.getAttribute('href') || '')
+    setLinkDialogText(linkEditAnchor.textContent ?? '')
+    setLinkDialogUrl(linkEditAnchor.getAttribute('href') ?? '')
   }
 
   const closeLinkDialog = (): void => {
@@ -149,7 +167,7 @@ export const useLinkManagement = (
       const host = anchor.closest('.ce-editable')
       if (!host) return
       const blockId =
-        Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
+        Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) ?? null
       if (!blockId) return
       const rect = anchor.getBoundingClientRect()
       setLinkToolbarPos({ x: rect.left + rect.width / 2, y: rect.bottom + 6 })
@@ -160,7 +178,7 @@ export const useLinkManagement = (
     const onMouseDown = (e: MouseEvent): void => {
       const t = e.target as Node
       if (linkToolbarRef.current && linkToolbarRef.current.contains(t)) return
-      const isAnchor = (t as HTMLElement).closest && (t as HTMLElement).closest('a')
+      const isAnchor = (t as HTMLElement)?.closest?.('a')
       if (isAnchor) return
       setShowLinkToolbar(false)
     }

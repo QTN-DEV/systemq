@@ -8,68 +8,59 @@ interface CommandDetectionParams {
   setLinkDialogUrl: (url: string) => void
   updateBlock: (id: string, updates: Partial<DocumentBlock>) => void
   changeBlockType: (blockId: string, newType: DocumentBlock['type'], options?: { rows?: number; columns?: number }) => void
+  openCommandMenu?: (blockId: string, element: HTMLElement) => void
   updateCommandQuery?: (blockId: string, query: string) => void
   closeCommandMenu?: () => void
   commandMenuOpen?: boolean
   getBlockContent?: (blockId: string) => string
+  blockRefs?: React.RefObject<{ [key: string]: HTMLElement | null }>
 }
 
 export const useCommandDetection = ({
   readOnly,
-  setShowLinkDialog,
-  setLinkDialogBlockId,
-  setLinkDialogText,
-  setLinkDialogUrl,
-  updateBlock,
-  changeBlockType,
+  setShowLinkDialog: _setShowLinkDialog,
+  setLinkDialogBlockId: _setLinkDialogBlockId,
+  setLinkDialogText: _setLinkDialogText,
+  setLinkDialogUrl: _setLinkDialogUrl,
+  updateBlock: _updateBlock,
+  changeBlockType: _changeBlockType,
+  openCommandMenu,
   updateCommandQuery,
   closeCommandMenu,
   commandMenuOpen = false,
-  getBlockContent,
+  getBlockContent: _getBlockContent,
+  blockRefs,
 }: CommandDetectionParams): { handleCommandDetection: (blockId: string, html: string) => void } => {
   const handleCommandDetection = (blockId: string, html: string): void => {
     if (readOnly) return
-    const text = html.replace(/<[^>]*>/g, '').trim()
+
+    // Check if text starts with "/" - if the block only contains "/" or "/something",
+    // it means the user typed "/" in an empty block
+    const commandMatch = html === '/' && html.split(' ').length === 1
     
-    // SIMPLIFIED: Command mode only works on empty blocks
-    // Get the stored block content (before this input) to check if block was empty
-    const previousContent = getBlockContent ? getBlockContent(blockId) : ''
-    const wasEmpty = !previousContent || previousContent.trim() === ''
-    
-    // Only process commands if block was empty and text starts with '/'
-    const commandMatch = wasEmpty && text.match(/^\/([^\s\n]*)$/)
-    
-    if (commandMatch && updateCommandQuery) {
-      const query = commandMatch[1] // Text after '/'
-      updateCommandQuery(blockId, query)
+    if (commandMatch) {
+      const query = html.slice(1) // Text after '/'
+      
+      // Open the command menu if not already open
+      if (!commandMenuOpen && openCommandMenu && blockRefs) {
+        const element = blockRefs.current?.[blockId]
+        if (element) {
+          openCommandMenu(blockId, element)
+        }
+      }
+      
+      // Update query as user types
+      if (updateCommandQuery) {
+        updateCommandQuery(blockId, query)
+      }
       return // Don't execute commands while menu is open, let user select
     }
     
-    // If menu was open but block is no longer empty or '/' is removed, close it
-    if (commandMenuOpen && (!wasEmpty || !text.startsWith('/'))) {
-      if (updateCommandQuery) {
-        updateCommandQuery(blockId, '')
-      } else if (closeCommandMenu) {
+    // If menu was open but text no longer starts with '/', close it
+    if (commandMenuOpen && !html.startsWith('/')) {
+      if (closeCommandMenu) {
         closeCommandMenu()
       }
-      return // Don't process legacy commands if menu was just closed
-    }
-    
-    // Legacy command detection (for backward compatibility)
-    if (text.toLowerCase().startsWith('/link')) {
-      setShowLinkDialog(true)
-      setLinkDialogBlockId(blockId)
-      setLinkDialogText('')
-      setLinkDialogUrl('')
-      updateBlock(blockId, { content: '' })
-    }
-    
-    const tableMatch = text.match(/^\/table(?:\s+(\d+)\s*[x×]\s*(\d+))?$/i)
-    if (tableMatch) {
-      const [, rowsStr, colsStr] = tableMatch
-      const rows = rowsStr ? Math.max(parseInt(rowsStr, 10) || 0, 1) : 3
-      const columns = colsStr ? Math.max(parseInt(colsStr, 10) || 0, 1) : 3
-      changeBlockType(blockId, 'table', { rows, columns })
     }
   }
 

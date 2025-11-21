@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react'
 
+import type { DocumentBlock } from '@/types/documents'
+
 import type { ToolbarPosition, FormatState } from '../_types'
 
 export const useTextFormatting = (
   readOnly: boolean,
   blockRefs: React.MutableRefObject<{ [key: string]: HTMLElement | null }>,
-  updateBlock: (id: string, updates: any) => void,
-) => {
+  updateBlock: (id: string, updates: Partial<DocumentBlock>) => void,
+): {
+  showTextToolbar: boolean
+  setShowTextToolbar: (show: boolean) => void
+  toolbarPos: ToolbarPosition
+  toolbarBlockId: string | null
+  formatState: FormatState
+  handleFormat: (command: 'bold' | 'italic' | 'underline') => void
+} => {
   const [showTextToolbar, setShowTextToolbar] = useState(false)
   const [toolbarPos, setToolbarPos] = useState<ToolbarPosition>({ x: 0, y: 0 })
   const [toolbarBlockId, setToolbarBlockId] = useState<string | null>(null)
@@ -39,7 +48,7 @@ export const useTextFormatting = (
         return
       }
       const blockId =
-        Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
+        Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) ?? null
       if (!blockId) {
         setShowTextToolbar(false)
         setToolbarBlockId(null)
@@ -64,16 +73,22 @@ export const useTextFormatting = (
           italic: document.queryCommandState('italic'),
           underline: document.queryCommandState('underline'),
         })
-      } catch {}
+      } catch {
+        // Ignore errors from queryCommandState
+      }
     }
     document.addEventListener('selectionchange', onSelectionChange)
-    return () => document.removeEventListener('selectionchange', onSelectionChange)
+    return (): void => {
+      document.removeEventListener('selectionchange', onSelectionChange)
+    }
   }, [readOnly, blockRefs])
 
   const handleFormat = (command: 'bold' | 'italic' | 'underline'): void => {
     try {
       document.execCommand(command)
-    } catch {}
+    } catch {
+      // Ignore errors from execCommand
+    }
     if (toolbarBlockId) {
       const el = blockRefs.current[toolbarBlockId]
       if (el) updateBlock(toolbarBlockId, { content: (el).innerHTML })
@@ -83,7 +98,9 @@ export const useTextFormatting = (
           italic: document.queryCommandState('italic'),
           underline: document.queryCommandState('underline'),
         })
-      } catch {}
+      } catch {
+        // Ignore errors from queryCommandState
+      }
     }
   }
 

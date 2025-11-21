@@ -29,15 +29,15 @@ export const useKeyboardHandlers = ({
   blockRefs,
   addBlock,
   deleteBlock,
-  setShowTypeMenu,
+  setShowTypeMenu: _setShowTypeMenu,
   skipNextSelectionRestore,
   commandMenuOpen = false,
-  openCommandMenu,
+  openCommandMenu: _openCommandMenu,
   closeCommandMenu,
   navigateCommandMenu,
   selectCommand,
   changeBlockType,
-}: KeyboardHandlersParams) => {
+}: KeyboardHandlersParams): { handleKeyDown: (e: React.KeyboardEvent, blockId: string) => void } => {
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
     // Handle Escape key to close command menu (works even if menu state is stale)
     if (e.key === 'Escape' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
@@ -75,23 +75,16 @@ export const useKeyboardHandlers = ({
     
     if (e.key === 'Enter') {
       if (e.shiftKey) {
-        // eslint-disable-next-line no-console
-        console.log('[Shift+Enter] KeyDown event fired', { blockId })
         e.preventDefault()
         
         // Get current selection and element
         const selection = window.getSelection()
         if (!selection || selection.rangeCount === 0) {
-          // eslint-disable-next-line no-console
-          console.log('[Shift+Enter] No selection found')
           return
         }
         
         const range = selection.getRangeAt(0)
         const element = e.currentTarget as HTMLElement
-        
-        // eslint-disable-next-line no-console
-        console.log('[Shift+Enter] Before insert - element.innerHTML:', element.innerHTML.substring(0, 100))
 
         // Determine if cursor is at the end of the block before inserting
         let insertCount = 1
@@ -144,24 +137,14 @@ export const useKeyboardHandlers = ({
           selection.removeAllRanges()
           selection.addRange(range)
         }
-
-        // eslint-disable-next-line no-console
-        console.log('[Shift+Enter] After insert - element.innerHTML:', element.innerHTML.substring(0, 100))
-        
-        // Get the updated HTML immediately after inserting newline
-        const updatedHtml = element.innerHTML
         
         // Set flag to skip next selection restoration BEFORE dispatching input
         if (skipNextSelectionRestore) {
           skipNextSelectionRestore.current = true
-          // eslint-disable-next-line no-console
-          console.log('[Shift+Enter] Set skipNextSelectionRestore to true')
         }
         
         // Immediately trigger input event synchronously to update block content
         // This ensures the state update happens before any React re-render
-        // eslint-disable-next-line no-console
-        console.log('[Shift+Enter] Dispatching input event - element.innerHTML:', updatedHtml.substring(0, 100))
         
         // Create a proper InputEvent for better browser compatibility
         let inputEvent: Event
@@ -180,9 +163,6 @@ export const useKeyboardHandlers = ({
         // Dispatch the event synchronously (not in setTimeout)
         // This ensures onInput fires immediately and updates state before React re-renders
         element.dispatchEvent(inputEvent)
-        // eslint-disable-next-line no-console
-        console.log('[Shift+Enter] Input event dispatched')
-        
         
       } else {
         e.preventDefault()
@@ -262,19 +242,6 @@ export const useKeyboardHandlers = ({
           setSelectionOffsets(nextEl, 0, 0, false)
         }
       }, 0)
-    } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-      const block = blocks.find((b) => b.id === blockId)
-      const element = e.currentTarget as HTMLElement
-      if (block && openCommandMenu) {
-        // Only open command menu if block is completely empty
-        if (block.content === '') {
-          openCommandMenu(blockId, element)
-        }
-      } else if (block && block.content === '') {
-        // Fallback to old behavior if command menu not available
-        e.preventDefault()
-        setShowTypeMenu(blockId)
-      }
     }
   }
 

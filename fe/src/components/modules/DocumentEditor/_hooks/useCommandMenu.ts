@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, type RefObject } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
+
 import { COMMAND_OPTIONS, type CommandOption } from '../_constants/commandOptions'
 
 interface CommandMenuState {
@@ -30,7 +32,15 @@ export const useCommandMenu = ({
   setLinkDialogText,
   setLinkDialogUrl,
   updateBlock,
-}: UseCommandMenuParams) => {
+}: UseCommandMenuParams): {
+  commandMenu: CommandMenuState
+  openCommandMenu: (blockId: string, element: HTMLElement) => void
+  closeCommandMenu: () => void
+  updateCommandQuery: (blockId: string, query: string) => void
+  selectCommand: (option: CommandOption) => void
+  selectCommandByIndex: () => void
+  navigateCommandMenu: (direction: 'up' | 'down') => void
+} => {
   const [commandMenu, setCommandMenu] = useState<CommandMenuState>({
     isOpen: false,
     blockId: null,
@@ -42,7 +52,7 @@ export const useCommandMenu = ({
   const commandQueryRef = useRef<string>('')
   const commandStartOffsetRef = useRef<number>(0)
 
-  const openCommandMenu = useCallback((blockId: string, element: HTMLElement) => {
+  const openCommandMenu = useCallback((blockId: string, element: HTMLElement): void => {
     if (readOnly) return
 
     const selection = window.getSelection()
@@ -64,7 +74,7 @@ export const useCommandMenu = ({
         height: 20,
         x: elementRect.x,
         y: elementRect.y,
-        toJSON: elementRect.toJSON,
+        toJSON: (): string => elementRect.toJSON(),
       } as DOMRect
     }
     
@@ -134,7 +144,7 @@ export const useCommandMenu = ({
     if (!element) return
 
     // Remove the command text (everything from '/' onwards)
-    const textContent = element.innerText || ''
+    const textContent = element.innerText ?? ''
     const commandStart = textContent.lastIndexOf('/')
     
     if (commandStart !== -1) {
@@ -241,7 +251,7 @@ function getTextOffset(element: HTMLElement, node: Node, offset: number): number
     if (currentNode === node) {
       return textOffset + offset
     }
-    textOffset += currentNode.textContent?.length || 0
+      textOffset += currentNode.textContent?.length ?? 0
   }
 
   return textOffset
