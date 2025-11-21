@@ -1,7 +1,8 @@
+import type { AxiosRequestConfig } from "axios";
+
 import { config } from "@/lib/config";
 import { useAuthStore } from "@/stores/authStore";
 import type { Position, User } from "@/types/user-type";
-import type { AxiosRequestConfig } from "axios";
 
 import { ApiClient } from "../api/client";
 
