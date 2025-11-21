@@ -45,6 +45,19 @@ def _get_user_permission(document: DocumentItem, user_id: str) -> Optional[str]:
     return None
 
 
+def _get_user_permission_with_fallback(document: DocumentItem, user: User) -> Optional[str]:
+    """Get individual user permission from document, checking both employee_id and document id."""
+    # First try with employee_id if available
+    if user.employee_id:
+        perm = _get_user_permission(document, user.employee_id)
+        if perm:
+            return perm
+    
+    # Fallback to document id (MongoDB ObjectId) if employee_id is None or didn't match
+    doc_id_str = str(user.id)
+    return _get_user_permission(document, doc_id_str)
+
+
 def _get_division_permission(document: DocumentItem, division: Optional[str]) -> Optional[str]:
     """Get division permission from document."""
     if not division:
@@ -94,15 +107,16 @@ def _is_admin(user: User | None) -> bool:
 
 
 async def _has_direct_access(document: DocumentItem, user: User, required: PermissionLevel) -> bool:
-    # Owner has full access
-    if document.owned_by.id == user.employee_id:
+    # Owner has full access - check both employee_id and document id
+    owner_id = document.owned_by.id
+    if owner_id == user.employee_id or owner_id == str(user.id):
         return True
 
     if _is_admin(user):
         return True
 
-    # Individual user permission
-    up = _get_user_permission(document, user.employee_id)
+    # Individual user permission - use fallback to check both employee_id and document id
+    up = _get_user_permission_with_fallback(document, user)
     if up and _has_required_permission(up, required):
         return True
 
@@ -220,17 +234,18 @@ async def get_user_document_permission(document_id: str, user_id: str) -> str | 
     """
     try:
         document = await get_document_by_id(document_id)
-        user = await User.find_one(User.employee_id == user_id)
+        user = await _resolve_user(user_id)
 
         if not user or not user.is_active:
             return None
 
-        # Owner always has editor access
-        if document.owned_by.id == user_id:
+        # Owner always has editor access - check both employee_id and document id
+        owner_id = document.owned_by.id
+        if owner_id == user.employee_id or owner_id == str(user.id):
             return "editor"
 
-        # Check individual user permissions first (higher priority)
-        user_permission = _get_user_permission(document, user_id)
+        # Check individual user permissions first (higher priority) - use fallback
+        user_permission = _get_user_permission_with_fallback(document, user)
         if user_permission:
             return user_permission
 
