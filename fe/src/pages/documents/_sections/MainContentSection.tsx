@@ -13,6 +13,7 @@ interface MainContentSectionProps {
   hasFolderResults: boolean;
   hasDocumentResults: boolean;
   isOwner: (item: DocumentItem) => boolean;
+  isSystemAdmin: boolean;
   onItemClick: (item: DocumentItem) => void;
   onOpenContributors: (item: DocumentItem, contributors: string[]) => void;
   onRename: (item: DocumentItem) => void;
@@ -38,6 +39,7 @@ export function MainContentSection({
   hasFolderResults,
   hasDocumentResults,
   isOwner,
+  isSystemAdmin,
   onItemClick,
   onOpenContributors,
   onRename,
@@ -62,6 +64,7 @@ export function MainContentSection({
         contributorsMap={contributorsMap}
         isSharedView={isSharedView}
         isOwner={isOwner}
+        isSystemAdmin={isSystemAdmin}
         onItemClick={onItemClick}
         onOpenContributors={onOpenContributors}
         onRename={onRename}
@@ -86,6 +89,7 @@ export function MainContentSection({
         contributorsMap={contributorsMap}
         isSharedView={isSharedView}
         isOwner={isOwner}
+        isSystemAdmin={isSystemAdmin}
         onItemClick={onItemClick}
         onOpenContributors={onOpenContributors}
         onRename={onRename}

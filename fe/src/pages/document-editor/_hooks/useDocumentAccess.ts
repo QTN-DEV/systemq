@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { getDocumentAccess } from '@/lib/shared/services/DocumentService';
 
-export function useDocumentAccess(fileId: string | undefined) {
+export function useDocumentAccess(fileId: string | undefined): {
+  canEdit: boolean;
+  loading: boolean;
+} {
   const navigate = useNavigate();
   const [canEdit, setCanEdit] = useState(false);
   const [loading, setLoading] = useState(true);

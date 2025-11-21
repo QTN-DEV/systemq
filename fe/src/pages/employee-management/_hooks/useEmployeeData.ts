@@ -7,7 +7,17 @@ import {
   type EmployeeListItem,
 } from '@/lib/shared/services/EmployeeService';
 
-export function useEmployeeData() {
+export function useEmployeeData(): {
+  employees: EmployeeListItem[];
+  inactiveEmployees: EmployeeListItem[];
+  activeTab: 'active' | 'inactive';
+  setActiveTab: (tab: 'active' | 'inactive') => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  setEmployees: (employees: EmployeeListItem[]) => void;
+  setInactiveEmployees: (employees: EmployeeListItem[]) => void;
+  refetchEmployees: () => Promise<void>;
+} {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [inactiveEmployees, setInactiveEmployees] = useState<EmployeeListItem[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active');

@@ -11,13 +11,19 @@ export interface LoginFormData {
   password: string;
 }
 
-export function useLogin() {
+export function useLogin(): {
+  login: (credentials: LoginFormData) => void;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  isSuccess: boolean;
+} {
   const navigate = useNavigate();
   const setUser = useAuthStore((state) => state.setUser);
 
   const mutation = useMutation({
     mutationFn: async (credentials: LoginFormData) => {
-      return await authService.login({
+      return authService.login({
         email: credentials.email,
         password: credentials.password,
       });

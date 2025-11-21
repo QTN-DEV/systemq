@@ -12,7 +12,19 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import type { DocumentItem } from "@/types/documents";
 
-export function useDocumentsData() {
+export function useDocumentsData(): {
+  currentFolderId: string | null;
+  currentFolder: DocumentItem | null | undefined;
+  currentItems: DocumentItem[];
+  displayItems: DocumentItem[];
+  breadcrumbs: { id: string; name: string; path: string[] }[];
+  isSharedView: boolean;
+  canEditFolder: boolean;
+  isLoadingItems: boolean;
+  itemsError: Error | null;
+  refetchItems: () => void;
+  effectiveSegments: string[];
+} {
   const { "*": currentPath } = useParams<{ "*": string }>();
   const currentUser = useAuthStore((state) => state.user);
 
@@ -29,7 +41,7 @@ export function useDocumentsData() {
     queryKey: ["document", currentFolderId],
     queryFn: () =>
       currentFolderId ? getDocumentById(currentFolderId, null) : null,
-    enabled: Boolean(currentFolderId),
+    enabled: currentFolderId !== null && currentFolderId !== undefined,
   });
 
   // Fetch items in current folder
@@ -54,7 +66,7 @@ export function useDocumentsData() {
     queryKey: ["document-access", currentFolderId],
     queryFn: () =>
       currentFolderId ? getDocumentAccess(currentFolderId) : null,
-    enabled: Boolean(currentFolderId),
+    enabled: currentFolderId !== null && currentFolderId !== undefined,
   });
 
   const canEditFolder = folderAccess?.can_edit ?? false;
@@ -110,7 +122,7 @@ export function useDocumentsData() {
 }
 
 // Hook untuk fetch item counts
-export function useDocumentCounts(items: DocumentItem[]) {
+export function useDocumentCounts(items: DocumentItem[]): Record<string, number> {
   const folderIds = items
     .filter((item) => item.type === "folder")
     .map((item) => item.id);
@@ -135,7 +147,7 @@ export function useDocumentCounts(items: DocumentItem[]) {
 }
 
 // Hook untuk fetch permissions
-export function useDocumentPermissions(items: DocumentItem[]) {
+export function useDocumentPermissions(items: DocumentItem[]): Record<string, boolean> {
   const itemIds = items.map((item) => item.id);
 
   const queries = useQuery({

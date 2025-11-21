@@ -1,5 +1,4 @@
 import { Plus } from "lucide-react";
-import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { DocumentItem } from "@/types/documents";
@@ -15,6 +14,7 @@ interface DocumentsGridProps {
   contributorsMap: Record<string, string[]>;
   isSharedView: boolean;
   isOwner: (item: DocumentItem) => boolean;
+  isSystemAdmin?: boolean;
   onItemClick: (item: DocumentItem) => void;
   onOpenContributors: (item: DocumentItem, contributors: string[]) => void;
   onRename: (item: DocumentItem) => void;
@@ -35,6 +35,7 @@ export function DocumentsGrid({
   contributorsMap,
   isSharedView,
   isOwner,
+  isSystemAdmin = false,
   onItemClick,
   onOpenContributors,
   onRename,
@@ -47,9 +48,6 @@ export function DocumentsGrid({
   onAdd,
   emptyMessage,
 }: DocumentsGridProps) {
-  const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(
-    null
-  );
 
   const filteredItems = items.filter((item) => item.type === type);
 
@@ -97,39 +95,22 @@ export function DocumentsGrid({
                   isSharedView={isSharedView}
                   contributors={contributors}
                   onOpen={() => onItemClick(item)}
-                  onShowActions={(e) => {
-                    e.stopPropagation();
-                    setShowActionsDropdown(
-                      showActionsDropdown === item.id ? null : item.id
-                    );
-                  }}
                   onOpenContributors={(e) => {
                     e.stopPropagation();
                     onOpenContributors(item, contributors);
                   }}
-                  showActionsDropdown={showActionsDropdown === item.id}
                 >
-                  {showDots && showActionsDropdown === item.id && (
+                  {showDots && (
                     <ActionDropdown
                       item={item}
                       canEdit={canEdit}
                       isOwner={isOwner(item)}
-                      onRename={() => {
-                        setShowActionsDropdown(null);
-                        onRename(item);
-                      }}
-                      onMove={() => {
-                        setShowActionsDropdown(null);
-                        onMove(item);
-                      }}
-                      onDelete={() => {
-                        setShowActionsDropdown(null);
-                        onDelete(item);
-                      }}
-                      onShare={() => {
-                        setShowActionsDropdown(null);
-                        onShare(item);
-                      }}
+                      isSystemAdmin={isSystemAdmin}
+                      className="text-white/80 hover:bg-white/10"
+                      onRename={() => onRename(item)}
+                      onMove={() => onMove(item)}
+                      onDelete={() => onDelete(item)}
+                      onShare={() => onShare(item)}
                     />
                   )}
                 </DocumentsFolderCard>
@@ -143,35 +124,18 @@ export function DocumentsGrid({
                 canEdit={canEdit}
                 isSharedView={isSharedView}
                 onOpen={() => onItemClick(item)}
-                onShowActions={(e) => {
-                  e.stopPropagation();
-                  setShowActionsDropdown(
-                    showActionsDropdown === item.id ? null : item.id
-                  );
-                }}
-                showActionsDropdown={showActionsDropdown === item.id}
               >
-                {showDots && showActionsDropdown === item.id && (
+                {showDots && (
                   <ActionDropdown
                     item={item}
                     canEdit={canEdit}
                     isOwner={isOwner(item)}
-                    onRename={() => {
-                      setShowActionsDropdown(null);
-                      onRename(item);
-                    }}
-                    onMove={() => {
-                      setShowActionsDropdown(null);
-                      onMove(item);
-                    }}
-                    onDelete={() => {
-                      setShowActionsDropdown(null);
-                      onDelete(item);
-                    }}
-                    onShare={() => {
-                      setShowActionsDropdown(null);
-                      onShare(item);
-                    }}
+                    isSystemAdmin={isSystemAdmin}
+                    className="absolute right-2 top-0"
+                    onRename={() => onRename(item)}
+                    onMove={() => onMove(item)}
+                    onDelete={() => onDelete(item)}
+                    onShare={() => onShare(item)}
                   />
                 )}
               </DocumentsFileCard>

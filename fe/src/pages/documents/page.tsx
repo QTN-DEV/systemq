@@ -86,6 +86,7 @@ export default function DocumentsPage(): ReactElement {
           hasFolderResults={docs.hasFolderResults}
           hasDocumentResults={docs.hasDocumentResults}
           isOwner={docs.isOwner}
+          isSystemAdmin={docs.isSystemAdmin}
           onItemClick={docs.handleItemClick}
           onOpenContributors={docs.openContributors}
           onRename={(item) => {
@@ -93,13 +94,13 @@ export default function DocumentsPage(): ReactElement {
             docs.setShowRenameModal(true);
           }}
           onMove={(item) => {
-            if (docs.isOwner(item)) {
+            if (docs.isSystemAdmin || docs.isOwner(item)) {
               docs.setSelectedItem(item);
               docs.setShowMoveModal(true);
             }
           }}
           onDelete={(item) => {
-            if (docs.isOwner(item)) {
+            if (docs.isSystemAdmin || docs.isOwner(item)) {
               docs.setSelectedItem(item);
               docs.setShowDeleteModal(true);
             }

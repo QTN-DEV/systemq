@@ -2,7 +2,12 @@ import { useState, useMemo } from "react";
 
 import type { DocumentItem } from "@/types/documents";
 
-export function useDocumentsFilter(displayItems: DocumentItem[]) {
+export function useDocumentsFilter(displayItems: DocumentItem[]): {
+  activeFilter: string;
+  setActiveFilter: (filter: string) => void;
+  categories: string[];
+  filteredItems: DocumentItem[];
+} {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchTerm] = useState("");
 

@@ -5,7 +5,16 @@ import { logger } from "@/lib/logger";
 import { authService } from "@/lib/shared/services/authService";
 import { useAuthStore } from "@/stores/authStore";
 
-function useChangePassword() {
+function useChangePassword(): {
+  handleSubmit: (e: React.FormEvent) => void;
+  oldPassword: string;
+  setOldPassword: (value: string) => void;
+  newPassword: string;
+  setNewPassword: (value: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (value: string) => void;
+  isLoading: boolean;
+} {
   // TODO : Simplify into single form state
   // Example : const [form, setForm] = useState({email : "",password : ""})
 

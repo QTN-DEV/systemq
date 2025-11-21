@@ -3,7 +3,13 @@ import { useState, useCallback } from 'react';
 import { getDocumentHistory } from '@/lib/shared/services/DocumentService';
 import type { EditHistoryEvent } from '@/types/documents';
 
-export function useDocumentHistory(fileId: string | undefined) {
+export function useDocumentHistory(fileId: string | undefined): {
+  showHistory: boolean;
+  history: EditHistoryEvent[] | null;
+  historyError: string | null;
+  openHistory: () => Promise<void>;
+  closeHistory: () => void;
+} {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<EditHistoryEvent[] | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -18,8 +24,8 @@ export function useDocumentHistory(fileId: string | undefined) {
     try {
       const events = await getDocumentHistory(fileId);
       setHistory(events);
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 403) {
         // Hide UI if forbidden
         setShowHistory(false);

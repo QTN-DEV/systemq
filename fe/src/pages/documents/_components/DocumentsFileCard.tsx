@@ -1,9 +1,7 @@
-import { FileText, MoreHorizontal } from "lucide-react";
-import { type MouseEvent } from "react";
+import { FileText } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DocumentItem } from "@/types/documents";
@@ -15,8 +13,6 @@ interface DocumentsFileCardProps {
   canEdit: boolean;
   isSharedView: boolean;
   onOpen: () => void;
-  onShowActions: (e: MouseEvent) => void;
-  showActionsDropdown: boolean;
   children?: React.ReactNode;
 }
 
@@ -25,8 +21,6 @@ export function DocumentsFileCard({
   canEdit,
   isSharedView,
   onOpen,
-  onShowActions,
-  showActionsDropdown,
   children,
 }: DocumentsFileCardProps) {
   return (
@@ -42,17 +36,7 @@ export function DocumentsFileCard({
             </div>
           </div>
 
-          {(!isSharedView || canEdit) && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onShowActions}
-              className="absolute right-2 top-0"
-              aria-label={`Actions for ${item.name}`}
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          )}
+          {(!isSharedView || canEdit) && children}
 
           {isSharedView && (
             <Badge
@@ -97,8 +81,6 @@ export function DocumentsFileCard({
           </div>
         </div>
       </CardContent>
-
-      {showActionsDropdown && children}
     </Card>
   );
 }

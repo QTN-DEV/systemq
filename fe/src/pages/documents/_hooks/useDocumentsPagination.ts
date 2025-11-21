@@ -2,7 +2,19 @@ import { useState, useMemo } from "react";
 
 import type { DocumentItem } from "@/types/documents";
 
-export function useDocumentsPagination(filteredItems: DocumentItem[]) {
+export function useDocumentsPagination(filteredItems: DocumentItem[]): {
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  rowsPerPage: number;
+  setRowsPerPage: (rows: number) => void;
+  totalPages: number;
+  startIndex: number;
+  paginatedItems: DocumentItem[];
+  foldersOnPage: DocumentItem[];
+  documentsOnPage: DocumentItem[];
+  hasFolderResults: boolean;
+  hasDocumentResults: boolean;
+} {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
