@@ -4,7 +4,14 @@ import { useAuthStore } from "@/stores/authStore";
 
 import { getAvatarUrl } from "../../Avatar";
 
-export function useSidebarUser() {
+export function useSidebarUser(): {
+  user: ReturnType<typeof useAuthStore>['user']
+  userRole: string
+  userTitle: string
+  displayName: string
+  initials: string
+  avatarUrl: string | null
+} {
   const user = useAuthStore((state) => state.user);
 
   const userData = useMemo(() => {

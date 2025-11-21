@@ -18,7 +18,7 @@ export function SidebarMenuItem({
   label,
   isActive,
   isCollapsed,
-}: SidebarMenuItemProps) {
+}: SidebarMenuItemProps): React.ReactElement {
   return (
     <Button
       asChild

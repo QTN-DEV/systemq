@@ -34,7 +34,6 @@ export const useSelection = (blocks: DocumentBlock[]): {
     const { start, end } = savedSelectionRef.current
     if (start !== end) {
       // Selection is not collapsed, skip restoration
-      return
     }
     
     // We need access to blockRefs here, but it's managed externally

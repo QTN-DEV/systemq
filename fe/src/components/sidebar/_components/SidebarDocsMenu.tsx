@@ -23,7 +23,7 @@ export function SidebarDocsMenu({
   isOpen,
   onToggle,
   isSharedActive,
-}: SidebarDocsMenuProps) {
+}: SidebarDocsMenuProps): React.ReactElement {
   if (isCollapsed) {
     return (
       <Button

@@ -32,7 +32,7 @@ export function SidebarMenu({
   isCollapsed,
   docsOpen,
   onToggleDocsOpen,
-}: SidebarMenuProps) {
+}: SidebarMenuProps): React.ReactElement {
   const { filteredMenuItems, isPathActive, isDocsPathActive, isSharedDocsActive } =
     useSidebarMenu();
 

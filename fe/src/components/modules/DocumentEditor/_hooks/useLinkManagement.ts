@@ -177,7 +177,7 @@ export const useLinkManagement = (
     }
     const onMouseDown = (e: MouseEvent): void => {
       const t = e.target as Node
-      if (linkToolbarRef.current && linkToolbarRef.current.contains(t)) return
+      if (linkToolbarRef.current?.contains(t)) return
       const isAnchor = (t as HTMLElement)?.closest?.('a')
       if (isAnchor) return
       setShowLinkToolbar(false)

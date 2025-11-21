@@ -5,7 +5,13 @@ import menuConfig from "@/config/menuConfig.json";
 
 import { useSidebarUser } from "./useSidebarUser";
 
-export function useSidebarMenu() {
+export function useSidebarMenu(): {
+  filteredMenuItems: Array<{ id: string; title: string; path: string; icon: string; roles?: string[] }>
+  currentRole: { name: string; color: string }
+  isPathActive: (path: string) => boolean
+  isDocsPathActive: () => boolean
+  isSharedDocsActive: () => boolean
+} {
   const { userRole } = useSidebarUser();
   const location = useLocation();
 
@@ -22,20 +28,20 @@ export function useSidebarMenu() {
     };
   }, [userRole]);
 
-  const isPathActive = (path: string) => {
+  const isPathActive = (path: string): boolean => {
     return (
       location.pathname === path || location.pathname.startsWith(`${path}/`)
     );
   };
 
-  const isDocsPathActive = () => {
+  const isDocsPathActive = (): boolean => {
     return (
       location.pathname === "/documents" ||
       location.pathname.startsWith("/documents/")
     );
   };
 
-  const isSharedDocsActive = () => {
+  const isSharedDocsActive = (): boolean => {
     return (
       location.pathname.startsWith("/documents/shared") ||
       (location.pathname.startsWith("/documents/file/") &&
