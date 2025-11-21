@@ -71,7 +71,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps): ReactElement | nu
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [showImageInput, setShowImageInput] = useState(false)
 
-  if (!editor) {
+  if (!editor?.view || editor.isDestroyed) {
     return null
   }
 

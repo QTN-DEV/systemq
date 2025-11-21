@@ -31,7 +31,7 @@ function Navigation(): ReactElement {
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <div className="flex items-center space-x-8">
             <Link to="/dashboard" className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-slate-900 rounded-sm flex items-center justify-center">

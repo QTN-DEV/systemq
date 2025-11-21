@@ -5,7 +5,7 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableRow } from '@tiptap/extension-table-row'
 import TextAlign from '@tiptap/extension-text-align'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useEffect, useCallback, useRef, type ReactElement } from 'react'
 
@@ -21,6 +21,8 @@ interface TipTapEditorProps {
   onSave?: (html: string) => void
   readOnly?: boolean
   className?: string
+  showToolbar?: boolean
+  onEditorReady?: (editor: Editor | null) => void
 }
 
 /**
@@ -33,6 +35,8 @@ export function TipTapEditor({
   onSave,
   readOnly = false,
   className = '',
+  showToolbar = true,
+  onEditorReady,
 }: TipTapEditorProps): ReactElement {
   // Debounce timer ref
   const debounceTimerRef = useRef<number | null>(null)
@@ -86,7 +90,8 @@ export function TipTapEditor({
     editable: !readOnly,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[200px] px-4 py-2',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[1248px] px-4 py-2',
+        'data-placeholder': 'Write here',
       },
     },
     onUpdate: ({ editor }) => {
@@ -105,6 +110,21 @@ export function TipTapEditor({
       }
     },
   })
+
+  // Notify parent when editor is ready (wait for view to be available)
+  useEffect((): (() => void) | void => {
+    if (editor && onEditorReady && editor.view) {
+      // Use a small delay to ensure the view is fully initialized
+      const timeoutId = setTimeout(() => {
+        if (editor && !editor.isDestroyed && editor.view) {
+          onEditorReady(editor)
+        }
+      }, 0)
+      return (): void => {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [editor, onEditorReady])
 
   // Update content when initialBlocks or initialHtml changes
   useEffect(() => {
@@ -136,15 +156,15 @@ export function TipTapEditor({
 
   if (!editor) {
     return (
-      <div className={`min-h-[200px] border border-gray-200 rounded p-4 ${className}`}>
+      <div className={`min-h-[200px] border-2 border-gray-300 p-4 ${className}`}>
         <p className="text-gray-500">Loading editor...</p>
       </div>
     )
   }
 
   return (
-    <div className={`tiptap-editor-wrapper border border-gray-200 rounded-lg overflow-hidden bg-white ${className}`}>
-      {!readOnly && <TipTapToolbar editor={editor} />}
+    <div className={`tiptap-editor-wrapper border-2 border-gray-300 overflow-hidden bg-white ${className}`}>
+      {!readOnly && showToolbar && <TipTapToolbar editor={editor} />}
       <EditorContent editor={editor} />
       <style>{`
         .tiptap-editor-wrapper .ProseMirror {

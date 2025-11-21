@@ -15,7 +15,7 @@ export function SidebarHeader({
   onToggleCollapse,
 }: SidebarHeaderProps): React.ReactElement {
   return (
-    <div className="h-16 px-4 border-b flex items-center justify-between">
+    <div className="h-20 px-4 border-b flex items-center justify-between">
       {!isCollapsed && (
         <div className="flex items-center space-x-2">
           <img src={logo} alt="Internal Ops" className="w-6 h-6 invert" />

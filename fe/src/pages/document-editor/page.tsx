@@ -1,7 +1,9 @@
 import { useState, type ReactElement } from 'react';
+import type { Editor } from '@tiptap/react';
 
 import EditHistorySidebar from '@/components/EditHistorySidebar';
 import ShareDocumentModal from '@/components/ShareDocumentModal';
+import { TipTapToolbar } from '@/components/modules/DocumentEditor/_components/TipTapToolbar';
 import { useAuthStore } from '@/stores/authStore';
 
 import { useTipTapEditor, useDocumentAccess, useDocumentHistory } from './_hooks';
@@ -10,6 +12,7 @@ import { EditorHeader, EditorContentTipTap, NotFoundSection } from './_sections'
 export default function DocumentEditorPage(): ReactElement {
   const getCurrentSession = useAuthStore((s) => s.getCurrentSession);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   // Custom hooks - Using TipTap editor
   const {
@@ -51,9 +54,17 @@ export default function DocumentEditorPage(): ReactElement {
               void openHistory();
             }}
             onCategoryChange={handleCategoryChange}
+            onNameChange={handleNameChange}
             showHistory={showHistory}
             showHistoryButton={showHistoryButton}
           />
+
+          {/* Toolbar */}
+          {canEdit && editor && (
+            <div className="w-full bg-white border-b border-gray-200">
+              <TipTapToolbar editor={editor} />
+            </div>
+          )}
 
           {/* Main Content */}
           <div className="flex flex-1 flex-col bg-gray-50 min-h-0 overflow-hidden">
@@ -63,13 +74,11 @@ export default function DocumentEditorPage(): ReactElement {
               }`}
             >
               <EditorContentTipTap
-                document={document}
-                fileName={fileName}
                 contentHtml={contentHtml}
                 initialBlocks={document?.content} // For migration: convert blocks if HTML missing
                 canEdit={canEdit}
-                onNameChange={handleNameChange}
                 onSave={handleSave}
+                onEditorReady={setEditor}
               />
             </div>
           </div>
