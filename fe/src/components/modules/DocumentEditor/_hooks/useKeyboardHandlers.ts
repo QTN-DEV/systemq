@@ -15,6 +15,12 @@ interface KeyboardHandlersParams {
   saveSelectionForBlock?: (blockId: string) => void
   savedSelectionRef?: RefObject<{ blockId: string; start: number; end: number; backward: boolean } | null>
   skipNextSelectionRestore?: RefObject<boolean>
+  commandMenuOpen?: boolean
+  openCommandMenu?: (blockId: string, element: HTMLElement) => void
+  closeCommandMenu?: () => void
+  navigateCommandMenu?: (direction: 'up' | 'down') => void
+  selectCommand?: () => void
+  changeBlockType?: (blockId: string, newType: DocumentBlock['type']) => void
 }
 
 export const useKeyboardHandlers = ({
@@ -25,10 +31,44 @@ export const useKeyboardHandlers = ({
   deleteBlock,
   setShowTypeMenu,
   skipNextSelectionRestore,
+  commandMenuOpen = false,
+  openCommandMenu,
+  closeCommandMenu,
+  navigateCommandMenu,
+  selectCommand,
+  changeBlockType,
 }: KeyboardHandlersParams) => {
   const handleKeyDown = (e: React.KeyboardEvent, blockId: string): void => {
+    // Handle Escape key to close command menu (works even if menu state is stale)
+    if (e.key === 'Escape' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      if (commandMenuOpen) {
+        e.preventDefault()
+        closeCommandMenu?.()
+        return
+      }
+    }
+
+    // Handle command menu navigation
+    if (commandMenuOpen) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        navigateCommandMenu?.('down')
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        navigateCommandMenu?.('up')
+        return
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        selectCommand?.()
+        return
+      }
+    }
+
     // Filter out modifier keys and other non-actionable keys
-    const modifierKeys = ['Control', 'Shift', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape']
+    const modifierKeys = ['Control', 'Shift', 'Alt', 'Meta', 'CapsLock', 'Tab']
     if (modifierKeys.includes(e.key)) {
       return
     }
@@ -159,6 +199,23 @@ export const useKeyboardHandlers = ({
       const offsets = host ? getSelectionOffsets(host) : null
       const caretAtStart = offsets ? offsets.start === 0 && offsets.end === 0 : false
 
+      // If block is empty and it's a formatted block (not paragraph), convert to paragraph
+      const formattedBlockTypes: DocumentBlock['type'][] = [
+        'heading1',
+        'heading2',
+        'heading3',
+        'bulleted-list',
+        'numbered-list',
+        'quote',
+        'code',
+      ]
+      
+      if (block.content === '' && formattedBlockTypes.includes(block.type) && changeBlockType) {
+        e.preventDefault()
+        changeBlockType(blockId, 'paragraph')
+        return
+      }
+
       if (block.content === '' && blocks.length > 1) {
         e.preventDefault()
         deleteBlock(blockId)
@@ -207,7 +264,14 @@ export const useKeyboardHandlers = ({
       }, 0)
     } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
       const block = blocks.find((b) => b.id === blockId)
-      if (block && block.content === '') {
+      const element = e.currentTarget as HTMLElement
+      if (block && openCommandMenu) {
+        // Only open command menu if block is completely empty
+        if (block.content === '') {
+          openCommandMenu(blockId, element)
+        }
+      } else if (block && block.content === '') {
+        // Fallback to old behavior if command menu not available
         e.preventDefault()
         setShowTypeMenu(blockId)
       }
