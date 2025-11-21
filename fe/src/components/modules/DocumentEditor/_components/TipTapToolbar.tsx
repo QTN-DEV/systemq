@@ -393,41 +393,41 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps): ReactElement | nu
 
                   {/* URL Input Option */}
                   <div>
-                    <input
-                      type="url"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleImageInsert()
-                        } else if (e.key === 'Escape') {
-                          setShowImageInput(false)
-                          setImageUrl('')
-                        }
-                      }}
-                      placeholder="Enter image URL"
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        onClick={handleImageInsert}
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleImageInsert()
+                  } else if (e.key === 'Escape') {
+                    setShowImageInput(false)
+                    setImageUrl('')
+                  }
+                }}
+                placeholder="Enter image URL"
+                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={handleImageInsert}
                         disabled={!imageUrl.trim()}
                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Insert
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowImageInput(false)
-                          setImageUrl('')
-                        }}
-                        className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
-                      >
-                        Cancel
-                      </button>
-                    </div>
+                >
+                  Insert
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImageInput(false)
+                    setImageUrl('')
+                  }}
+                  className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
                   </div>
                 </>
               )}

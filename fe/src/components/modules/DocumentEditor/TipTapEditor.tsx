@@ -49,9 +49,13 @@ export function TipTapEditor({
 
   // Convert blocks to HTML if provided (for migration)
   const getInitialContent = useCallback((): string => {
-    // Prefer HTML if available
-    if (initialHtml && initialHtml.trim() !== '' && initialHtml !== '<p></p>') {
-      return initialHtml
+    // Prefer HTML if available and not empty
+    if (initialHtml) {
+      const trimmed = initialHtml.trim()
+      // Only treat as empty if it's truly empty or just an empty paragraph
+      if (trimmed !== '' && trimmed !== '<p></p>' && trimmed !== '<p> </p>') {
+        return initialHtml
+      }
     }
     // Fallback to converting blocks if HTML is missing (migration path)
     if (initialBlocks && initialBlocks.length > 0) {
@@ -247,18 +251,50 @@ export function TipTapEditor({
     }
   }, [editor, onEditorReady])
 
+  // Track previous initialHtml to detect when content loads
+  const prevInitialHtmlRef = useRef<string | undefined>(initialHtml)
+  
   // Update content when initialBlocks or initialHtml changes
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       const newContent = getInitialContent()
       const currentContent = editor.getHTML()
       
-      // Only update if content actually changed
-      if (newContent !== currentContent) {
+      // Normalize both contents for comparison (remove whitespace differences)
+      const normalizeHtml = (html: string): string => {
+        return html.replace(/\s+/g, ' ').trim()
+      }
+      
+      const normalizedNew = normalizeHtml(newContent)
+      const normalizedCurrent = normalizeHtml(currentContent)
+      
+      // Detect if initialHtml changed from empty/undefined to having content
+      const initialHtmlChanged = prevInitialHtmlRef.current !== initialHtml
+      const wasEmpty = 
+        !prevInitialHtmlRef.current || 
+        prevInitialHtmlRef.current === '' || 
+        prevInitialHtmlRef.current === '<p></p>' ||
+        prevInitialHtmlRef.current.trim() === ''
+      const nowHasContent = 
+        initialHtml && 
+        initialHtml.trim() !== '' && 
+        initialHtml !== '<p></p>'
+      const initialHtmlLoaded = initialHtmlChanged && wasEmpty && nowHasContent
+      
+      // Always update if initialHtml just loaded with content
+      // Otherwise, update if content actually changed
+      const shouldUpdate = 
+        initialHtmlLoaded ?? 
+        (normalizedNew !== normalizedCurrent && normalizedNew !== '<p></p>')
+      
+      if (shouldUpdate) {
         editor.commands.setContent(newContent, { emitUpdate: false })
       }
+      
+      // Update ref
+      prevInitialHtmlRef.current = initialHtml
     }
-  }, [editor, getInitialContent])
+  }, [editor, initialHtml, initialBlocks, getInitialContent])
 
   // Cleanup on unmount
   useEffect((): (() => void) => {
