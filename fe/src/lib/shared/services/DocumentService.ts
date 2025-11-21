@@ -45,6 +45,7 @@ interface ApiDocumentItem {
   item_count: number;
   path: string[];
   content: DocumentBlock[];
+  content_html: string | null;
   last_modified_by?: {
     id: string;
     name: string;
@@ -63,7 +64,9 @@ interface ApiDocumentItem {
 
 // Transform API response to match our internal type
 function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
+  console.log({apiDoc})
   return {
+    contentHtml: apiDoc.content_html ?? undefined,
     id: apiDoc.id,
     name: apiDoc.name,
     type: apiDoc.type as "folder" | "file",

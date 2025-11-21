@@ -96,7 +96,7 @@ export function useTipTapEditor(): {
             logger.error('Failed to commit document changes:', error);
           }
         }
-      }, 10000); // 10s idle commit window
+      }, 1000); // 1s idle commit window
       setIdleCommitTimer(tid);
     },
     [idleCommitTimer, fileId, document, documentCategory]
