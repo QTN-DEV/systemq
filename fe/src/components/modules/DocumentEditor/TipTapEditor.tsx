@@ -5,6 +5,8 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableRow } from '@tiptap/extension-table-row'
 import TextAlign from '@tiptap/extension-text-align'
+import type { Slice } from '@tiptap/pm/model'
+import type { EditorView } from '@tiptap/pm/view'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useEffect, useCallback, useRef, useState, type ReactElement } from 'react'
@@ -58,9 +60,9 @@ export function TipTapEditor({
     return '<p></p>'
   }, [initialBlocks, initialHtml])
 
-  // Handle file drop
-  const handleDrop = useCallback(
-    async (view: any, event: DragEvent, slice: any, moved: boolean): Promise<boolean> => {
+  // Handle file drop in editor
+  const handleEditorDrop = useCallback(
+    (view: EditorView, event: DragEvent, _slice: Slice, moved: boolean): boolean => {
       if (readOnly || moved) {
         return false
       }
@@ -88,66 +90,41 @@ export function TipTapEditor({
         return false
       }
 
-      // Upload and insert each image
-      for (const file of imageFiles) {
-        try {
-          setIsDragging(true)
-          const uploadResult = await uploadImage(file)
-          const imageUrl = getFileUrl(uploadResult.url)
+            // Upload and insert each image asynchronously
+            for (const file of imageFiles) {
+              void (async (): Promise<void> => {
+          try {
+            setIsDragging(true)
+            const uploadResult = await uploadImage(file)
+            const imageUrl = getFileUrl(uploadResult.url)
 
-          // Insert image at the drop position
-          const { tr } = view.state
-          const imageNode = view.state.schema.nodes.image.create({
-            src: imageUrl,
-          })
-          tr.insert(coordinates.pos, imageNode)
-          view.dispatch(tr)
-        } catch (error) {
-          logger.error('Failed to upload dropped image:', error)
-          void Swal.fire({
-            toast: true,
-            icon: 'error',
-            title: 'Failed to upload image. Please try again.',
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 4000,
-          })
-        } finally {
-          setIsDragging(false)
-        }
+            // Insert image at the drop position
+            const { tr } = view.state
+            const imageNode = view.state.schema.nodes.image.create({
+              src: imageUrl,
+            })
+            tr.insert(coordinates.pos, imageNode)
+            view.dispatch(tr)
+          } catch (error) {
+            logger.error('Failed to upload dropped image:', error)
+            void Swal.fire({
+              toast: true,
+              icon: 'error',
+              title: 'Failed to upload image. Please try again.',
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 4000,
+            })
+          } finally {
+            setIsDragging(false)
+          }
+        })()
       }
 
       return true
     },
     [readOnly],
   )
-
-  // Handle drag over
-  const handleDragOver = useCallback(
-    (view: any, event: DragEvent): boolean => {
-      if (readOnly) {
-        return false
-      }
-
-      const files = event.dataTransfer?.files
-      if (files && files.length > 0) {
-        const hasImages = Array.from(files).some((file) => file.type.startsWith('image/'))
-        if (hasImages) {
-          event.preventDefault()
-          setIsDragging(true)
-          return true
-        }
-      }
-
-      return false
-    },
-    [readOnly],
-  )
-
-  // Handle drag leave
-  const handleDragLeave = useCallback((): void => {
-    setIsDragging(false)
-  }, [])
 
   const editor = useEditor({
     extensions: [
@@ -188,8 +165,8 @@ export function TipTapEditor({
         class: `prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[1248px] px-4 py-2 ${isDragging ? 'bg-blue-50' : ''}`,
         'data-placeholder': 'Write here',
       },
-      handleDrop,
-      handlePaste: (view, event, slice) => {
+      handleDrop: handleEditorDrop,
+      handlePaste: (view: EditorView, event: ClipboardEvent, _slice: Slice): boolean => {
         // Handle paste for images
         if (readOnly) {
           return false
@@ -206,7 +183,7 @@ export function TipTapEditor({
             event.preventDefault()
             const file = item.getAsFile()
             if (file) {
-              void (async () => {
+              void (async (): Promise<void> => {
                 try {
                   const uploadResult = await uploadImage(file)
                   const imageUrl = getFileUrl(uploadResult.url)
@@ -227,7 +204,9 @@ export function TipTapEditor({
                     timer: 4000,
                   })
                 }
-              })()
+              })().catch((error) => {
+                logger.error('Error in paste handler:', error)
+              })
             }
             return true
           }
@@ -319,8 +298,10 @@ export function TipTapEditor({
           setIsDragging(false)
         }
       }}
-      onDrop={(e) => {
+      onDrop={() => {
         setIsDragging(false)
+        // Let TipTap handle the drop if it's within the editor content
+        // The handleEditorDrop will process it
       }}
     >
       {!readOnly && showToolbar && <TipTapToolbar editor={editor} />}
