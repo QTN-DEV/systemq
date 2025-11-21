@@ -6,7 +6,7 @@ import {
     Home,
     Check
   } from 'lucide-react'
-  import { useState, useEffect, useMemo, type ReactElement, KeyboardEvent } from 'react'
+  import { useState, useEffect, useMemo, type ReactElement, type KeyboardEvent } from 'react'
   import Swal from 'sweetalert2'
   
   import {
