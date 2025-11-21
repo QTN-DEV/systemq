@@ -65,16 +65,24 @@ export function useDocumentEditor() {
       if (idleCommitTimer) {
         window.clearTimeout(idleCommitTimer);
       }
-      const tid = window.setTimeout(() => {
+      const tid = window.setTimeout(async () => {
         if (fileId && document && !isBlocksEqual(document.content, blocksForCommit)) {
-          void updateDocumentContent(
-            fileId,
-            {
-              category: documentCategory ? documentCategory : null,
-              content: blocksForCommit,
-            },
-            { commit: true }
-          );
+          try {
+            const updatedDoc = await updateDocumentContent(
+              fileId,
+              {
+                category: documentCategory ? documentCategory : null,
+                content: blocksForCommit,
+              },
+              { commit: true }
+            );
+            // Update document state with latest timestamp after autosave
+            if (updatedDoc) {
+              setDocument(updatedDoc);
+            }
+          } catch (error) {
+            logger.error('Failed to commit document changes:', error);
+          }
         }
       }, 10000); // 10s idle commit window
       setIdleCommitTimer(tid);

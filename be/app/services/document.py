@@ -168,8 +168,20 @@ async def get_documents_by_parent(
         user_id=user_id,
     )
 
+    # Check if user is admin for special handling
+    is_admin = False
+    if user_id:
+        user = await User.find_one(User.employee_id == user_id)
+        if user and user.is_active:
+            from app.services.document_permission import _is_admin
+            is_admin = _is_admin(user)
+
     # Base query: children of the requested parent (or root children)
-    if parent_id is None:
+    # For System Administrators viewing root, return ALL documents globally
+    if parent_id is None and is_admin:
+        query = DocumentItem.find(ACTIVE_DOCUMENT)
+        log_debug(logger, "admin root view: fetching all documents globally", user_id=user_id)
+    elif parent_id is None:
         query = DocumentItem.find(
             DocumentItem.parent_id == None,  # noqa: E711
             ACTIVE_DOCUMENT,
@@ -191,15 +203,20 @@ async def get_documents_by_parent(
             has_ancestor_folder_access,
         )
 
-        filtered: list[DocumentItem] = []
-        for document in documents:
-            if await check_document_access(document.document_id, user_id, "viewer"):
-                filtered.append(document)
-        log_debug(logger, "filtered accessible documents", original=len(documents), accessible=len(filtered), user_id=user_id)
-        documents = filtered
+        # For admins, skip access filtering as they have access to all documents
+        if not is_admin:
+            filtered: list[DocumentItem] = []
+            for document in documents:
+                if await check_document_access(document.document_id, user_id, "viewer"):
+                    filtered.append(document)
+            log_debug(logger, "filtered accessible documents", original=len(documents), accessible=len(filtered), user_id=user_id)
+            documents = filtered
+        else:
+            log_debug(logger, "admin user: skipping access filter, showing all documents", user_id=user_id)
 
-        # === Virtual root injection (hanya saat root listing) ===
-        if parent_id is None:
+        # === Virtual root injection (hanya saat root listing dan bukan admin) ===
+        # Admins already see all documents, so skip virtual injection
+        if parent_id is None and not is_admin:
             user = await User.find_one(User.employee_id == user_id)
             if user and user.is_active:
                 virtuals: list[DocumentItem] = []

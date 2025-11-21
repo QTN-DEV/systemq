@@ -116,6 +116,13 @@ async def search_documents(
 
     user = UserProfile.model_validate(profile_payload)
 
+    # Check if user is admin for optimization
+    from app.models.user import User
+    from app.services.document_permission import _is_admin
+    
+    db_user = await User.find_one(User.employee_id == user.id)
+    is_admin = db_user and db_user.is_active and _is_admin(db_user)
+
     # Validate type filter
     allowed_types = {"file", "folder"}
     type_filter: list[str] | None = None
@@ -139,15 +146,20 @@ async def search_documents(
     candidates = await DocumentItem.find(base_query).to_list()
 
     accessible: list[dict[str, Any]] = []
-    for doc in candidates:
-        try:
-            # viewer access (direct or inherited, assuming your check does inherited)
-            if await check_document_access(doc.document_id, user.id, "viewer"):
-                # service ensures content normalization + shape
-                accessible.append(document_service._serialize_document(doc))  # type: ignore[attr-defined]
-        except Exception:
-            # silently skip inaccessible/broken docs (consistent with listing semantics)
-            continue
+    # For admins, skip access filtering as they have access to all documents
+    if is_admin:
+        log_debug(logger, "admin user: skipping access filter in search, showing all matching documents", user_id=user.id)
+        accessible = [document_service._serialize_document(doc) for doc in candidates]  # type: ignore[attr-defined]
+    else:
+        for doc in candidates:
+            try:
+                # viewer access (direct or inherited, assuming your check does inherited)
+                if await check_document_access(doc.document_id, user.id, "viewer"):
+                    # service ensures content normalization + shape
+                    accessible.append(document_service._serialize_document(doc))  # type: ignore[attr-defined]
+            except Exception:
+                # silently skip inaccessible/broken docs (consistent with listing semantics)
+                continue
 
     # Sort newest modified first (fallbacks if missing)
     def _sort_key(d: dict[str, Any]):

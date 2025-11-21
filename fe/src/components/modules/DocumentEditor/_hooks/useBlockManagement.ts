@@ -68,7 +68,20 @@ export const useBlockManagement = (
   }
 
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
-    setBlocks(blocks.map((block) => (block.id === id ? { ...block, ...updates } : block)))
+    // eslint-disable-next-line no-console
+    console.log('[updateBlockInternal] Called for block:', id, 'Updates:', { ...updates, content: updates.content?.substring(0, 100) })
+    const currentBlock = blocks.find((b) => b.id === id)
+    // eslint-disable-next-line no-console
+    console.log('[updateBlockInternal] Current block content:', currentBlock?.content?.substring(0, 100))
+    const newBlocks = blocks.map((block) => (block.id === id ? { ...block, ...updates } : block))
+    const updatedBlock = newBlocks.find((b) => b.id === id)
+    // eslint-disable-next-line no-console
+    console.log('[updateBlockInternal] New block content:', updatedBlock?.content?.substring(0, 100), 'Contains <br>:', updatedBlock?.content?.includes('<br>'))
+    // eslint-disable-next-line no-console
+    console.log('[updateBlockInternal] Calling setBlocks with', newBlocks.length, 'blocks')
+    setBlocks(newBlocks)
+    // eslint-disable-next-line no-console
+    console.log('[updateBlockInternal] setBlocks called')
   }
 
   const deleteBlock = (id: string): void => {

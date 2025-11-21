@@ -34,7 +34,7 @@ export function DocumentsFileCard({
       className="relative cursor-pointer hover:shadow-md transition-shadow"
       onClick={onOpen}
     >
-      <CardContent className="p-4 pb-0">
+      <CardContent>
         <div className="relative">
           <div className="flex items-center space-x-2">
             <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
@@ -68,7 +68,7 @@ export function DocumentsFileCard({
         </div>
       </CardContent>
 
-      <CardContent className="p-4 pt-2">
+      <CardContent>
         <div className="text-sm font-semibold line-clamp-2 mb-1">
           {item.name}
         </div>

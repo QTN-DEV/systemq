@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -44,8 +45,8 @@ export function useDocumentsData() {
 
   // Fetch breadcrumbs
   const { data: breadcrumbs = [] } = useQuery({
-    queryKey: ["breadcrumbs", currentFolderId],
-    queryFn: () => buildBreadcrumbs(currentFolderId ?? null),
+    queryKey: ["breadcrumbs", currentFolderId, isSharedView],
+    queryFn: () => buildBreadcrumbs(currentFolderId ?? null, isSharedView),
   });
 
   // Fetch folder access
@@ -58,14 +59,40 @@ export function useDocumentsData() {
 
   const canEditFolder = folderAccess?.can_edit ?? false;
 
+  // Check if user is System Administrator
+  // Check both position and role fields, with case-insensitive matching for level
+  const isSystemAdmin = Boolean(
+    currentUser &&
+    (currentUser.position === "Admin" ||
+      currentUser.role === "admin" ||
+      (typeof currentUser.level === "string" &&
+        ["admin", "administrator", "superadmin", "principal"].includes(
+          currentUser.level.toLowerCase()
+        )))
+  );
+
   // Filter items based on view (My vs Shared)
-  const displayItems = currentItems.filter((item: DocumentItem) => {
-    if (!currentUser) return true;
+  // System Administrators see all documents globally in "My Documents" view
+  const displayItems = useMemo(() => {
+    if (!currentUser) return currentItems;
+    
+    // System Administrators see all documents in "My Documents" view
+    if (!isSharedView && isSystemAdmin) {
+      return currentItems; // Show all documents for System Admin in "My Documents"
+    }
+    
     const myId = currentUser.id;
-    return isSharedView
-      ? item.ownedBy?.id !== myId
-      : item.ownedBy?.id === myId;
-  });
+    
+    return currentItems.filter((item: DocumentItem) => {
+      if (isSharedView) {
+        // Shared view: show items not owned by current user
+        return item.ownedBy?.id !== myId;
+      } else {
+        // My Documents view: show only documents owned by current user
+        return item.ownedBy?.id === myId;
+      }
+    });
+  }, [currentItems, currentUser, isSharedView, isSystemAdmin]);
 
   return {
     currentFolderId,

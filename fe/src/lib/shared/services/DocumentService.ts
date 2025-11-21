@@ -213,10 +213,11 @@ export async function getFolderPathIds(
 
 // Updated async version of buildBreadcrumbs
 export async function buildBreadcrumbs(
-  currentFolderId: string | null
+  currentFolderId: string | null,
+  isSharedView = false
 ): Promise<{ id: string; name: string; path: string[] }[]> {
   const breadcrumbs: { id: string; name: string; path: string[] }[] = [
-    { id: "root", name: "Documents", path: [] },
+    { id: "root", name: isSharedView ? "Shared with Me" : "Documents", path: [] },
   ];
   if (!currentFolderId) return breadcrumbs;
 

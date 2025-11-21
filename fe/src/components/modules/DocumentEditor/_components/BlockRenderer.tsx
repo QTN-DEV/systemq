@@ -92,10 +92,16 @@ export const BlockRenderer = ({
     },
     onInput: (e: React.FormEvent<HTMLDivElement>): void => {
       const html = (e.currentTarget as HTMLDivElement).innerHTML
+      // eslint-disable-next-line no-console
+      console.log('[onInput] Event fired for block:', block.id, 'HTML length:', html.length, 'Contains <br>:', html.includes('<br>'))
       prevContentRef.current[block.id] = html
       normalizeAnchors(e.currentTarget as HTMLDivElement)
+      // eslint-disable-next-line no-console
+      console.log('[onInput] Calling updateBlock for block:', block.id)
       updateBlock(block.id, { content: (e.currentTarget as HTMLDivElement).innerHTML })
       handleCommandDetection(block.id, html)
+      // eslint-disable-next-line no-console
+      console.log('[onInput] updateBlock called, new content:', (e.currentTarget as HTMLDivElement).innerHTML.substring(0, 100))
     },
     onPaste: (e: React.ClipboardEvent): void => handlePaste(e, block.id),
   }

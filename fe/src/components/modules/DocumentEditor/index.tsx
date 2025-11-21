@@ -79,6 +79,8 @@ function DocumentEditorModular({
    * Preserves cursor position during content updates
    */
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
+    // eslint-disable-next-line no-console
+    console.log('[updateBlock] Called for block:', id, 'Updates:', { ...updates, content: updates.content?.substring(0, 100) })
     const el = blockRefs.current[id] || null
     const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
     
@@ -86,10 +88,16 @@ function DocumentEditorModular({
       const offsets = getSelectionOffsets(el as HTMLElement)
       if (offsets) {
         savedSelectionRef.current = { blockId: id, ...offsets }
+        // eslint-disable-next-line no-console
+        console.log('[updateBlock] Saved selection offsets:', offsets)
       }
     }
     
+    // eslint-disable-next-line no-console
+    console.log('[updateBlock] Calling updateBlockInternal')
     updateBlockInternal(id, updates)
+    // eslint-disable-next-line no-console
+    console.log('[updateBlock] updateBlockInternal returned')
   }
 
   /**
