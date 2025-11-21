@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { ReactElement, KeyboardEvent } from 'react'
 
 interface LinkDialogProps {
   text: string
@@ -18,7 +18,18 @@ export const LinkDialog = ({
   onCancel,
 }: LinkDialogProps): ReactElement => (
   <div className="fixed inset-0 z-40 flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/30" onClick={onCancel} />
+    <div
+      className="absolute inset-0 bg-black/30"
+      onClick={onCancel}
+      onKeyDown={(e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onCancel();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label="Close dialog"
+    />
     <div className="relative bg-white w-96 max-w-[95vw] border border-gray-200 rounded-lg shadow-xl p-4 z-50">
       <div className="mb-3">
         <div className="text-sm font-medium text-gray-700 mb-1">Text</div>

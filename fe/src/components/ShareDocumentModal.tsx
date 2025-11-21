@@ -415,7 +415,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
                         <div className="flex items-center space-x-2">
                           <select
                             value={permission.permission}
-                            onChange={(e) => handlePermissionChange('user', permission.user_id, e.target.value as PermissionLevel)}
+                            onChange={(e) => { void handlePermissionChange('user', permission.user_id, e.target.value as PermissionLevel); }}
                             disabled={hasHigherAncestorPermission && permission.permission === 'viewer'}
                             className={`text-sm border border-gray-300 rounded px-2 py-1 ${
                               hasHigherAncestorPermission && permission.permission === 'viewer' 
@@ -464,7 +464,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
                       <div className="flex items-center space-x-2">
                         <select
                           value={permission.permission}
-                          onChange={(e) => handlePermissionChange('division', permission.division, e.target.value as PermissionLevel)}
+                          onChange={(e) => { void handlePermissionChange('division', permission.division, e.target.value as PermissionLevel); }}
                           className="text-sm border border-gray-300 rounded px-2 py-1"
                         >
                           <option value="viewer">Viewer</option>
