@@ -119,7 +119,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
       const success = await addUserPermission(documentId, {
         user_id: user.id,
         user_name: user.name,
-        user_email: user.email || '',
+        user_email: user.email ?? '',
         permission: 'viewer'
       })
 
@@ -129,7 +129,7 @@ function ShareDocumentModal({ isOpen, onClose, documentId, documentName }: Share
           user_permissions: [...prev.user_permissions, {
             user_id: user.id,
             user_name: user.name,
-            user_email: user.email || '',
+            user_email: user.email ?? '',
             permission: 'viewer'
           }]
         }))
