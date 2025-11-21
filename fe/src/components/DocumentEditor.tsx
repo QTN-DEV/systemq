@@ -338,8 +338,8 @@ function DocumentEditor({
     savedSelectionRef.current = { blockId, ...offsets }
   }
 
-  const createAnchorHTML = (href: string, text?: string) =>
-    `<a href="${href}" target="_blank" rel="noopener noreferrer" contenteditable="false" class="inline-editor-link" data-inline-link="1">${text || href}</a>`
+  const createAnchorHTML = (href: string, text?: string): string =>
+    `<a href="${href}" target="_blank" rel="noopener noreferrer" contenteditable="false" class="inline-editor-link" data-inline-link="1">${text ?? href}</a>`
 
   // Normalize <a> di dalam editor agar atribut lengkap
   const normalizeAnchors = (el: HTMLElement): void => {
@@ -371,7 +371,7 @@ function DocumentEditor({
   }, [blocks, onSave])
 
   /** ---------- Outside click + Esc ---------- */
-  useEffect(() => {
+  useEffect((): (() => void) | void => {
     const onDocMouseDown = (e: MouseEvent): void => {
       const t = e.target as Node
       if (showGripMenu && !gripMenuRef.current?.contains(t)) setShowGripMenu(null)
@@ -454,7 +454,7 @@ function DocumentEditor({
   }, [blocks])
 
   /** ---------- Selection end guard ---------- */
-  useEffect(() => {
+  useEffect((): (() => void) | void => {
     const handleUp = (): void => { isSelectingRef.current = false }
     document.addEventListener('mouseup', handleUp)
     return () => { document.removeEventListener('mouseup', handleUp) }
@@ -515,7 +515,7 @@ function DocumentEditor({
   }
 
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
-    const el = blockRefs.current[id] || null
+    const el = blockRefs.current[id] ?? null
     const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
     if (isContentUpdate && el && document.activeElement === el && (el).isContentEditable) {
       const offsets = getSelectionOffsets(el)
@@ -989,7 +989,7 @@ function DocumentEditor({
   }
 
   /** ---------- Link hover toolbar ---------- */
-  useEffect(() => {
+  useEffect((): (() => void) | void => {
     if (readOnly) return
     const onMouseOver = (e: MouseEvent): void => {
       const t = e.target as HTMLElement
@@ -997,7 +997,7 @@ function DocumentEditor({
       if (!anchor) return
       const host = anchor.closest('.ce-editable')
       if (!host) return
-      const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
+      const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) ?? null
       if (!blockId) return
       const rect = anchor.getBoundingClientRect()
       setLinkToolbarPos({ x: rect.left + rect.width / 2, y: rect.bottom + 6 })
@@ -1025,7 +1025,7 @@ function DocumentEditor({
     const blockId = linkToolbarBlockId
     const el = blockRefs.current[blockId]
     if (!el) { setShowLinkToolbar(false); return }
-    const text = linkEditAnchor.textContent || ''
+    const text = linkEditAnchor.textContent ?? ''
     const span = document.createElement('span')
     span.textContent = text
     linkEditAnchor.replaceWith(span)
@@ -1645,7 +1645,7 @@ function DocumentEditor({
   }
 
   // Sinkronisasi toolbar text
-  useEffect(() => {
+  useEffect((): (() => void) | void => {
     if (readOnly) return
     const onSelectionChange = (): void => {
       const sel = window.getSelection()
@@ -1665,7 +1665,7 @@ function DocumentEditor({
         setToolbarBlockId(null)
         return
       }
-      const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null
+      const blockId = Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) ?? null
       if (!blockId) {
         setShowTextToolbar(false)
         setToolbarBlockId(null)
@@ -1927,8 +1927,8 @@ function DocumentEditor({
               setShowLinkToolbar(false)
               setShowLinkDialog(true)
               setLinkDialogBlockId(linkToolbarBlockId)
-              setLinkDialogText(linkEditAnchor.textContent || '')
-              setLinkDialogUrl(linkEditAnchor.getAttribute('href') || '')
+              setLinkDialogText(linkEditAnchor.textContent ?? '')
+              setLinkDialogUrl(linkEditAnchor.getAttribute('href') ?? '')
             }}
           >
             <LinkIcon className="w-4 h-4" />
