@@ -67,12 +67,29 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
 
 /**
  * Get the full URL for a file
- * @param relativePath - The relative path returned from upload API
- * @returns Full URL to the file
+ * @param relativePath - The relative path or full URL returned from upload API
+ * @returns Full URL to the file using the bucket domain
  */
 export function getFileUrl(relativePath: string): string {
+  // If already a full URL, normalize it to use the configured bucket domain
   if (relativePath.startsWith('http')) {
-    return relativePath
+    try {
+      const url = new URL(relativePath)
+      const protocol = config.bucketUseSSL ? 'https' : 'http'
+      // If the URL already uses the bucket domain, return as-is
+      if (url.hostname === config.bucketDomain) {
+        return relativePath
+      }
+      // Otherwise, normalize to use the bucket domain
+      return `${protocol}://${config.bucketDomain}${url.pathname}${url.search}${url.hash}`
+    } catch {
+      // If URL parsing fails, return as-is
+      return relativePath
+    }
   }
-  return `${config.apiBaseUrl}${relativePath}`
+  // For relative paths, construct URL using bucket domain
+  const protocol = config.bucketUseSSL ? 'https' : 'http'
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath
+  return `${protocol}://${config.bucketDomain}/${cleanPath}`
 }
