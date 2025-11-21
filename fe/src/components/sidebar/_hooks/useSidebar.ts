@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-export function useSidebar() {
+export function useSidebar(): {
+  isCollapsed: boolean
+  docsOpen: boolean
+  location: ReturnType<typeof useLocation>
+  toggleCollapse: () => void
+  toggleDocsOpen: () => void
+} {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
   const location = useLocation();
@@ -14,11 +20,11 @@ export function useSidebar() {
     setDocsOpen(underDocs);
   }, [location.pathname]);
 
-  const toggleCollapse = () => {
+  const toggleCollapse = (): void => {
     setIsCollapsed((prev) => !prev);
   };
 
-  const toggleDocsOpen = () => {
+  const toggleDocsOpen = (): void => {
     setDocsOpen((prev) => !prev);
   };
 

@@ -17,7 +17,7 @@ export function SidebarUser({
   initials,
   avatarUrl,
   roleColor,
-}: SidebarUserProps) {
+}: SidebarUserProps): React.ReactElement {
   const colorClass = cn(
     roleColor === "red" && "bg-red-500",
     roleColor === "pink" && "bg-pink-500",
@@ -31,7 +31,7 @@ export function SidebarUser({
       <div className="p-2 border-b flex justify-center">
         <Avatar className="w-8 h-8">
           <AvatarImage
-            src={avatarUrl || undefined}
+            src={avatarUrl ?? undefined}
             alt={displayName}
             referrerPolicy="no-referrer"
           />
@@ -46,7 +46,7 @@ export function SidebarUser({
       <div className="flex items-center space-x-3">
         <Avatar className="w-8 h-8">
           <AvatarImage
-            src={avatarUrl || undefined}
+            src={avatarUrl ?? undefined}
             alt={displayName}
             referrerPolicy="no-referrer"
           />

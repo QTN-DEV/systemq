@@ -13,7 +13,7 @@ interface SidebarHeaderProps {
 export function SidebarHeader({
   isCollapsed,
   onToggleCollapse,
-}: SidebarHeaderProps) {
+}: SidebarHeaderProps): React.ReactElement {
   return (
     <div className="p-4 border-b flex items-center justify-between">
       {!isCollapsed && (

@@ -9,7 +9,7 @@ interface SidebarFooterProps {
   onLogout: () => void;
 }
 
-export function SidebarFooter({ isCollapsed, onLogout }: SidebarFooterProps) {
+export function SidebarFooter({ isCollapsed, onLogout }: SidebarFooterProps): React.ReactElement {
   return (
     <div className="p-2 border-t space-y-1">
       <Button
