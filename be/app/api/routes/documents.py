@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from app.logging_utils import get_logger, log_debug, log_info, log_warning
+from app.models.document import DocumentItem  # NEW
 from app.schemas import (
     DistinctValuesResponse,
     DocumentBreadcrumbSchema,
@@ -27,7 +28,6 @@ from app.services.document_permission import (
     check_document_access,
     get_document_access_summary,
 )
-from app.models.document import DocumentItem  # NEW
 
 _ALLOWED_OWNER_ROLES = {"admin", "manager", "employee", "secretary"}
 
@@ -373,7 +373,6 @@ async def get_edit_history(document_id: str, authorization: str = Header(alias="
     user = UserProfile.model_validate(profile_payload)
 
     # owner or editor access
-    from app.services.document_permission import has_direct_document_access, has_ancestor_folder_access
     is_owner = False
     try:
         doc = await document_service.get_document_by_id(document_id)
@@ -400,7 +399,7 @@ async def delete_document(
     document_id: str,
     authorization: str = Header(alias="Authorization"),
 ) -> MessageResponse:
-    # Only owner can delete (no inherited/editor rights)
+    # Owner or System Admin can delete
     try:
         token = auth_service.parse_bearer_token(authorization)
         profile_payload = await auth_service.get_user_profile_from_token(token)
@@ -411,14 +410,27 @@ async def delete_document(
 
     user = UserProfile.model_validate(profile_payload)
 
-    # Load document to verify ownership
+    # Load document to verify ownership or admin status
     try:
         document = await document_service.get_document_by_id(document_id)
     except DocumentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
-    if document.owned_by.id != user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owner can delete this item")
+    # Check if user is owner
+    is_owner = document.owned_by.id == user.id
+    
+    # Check if user is System Admin
+    from app.models.user import User
+    from app.services.document_permission import _is_admin
+    
+    db_user = await User.find_one(User.employee_id == user.id)
+    is_admin = db_user and db_user.is_active and _is_admin(db_user)
+
+    if not (is_owner or is_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only owner or System Admin can delete this item",
+        )
 
     try:
         await document_service.delete_document(document_id)
