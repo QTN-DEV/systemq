@@ -63,6 +63,7 @@ def _serialize_document(document: DocumentItem) -> dict[str, Any]:
         "shared": document.shared,
         "share_url": document.share_url,
         "content": document.content if document.content is not None else [],
+        "content_html": document.content_html,
         "user_permissions": [perm.model_dump() for perm in document.user_permissions],
         "division_permissions": [perm.model_dump() for perm in document.division_permissions],
     }
@@ -494,6 +495,11 @@ async def update_document(
         new_content = payload["content"] if payload["content"] is not None else []
         changes["content"] = {"old": document.content, "new": new_content}
         document.content = new_content
+
+    if "content_html" in payload and payload["content_html"] != document.content_html:
+        new_content_html = payload["content_html"] if payload["content_html"] is not None else None
+        changes["content_html"] = {"old": document.content_html, "new": new_content_html}
+        document.content_html = new_content_html
 
     if "parent_id" in payload and payload["parent_id"] != document.parent_id:
         new_parent_id = payload["parent_id"]

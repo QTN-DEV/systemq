@@ -73,7 +73,8 @@ export interface DocumentItem {
   path: string[] // Array of folder names representing the path
   shared?: boolean
   shareUrl?: string
-  content?: DocumentBlock[] // Document content as structured blocks
+  content?: DocumentBlock[] // Document content as structured blocks (legacy)
+  contentHtml?: string | null // Document content as HTML (TipTap)
   userPermissions?: import('./document-permissions').DocumentPermission[] // Individual user permissions
   divisionPermissions?: import('./document-permissions').DivisionPermission[] // Division-level permissions
 }

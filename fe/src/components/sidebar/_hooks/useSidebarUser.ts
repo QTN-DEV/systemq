@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 
+import type { AuthenticatedUser } from "@/lib/shared/services/authService";
 import { useAuthStore } from "@/stores/authStore";
 
 import { getAvatarUrl } from "../../Avatar";
 
 export function useSidebarUser(): {
-  user: ReturnType<typeof useAuthStore>['user']
+  user: AuthenticatedUser | null
   userRole: string
   userTitle: string
   displayName: string

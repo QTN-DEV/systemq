@@ -124,7 +124,8 @@ class DocumentItem(Document):
     path: list[str] = Field(default_factory=list)
     shared: bool = False
     share_url: str | None = None
-    content: list[DocumentBlock] | None = Field(default_factory=list)
+    content: list[DocumentBlock] | None = Field(default_factory=list)  # Legacy block-based format
+    content_html: str | None = None  # New HTML-based format (TipTap)
     is_deleted: bool = False
     deleted_at: datetime | None = None
     created_at: datetime = Field(default_factory=_utcnow)
