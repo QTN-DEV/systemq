@@ -88,7 +88,7 @@ export function EmployeeFormSheet({
   mode,
   initialValues,
   onSubmit,
-}: EmployeeFormSheetProps) {
+}: EmployeeFormSheetProps): React.ReactElement {
   const [formValues, setFormValues] = useState<EmployeeFormValues>(DEFAULT_VALUES);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -116,7 +116,7 @@ export function EmployeeFormSheet({
     [formValues.level]
   );
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     setIsSubmitting(true);
     try {
@@ -129,7 +129,7 @@ export function EmployeeFormSheet({
     }
   };
 
-  const handleChange = (field: keyof EmployeeFormValues, value: string) => {
+  const handleChange = (field: keyof EmployeeFormValues, value: string): void => {
     setFormValues((prev) => ({
       ...prev,
       [field]: value,

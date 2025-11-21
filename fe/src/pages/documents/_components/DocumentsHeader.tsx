@@ -20,7 +20,7 @@ export function DocumentsHeader({
   isSharedView,
   onShare,
   onCreateFolder,
-}: DocumentsHeaderProps) {
+}: DocumentsHeaderProps): React.ReactElement {
   return (
     <div className="mb-6">
       <div className="flex items-start sm:items-center justify-between mb-4 gap-3">

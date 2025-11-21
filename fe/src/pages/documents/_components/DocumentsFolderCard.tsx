@@ -30,7 +30,7 @@ export function DocumentsFolderCard({
   onOpen,
   onOpenContributors,
   children,
-}: DocumentsFolderCardProps) {
+}: DocumentsFolderCardProps): React.ReactElement {
   const maxCircles = 3;
   const visible = contributors.slice(0, maxCircles);
   const extra = Math.max(0, contributors.length - maxCircles);

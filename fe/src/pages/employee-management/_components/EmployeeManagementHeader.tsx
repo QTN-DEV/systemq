@@ -25,7 +25,7 @@ export function EmployeeManagementHeader({
   onTabChange,
   onCreateEmployee,
   onExport,
-}: EmployeeManagementHeaderProps) {
+}: EmployeeManagementHeaderProps): React.ReactElement {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">

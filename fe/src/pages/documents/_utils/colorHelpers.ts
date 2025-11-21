@@ -5,7 +5,7 @@ export function getRoleColor(role: string | undefined): string {
     employee: "bg-blue-500",
     secretary: "bg-pink-500",
   };
-  return (role && colors[role]) || "bg-gray-500";
+  return (role && colors[role]) ?? "bg-gray-500";
 }
 
 const avatarColors = [

@@ -18,7 +18,7 @@ export function DocumentsEmptyState({
   emptyState,
   onCreateFolder,
   onCreateFile,
-}: DocumentsEmptyStateProps) {
+}: DocumentsEmptyStateProps): React.ReactElement {
   return (
     <div className="px-6 py-16 text-center bg-card border rounded-lg">
       <div className="flex flex-col items-center">

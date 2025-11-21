@@ -22,7 +22,7 @@ export function DocumentsFileCard({
   isSharedView,
   onOpen,
   children,
-}: DocumentsFileCardProps) {
+}: DocumentsFileCardProps): React.ReactElement {
   return (
     <Card
       className="relative cursor-pointer hover:shadow-md transition-shadow"

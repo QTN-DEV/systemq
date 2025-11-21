@@ -24,7 +24,7 @@ export function DeleteConfirmForm({
   onConfirm,
   item,
   isLoading,
-}: DeleteConfirmFormProps) {
+}: DeleteConfirmFormProps): React.ReactElement | null {
   if (!item) return null;
 
   return (
@@ -44,7 +44,7 @@ export function DeleteConfirmForm({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={() => { void onConfirm(); }}
             disabled={isLoading}
             className="bg-destructive hover:bg-destructive/90"
           >
