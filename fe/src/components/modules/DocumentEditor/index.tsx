@@ -3,7 +3,7 @@ import { type ReactElement, useEffect, useLayoutEffect, useRef } from 'react'
 
 import type { DocumentBlock } from '@/types/documents'
 
-import { PlaceholderStyles, BlockRenderer, GripMenu, TypeMenu, TextToolbar, LinkToolbar, LinkDialog } from './_components'
+import { PlaceholderStyles, BlockRenderer, GripMenu, TypeMenu, TextToolbar, LinkToolbar, LinkDialog, CommandMenu } from './_components'
 import {
   useBlockManagement,
   useTableManagement,
@@ -17,6 +17,7 @@ import {
   useImageState,
   useKeyboardHandlers,
   useCommandDetection,
+  useCommandMenu,
 } from './_hooks'
 import type { DocumentEditorProps } from './_types'
 import { getBlockPlaceholder, createAnchorHTML, normalizeAnchors, setSelectionOffsets, getSelectionOffsets } from './_utils'
@@ -189,6 +190,25 @@ function DocumentEditorModular({
     closeLinkDialog,
   } = useLinkManagement(readOnly, blockRefs, savedSelectionRef, updateBlock)
 
+  const {
+    commandMenu,
+    openCommandMenu,
+    closeCommandMenu,
+    updateCommandQuery,
+    selectCommand,
+    selectCommandByIndex,
+    navigateCommandMenu,
+  } = useCommandMenu({
+    readOnly,
+    blockRefs,
+    changeBlockType,
+    setShowLinkDialog,
+    setLinkDialogBlockId,
+    setLinkDialogText,
+    setLinkDialogUrl,
+    updateBlock,
+  })
+
   const { handleCommandDetection } = useCommandDetection({
     readOnly,
     setShowLinkDialog,
@@ -197,6 +217,13 @@ function DocumentEditorModular({
     setLinkDialogUrl,
     updateBlock,
     changeBlockType,
+    updateCommandQuery,
+    closeCommandMenu,
+    commandMenuOpen: commandMenu.isOpen,
+    getBlockContent: (blockId: string): string => {
+      const block = blocks.find((b) => b.id === blockId)
+      return block?.content ?? ''
+    },
   })
 
   const { handleKeyDown } = useKeyboardHandlers({
@@ -210,9 +237,38 @@ function DocumentEditorModular({
     saveSelectionForBlock: saveSelection,
     savedSelectionRef,
     skipNextSelectionRestore,
+    commandMenuOpen: commandMenu.isOpen,
+    openCommandMenu,
+    closeCommandMenu,
+    navigateCommandMenu,
+    selectCommand: selectCommandByIndex,
+    changeBlockType,
   })
 
   useAutosave(blocks, onSave, initialBlocks)
+
+  // Close command menu on outside click
+  useEffect(() => {
+    if (!commandMenu.isOpen) return
+
+    const handleClickOutside = (e: MouseEvent): void => {
+      const target = e.target as Node
+      // Check if click is outside command menu
+      const commandMenuElement = document.querySelector('[data-command-menu]')
+      if (commandMenuElement && !commandMenuElement.contains(target)) {
+        // Check if click is not in the active block
+        const activeBlock = blockRefs.current[commandMenu.blockId || '']
+        if (activeBlock && !activeBlock.contains(target)) {
+          closeCommandMenu()
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [commandMenu.isOpen, commandMenu.blockId, blockRefs, closeCommandMenu])
 
   useLayoutEffect(() => {
     if (skipNextSelectionRestore.current) {
@@ -501,6 +557,17 @@ function DocumentEditorModular({
           onUrlChange={setLinkDialogUrl}
           onSave={applyLinkFromDialog}
           onCancel={closeLinkDialog}
+        />
+      )}
+
+      {/* Command Menu */}
+      {!readOnly && commandMenu.isOpen && commandMenu.blockId && (
+        <CommandMenu
+          query={commandMenu.query}
+          blockId={commandMenu.blockId}
+          position={commandMenu.position}
+          onSelect={selectCommand}
+          selectedIndex={commandMenu.selectedIndex}
         />
       )}
 

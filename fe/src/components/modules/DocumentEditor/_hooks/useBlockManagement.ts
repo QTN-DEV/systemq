@@ -118,7 +118,21 @@ export const useBlockManagement = (
     options?: { rows?: number; columns?: number },
   ): void => {
     const target = blocks.find((b) => b.id === blockId)
+    if (!target) return
+
     const updates: Partial<DocumentBlock> = { type: newType }
+
+    // Text-based block types that can preserve content
+    const textBasedTypes: DocumentBlock['type'][] = [
+      'paragraph',
+      'heading1',
+      'heading2',
+      'heading3',
+      'bulleted-list',
+      'numbered-list',
+      'quote',
+      'code',
+    ]
 
     if (newType === 'table') {
       const rows = options?.rows ?? DEFAULT_TABLE_ROWS
@@ -134,13 +148,27 @@ export const useBlockManagement = (
       return
     } else {
       updates.table = undefined
-      if (target?.type === 'table') {
+      
+      // Handle conversion from table to text-based type
+      if (target.type === 'table') {
         const firstCell = target.table?.rows?.[0]?.cells?.[0]
         if (firstCell && typeof firstCell.content === 'string') {
           updates.content = firstCell.content
         }
       }
+      // Preserve content when converting between text-based types
+      else if (
+        textBasedTypes.includes(target.type) &&
+        textBasedTypes.includes(newType) &&
+        target.content
+      ) {
+        // Preserve the existing content
+        updates.content = target.content
+      }
+      // When converting from non-text types (image, file) to text types, keep content empty
+      // unless there's existing content that makes sense
     }
+    
     updateBlock(blockId, updates)
   }
 

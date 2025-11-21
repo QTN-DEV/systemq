@@ -15,6 +15,7 @@ from app.schemas.document_permission import (
 from app.services import auth as auth_service
 from app.services.auth import AuthenticationError, UserNotFoundError
 from app.services.document_permission import (
+    ADMIN_LEVELS,
     DocumentPermissionError,
     add_division_permission,
     add_user_permission,
@@ -43,8 +44,20 @@ async def _get_current_user(authorization: str) -> UserProfile:
 
 
 def _is_admin(user: UserProfile) -> bool:
+    """Check if user should be treated as a global admin."""
+    # Check position field for "Admin"
+    position = (user.position or "").strip()
+    if position == "Admin":
+        log_info(logger, "granting admin override (position)", user_id=user.id, position=position)
+        return True
+    
+    # Also check level field for backward compatibility
     level = (user.level or "").strip().lower()
-    return level == "admin"
+    log_debug(logger, "checking admin override", user_id=user.id, level=level)
+    is_admin = level in ADMIN_LEVELS
+    if is_admin:
+        log_info(logger, "granting admin override (level)", user_id=user.id, level=level)
+    return is_admin
 
 
 @router.get(
