@@ -1,4 +1,4 @@
-import { Folder, MoreHorizontal } from "lucide-react";
+import { Folder } from "lucide-react";
 import { type MouseEvent } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,9 +17,7 @@ interface DocumentsFolderCardProps {
   isSharedView: boolean;
   contributors: string[];
   onOpen: () => void;
-  onShowActions: (e: MouseEvent) => void;
   onOpenContributors: (e: MouseEvent) => void;
-  showActionsDropdown: boolean;
   children?: React.ReactNode;
 }
 
@@ -30,9 +28,7 @@ export function DocumentsFolderCard({
   isSharedView,
   contributors,
   onOpen,
-  onShowActions,
   onOpenContributors,
-  showActionsDropdown,
   children,
 }: DocumentsFolderCardProps) {
   const maxCircles = 3;
@@ -50,15 +46,9 @@ export function DocumentsFolderCard({
         </div>
 
         {(!isSharedView || canEdit) && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onShowActions}
-            className="absolute right-2 top-2 text-white/80 hover:bg-white/10"
-            aria-label={`Actions for ${item.name}`}
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
+          <div className="absolute right-2 top-2">
+            {children}
+          </div>
         )}
 
         {isSharedView && (
@@ -110,8 +100,6 @@ export function DocumentsFolderCard({
           )}
         </div>
       </Button>
-
-      {showActionsDropdown && children}
     </Card>
   );
 }

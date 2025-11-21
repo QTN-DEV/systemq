@@ -108,6 +108,7 @@ export interface GlobalDocumentsState {
 
   // Helper Functions
   isOwner: (item: DocumentItem) => boolean;
+  isSystemAdmin: boolean;
   canCreateHere: boolean;
   emptyState: {
     title: string;
@@ -208,6 +209,17 @@ export function useGlobalDocuments(): GlobalDocumentsState {
   const isOwner = (item: DocumentItem): boolean =>
     Boolean(currentUser?.id && item.ownedBy?.id === currentUser.id);
 
+  // Check if user is System Administrator
+  const isSystemAdmin = Boolean(
+    currentUser &&
+    (currentUser.position === "Admin" ||
+      currentUser.role === "admin" ||
+      (typeof currentUser.level === "string" &&
+        ["admin", "administrator", "superadmin", "principal"].includes(
+          currentUser.level.toLowerCase()
+        )))
+  );
+
   const canCreateHere =
     !isSharedView && (currentFolderId ? canEditFolder : true);
 
@@ -300,8 +312,8 @@ export function useGlobalDocuments(): GlobalDocumentsState {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!selectedItem || !isOwner(selectedItem)) {
-      setError("Only the owner can delete this item.");
+    if (!selectedItem || (!isSystemAdmin && !isOwner(selectedItem))) {
+      setError("Only the owner or system administrator can delete this item.");
       setShowDeleteModal(false);
       setSelectedItem(null);
       return;
@@ -399,6 +411,7 @@ export function useGlobalDocuments(): GlobalDocumentsState {
 
     // Helper Functions
     isOwner,
+    isSystemAdmin,
     canCreateHere,
     emptyState,
 

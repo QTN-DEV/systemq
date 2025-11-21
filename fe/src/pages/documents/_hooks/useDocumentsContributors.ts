@@ -1,8 +1,12 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, type MutableRefObject } from "react";
 
 import type { DocumentItem } from "@/types/documents";
 
-export function useDocumentsContributors() {
+export function useDocumentsContributors(): {
+  contributorsMap: Record<string, string[]>;
+  prefetchContributors: (items: DocumentItem[]) => Promise<void>;
+  fetchedContribIdsRef: MutableRefObject<Set<string>>;
+} {
   const [contributorsMap, setContributorsMap] = useState<
     Record<string, string[]>
   >({});
@@ -28,12 +32,12 @@ export function useDocumentsContributors() {
 
           if (perms) {
             perms.user_permissions
-              ?.filter((u: any) => u?.permission === "editor" && u?.user_name)
-              ?.forEach((u: any) => names.push(String(u.user_name)));
+              ?.filter((u: { permission?: string; user_name?: string }) => u?.permission === "editor" && u?.user_name)
+              ?.forEach((u: { user_name: string }) => names.push(String(u.user_name)));
 
             perms.division_permissions
-              ?.filter((d: any) => d?.permission === "editor" && d?.division)
-              ?.forEach((d: any) => names.push(String(d.division)));
+              ?.filter((d: { permission?: string; division?: string }) => d?.permission === "editor" && d?.division)
+              ?.forEach((d: { division: string }) => names.push(String(d.division)));
           }
 
           const cleaned = Array.from(new Set(names.filter(Boolean)));
@@ -58,7 +62,13 @@ export function useDocumentsContributors() {
 }
 
 // Modal state hook
-export function useContributorsModal() {
+export function useContributorsModal(): {
+  showContributors: boolean;
+  contributorsList: string[];
+  contributorsForName: string;
+  openContributors: (item: DocumentItem, contributors: string[]) => void;
+  closeContributors: () => void;
+} {
   const [showContributors, setShowContributors] = useState(false);
   const [contributorsList, setContributorsList] = useState<string[]>([]);
   const [contributorsForName, setContributorsForName] = useState<string>("");

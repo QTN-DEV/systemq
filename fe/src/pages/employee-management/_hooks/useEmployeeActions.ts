@@ -6,6 +6,8 @@ import {
   updateEmployee,
   deactivateEmployee,
   activateEmployee,
+  type CreateUserPayload,
+  type UpdateEmployeePayload,
   type EmployeeListItem,
 } from '@/lib/shared/services/EmployeeService';
 
@@ -14,10 +16,18 @@ export type NotificationType = {
   message: string;
 } | null;
 
-export function useEmployeeActions(refetchEmployees: () => Promise<void>) {
+export function useEmployeeActions(refetchEmployees: () => Promise<void>): {
+  notification: NotificationType;
+  setNotification: (notification: NotificationType) => void;
+  handleCreateEmployee: (payload: CreateUserPayload) => Promise<boolean>;
+  handleUpdateEmployee: (id: string, payload: UpdateEmployeePayload) => Promise<boolean>;
+  handleDeactivateEmployee: (employee: EmployeeListItem) => Promise<void>;
+  handleActivateEmployee: (employee: EmployeeListItem) => Promise<void>;
+  handleUpdateSubordinates: (employeeId: string, subordinates: string[]) => Promise<boolean>;
+} {
   const [notification, setNotification] = useState<NotificationType>(null);
 
-  const handleCreateEmployee = async (payload: any): Promise<boolean> => {
+  const handleCreateEmployee = async (payload: CreateUserPayload): Promise<boolean> => {
     try {
       await createEmployee(payload);
       setNotification({ type: 'success', message: 'Employee created successfully' });
@@ -25,7 +35,7 @@ export function useEmployeeActions(refetchEmployees: () => Promise<void>) {
       return true;
     } catch (error) {
       logger.error('Failed to create employee', error);
-      const status = (error as any)?.response?.status;
+      const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
         setNotification({ type: 'error', message: 'Employee ID or Email already exists' });
       } else {
@@ -35,7 +45,7 @@ export function useEmployeeActions(refetchEmployees: () => Promise<void>) {
     }
   };
 
-  const handleUpdateEmployee = async (id: string, payload: any): Promise<boolean> => {
+  const handleUpdateEmployee = async (id: string, payload: UpdateEmployeePayload): Promise<boolean> => {
     try {
       await updateEmployee(id, payload);
       setNotification({ type: 'success', message: 'Employee updated successfully' });
@@ -43,7 +53,7 @@ export function useEmployeeActions(refetchEmployees: () => Promise<void>) {
       return true;
     } catch (error) {
       logger.error('Failed to update employee', error);
-      const status = (error as any)?.response?.status;
+      const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
         setNotification({ type: 'error', message: 'Employee ID or Email already exists' });
       } else {

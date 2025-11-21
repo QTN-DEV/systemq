@@ -26,7 +26,7 @@ export function useDocumentsActions(currentFolderId: string | null) {
       const session = getCurrentSession();
       if (!session) throw new Error("Authentication required");
       const authToken = `Bearer ${session.token}`;
-      return await createDocument(name, type, currentFolderId, authToken);
+      return createDocument(name, type, currentFolderId, authToken);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -78,7 +78,7 @@ export function useDocumentsActions(currentFolderId: string | null) {
   });
 
   // Validation
-  const validName = (n: string) => /^[A-Za-z0-9 _.-]+$/.test(n);
+  const validName = (n: string): boolean => /^[A-Za-z0-9 _.-]+$/.test(n);
 
   const validateName = (
     name: string,

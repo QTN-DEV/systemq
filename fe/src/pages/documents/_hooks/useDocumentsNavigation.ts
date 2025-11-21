@@ -6,7 +6,11 @@ import type { DocumentItem, DocumentBreadcrumb } from "@/types/documents";
 export function useDocumentsNavigation(
   isSharedView: boolean,
   effectiveSegments: string[]
-) {
+): {
+  handleItemClick: (item: DocumentItem) => void;
+  handleOpenSearchItem: (item: DocumentItem) => Promise<void>;
+  handleBreadcrumbClick: (breadcrumb: DocumentBreadcrumb) => void;
+} {
   const navigate = useNavigate();
 
   const handleItemClick = (item: DocumentItem): void => {

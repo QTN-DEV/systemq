@@ -10,7 +10,16 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import type { DocumentItem, DocumentBlock } from '@/types/documents';
 
-export function useDocumentEditor() {
+export function useDocumentEditor(): {
+  fileId: string | undefined;
+  document: DocumentItem | null;
+  blocks: DocumentBlock[];
+  fileName: string;
+  documentCategory: string;
+  handleSave: (newBlocks: DocumentBlock[]) => Promise<void>;
+  handleNameChange: (newName: string) => Promise<void>;
+  handleCategoryChange: (newCategory: string) => Promise<void>;
+} {
   const { fileId } = useParams<{ fileId: string }>();
   const navigate = useNavigate();
   const getCurrentSession = useAuthStore((s) => s.getCurrentSession);
@@ -71,7 +80,7 @@ export function useDocumentEditor() {
             const updatedDoc = await updateDocumentContent(
               fileId,
               {
-                category: documentCategory ? documentCategory : null,
+                category: documentCategory ?? null,
                 content: blocksForCommit,
               },
               { commit: true }

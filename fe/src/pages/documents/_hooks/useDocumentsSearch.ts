@@ -2,8 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { searchDocuments } from "@/lib/shared/services/DocumentService";
+import type { DocumentItem } from "@/types/documents";
 
-export function useDocumentsSearch() {
+export function useDocumentsSearch(): {
+  globalQuery: string;
+  setGlobalQuery: (query: string) => void;
+  globalResults: DocumentItem[];
+  globalLoading: boolean;
+  globalError: string | null;
+} {
   const [globalQuery, setGlobalQuery] = useState("");
 
   const {
