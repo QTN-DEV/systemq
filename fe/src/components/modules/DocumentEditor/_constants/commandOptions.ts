@@ -1,4 +1,5 @@
 import { Link as LinkIcon } from 'lucide-react'
+
 import type { DocumentBlock } from '@/types/documents'
 
 import { BLOCK_TYPE_OPTIONS } from './index'

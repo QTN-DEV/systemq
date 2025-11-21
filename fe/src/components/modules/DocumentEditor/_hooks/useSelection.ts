@@ -5,7 +5,11 @@ import type { DocumentBlock } from '@/types/documents'
 import type { SavedSelection, BlockRefs } from '../_types'
 import { getSelectionOffsets } from '../_utils'
 
-export const useSelection = (blocks: DocumentBlock[]) => {
+export const useSelection = (blocks: DocumentBlock[]): {
+  savedSelectionRef: React.MutableRefObject<SavedSelection | null>
+  isSelectingRef: React.MutableRefObject<boolean>
+  saveSelectionForBlock: (blockId: string, blockRefs: BlockRefs, context?: { element?: HTMLElement; offsets?: { start: number; end: number; backward: boolean } | null }) => void
+} => {
   const savedSelectionRef = useRef<SavedSelection | null>(null)
   const isSelectingRef = useRef(false)
 
@@ -28,7 +32,10 @@ export const useSelection = (blocks: DocumentBlock[]) => {
   useLayoutEffect(() => {
     if (!savedSelectionRef.current) return
     const { start, end } = savedSelectionRef.current
-    if (start !== end) return
+    if (start !== end) {
+      // Selection is not collapsed, skip restoration
+      return
+    }
     
     // We need access to blockRefs here, but it's managed externally
     // This will be used in the main component

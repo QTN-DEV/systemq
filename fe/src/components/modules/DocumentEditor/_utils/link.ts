@@ -1,5 +1,5 @@
 export const createAnchorHTML = (href: string, text?: string): string =>
-  `<a href="${href}" target="_blank" rel="noopener noreferrer" contenteditable="false" class="inline-editor-link" data-inline-link="1">${text || href}</a>`
+  `<a href="${href}" target="_blank" rel="noopener noreferrer" contenteditable="false" class="inline-editor-link" data-inline-link="1">${text ?? href}</a>`
 
 export const normalizeAnchors = (el: HTMLElement): void => {
   const anchors = el.querySelectorAll('a')
@@ -20,7 +20,7 @@ export const replaceRangeWithAnchor = (range: Range, href: string, text: string)
   anchor.setAttribute('contenteditable', 'false')
   anchor.classList.add('inline-editor-link')
   anchor.setAttribute('data-inline-link', '1')
-  anchor.textContent = text || href
+  anchor.textContent = text ?? href
   range.deleteContents()
   range.insertNode(anchor)
 }

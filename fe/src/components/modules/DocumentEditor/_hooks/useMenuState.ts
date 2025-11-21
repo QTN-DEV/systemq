@@ -2,7 +2,19 @@ import { useState, useRef } from 'react'
 
 import type { MenuPlacement } from '../_types'
 
-export const useMenuState = () => {
+export const useMenuState = (): {
+  showTypeMenu: string | null
+  setShowTypeMenu: (id: string | null) => void
+  showGripMenu: string | null
+  setShowGripMenu: (id: string | null) => void
+  gripMenuPlacement: MenuPlacement
+  setGripMenuPlacement: (placement: MenuPlacement) => void
+  typeMenuPlacement: MenuPlacement
+  setTypeMenuPlacement: (placement: MenuPlacement) => void
+  gripMenuRef: React.RefObject<HTMLDivElement | null>
+  typeMenuRef: React.RefObject<HTMLDivElement | null>
+  closeAllMenus: () => void
+} => {
   const [showTypeMenu, setShowTypeMenu] = useState<string | null>(null)
   const [showGripMenu, setShowGripMenu] = useState<string | null>(null)
   const [gripMenuPlacement, setGripMenuPlacement] = useState<MenuPlacement>('bottom')
@@ -11,7 +23,7 @@ export const useMenuState = () => {
   const gripMenuRef = useRef<HTMLDivElement | null>(null)
   const typeMenuRef = useRef<HTMLDivElement | null>(null)
 
-  const closeAllMenus = () => {
+  const closeAllMenus = (): void => {
     setShowGripMenu(null)
     setShowTypeMenu(null)
   }

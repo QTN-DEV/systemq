@@ -82,25 +82,17 @@ function DocumentEditorModular({
    * Preserves cursor position during content updates
    */
   const updateBlock = (id: string, updates: Partial<DocumentBlock>): void => {
-    // eslint-disable-next-line no-console
-    console.log('[updateBlock] Called for block:', id, 'Updates:', { ...updates, content: updates.content?.substring(0, 100) })
-    const el = blockRefs.current[id] || null
+    const el = blockRefs.current[id] ?? null
     const isContentUpdate = Object.prototype.hasOwnProperty.call(updates, 'content')
     
     if (isContentUpdate && el && document.activeElement === el && (el).isContentEditable) {
       const offsets = getSelectionOffsets(el)
       if (offsets) {
         savedSelectionRef.current = { blockId: id, ...offsets }
-        // eslint-disable-next-line no-console
-        console.log('[updateBlock] Saved selection offsets:', offsets)
       }
     }
     
-    // eslint-disable-next-line no-console
-    console.log('[updateBlock] Calling updateBlockInternal')
     updateBlockInternal(id, updates)
-    // eslint-disable-next-line no-console
-    console.log('[updateBlock] updateBlockInternal returned')
   }
 
   /**
@@ -128,7 +120,7 @@ function DocumentEditorModular({
     }
   }
 
-  const saveSelection = (blockId: string, context?: { element?: HTMLElement; offsets?: { start: number; end: number; backward: boolean } | null }) => {
+  const saveSelection = (blockId: string, context?: { element?: HTMLElement; offsets?: { start: number; end: number; backward: boolean } | null }): void => {
     saveSelectionForBlock(blockId, blockRefs.current, context)
   }
 
@@ -217,6 +209,7 @@ function DocumentEditorModular({
     setLinkDialogUrl,
     updateBlock,
     changeBlockType,
+    openCommandMenu,
     updateCommandQuery,
     closeCommandMenu,
     commandMenuOpen: commandMenu.isOpen,
@@ -224,6 +217,7 @@ function DocumentEditorModular({
       const block = blocks.find((b) => b.id === blockId)
       return block?.content ?? ''
     },
+    blockRefs,
   })
 
   const { handleKeyDown } = useKeyboardHandlers({
@@ -257,7 +251,7 @@ function DocumentEditorModular({
       const commandMenuElement = document.querySelector('[data-command-menu]')
       if (commandMenuElement && !commandMenuElement.contains(target)) {
         // Check if click is not in the active block
-        const activeBlock = blockRefs.current[commandMenu.blockId || '']
+        const activeBlock = blockRefs.current[commandMenu.blockId ?? '']
         if (activeBlock && !activeBlock.contains(target)) {
           closeCommandMenu()
         }
@@ -265,7 +259,7 @@ function DocumentEditorModular({
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
+    return (): void => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [commandMenu.isOpen, commandMenu.blockId, blockRefs, closeCommandMenu])
@@ -290,7 +284,9 @@ function DocumentEditorModular({
     try {
       if (document.activeElement !== el) el.focus()
       setSelectionOffsets(el, start, end, backward)
-    } catch { }
+    } catch {
+      // Ignore errors from setSelectionOffsets
+    }
   }, [blocks, blockRefs, savedSelectionRef])
 
   /**
@@ -299,9 +295,12 @@ function DocumentEditorModular({
   useEffect(() => {
     setBlocks((prev) =>
       prev.map((b) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((b as any)?.type !== 'link') return b
-        const href = (b as any).url || (b as any).content || '#'
-        const text = (b as any).content || (b as any).url || 'Link'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const href = (b as any).url ?? (b as any).content ?? '#'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const text = (b as any).content ?? (b as any).url ?? 'Link'
         return {
           ...b,
           type: 'paragraph' as DocumentBlock['type'],
@@ -313,7 +312,10 @@ function DocumentEditorModular({
   }, [])
 
   const handleAnchorClick = (_e: React.MouseEvent, _blockId: string): void => {
-    if (readOnly) return
+    if (readOnly) {
+      return
+    }
+    // Anchor click handling can be added here if needed
   }
 
   const handlePaste = (e: React.ClipboardEvent, blockId: string): void => {
@@ -368,27 +370,27 @@ function DocumentEditorModular({
   }
 
   // Wrapper functions for table operations
-  const updateTableCell = (blockId: string, cellId: string, value: string) => {
+  const updateTableCell = (blockId: string, cellId: string, value: string): void => {
     const block = blocks.find((b) => b.id === blockId)
     if (block) updateTableCellFn(block, cellId, value, updateBlock)
   }
 
-  const addTableRow = (blockId: string) => {
+  const addTableRow = (blockId: string): void => {
     const block = blocks.find((b) => b.id === blockId)
     if (block) addTableRowFn(block, updateBlock)
   }
 
-  const addTableColumn = (blockId: string) => {
+  const addTableColumn = (blockId: string): void => {
     const block = blocks.find((b) => b.id === blockId)
     if (block) addTableColumnFn(block, updateBlock)
   }
 
-  const removeTableRow = (blockId: string) => {
+  const removeTableRow = (blockId: string): void => {
     const block = blocks.find((b) => b.id === blockId)
     if (block) removeTableRowFn(block, updateBlock)
   }
 
-  const removeTableColumn = (blockId: string) => {
+  const removeTableColumn = (blockId: string): void => {
     const block = blocks.find((b) => b.id === blockId)
     if (block) removeTableColumnFn(block, updateBlock)
   }

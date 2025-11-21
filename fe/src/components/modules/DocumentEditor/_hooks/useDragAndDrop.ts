@@ -4,7 +4,16 @@ export const useDragAndDrop = (
   readOnly: boolean,
   moveBlock: (fromId: string, toId: string) => void,
   insertFilesAsBlocks: (anchorId: string, files: FileList | File[]) => void,
-) => {
+): {
+  draggedBlockId: string | null
+  dragOverBlockId: string | null
+  handleDragStart: (e: React.DragEvent, blockId: string) => void
+  handleDragOver: (e: React.DragEvent, blockId: string) => void
+  handleDragLeave: (e: React.DragEvent) => void
+  handleDragEnd: () => void
+  handleDrop: (e: React.DragEvent, blockId: string) => void
+  resetDrag: () => void
+} => {
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null)
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null)
 

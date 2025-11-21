@@ -8,7 +8,7 @@ export const useAutosave = (
   blocks: DocumentBlock[],
   onSave?: (blocks: DocumentBlock[]) => void,
   initialBlocks?: DocumentBlock[],
-) => {
+): void => {
   const lastEmittedSnapshotRef = useRef<string>(JSON.stringify(initialBlocks ?? []))
 
   useEffect((): (() => void) | void => {

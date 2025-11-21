@@ -26,7 +26,9 @@ export const getSelectionOffsets = (
         backward = Boolean(pos & Node.DOCUMENT_POSITION_PRECEDING)
       }
     }
-  } catch { }
+  } catch {
+    // Ignore errors from selection comparison
+  }
   return { start, end, backward }
 }
 
@@ -73,7 +75,9 @@ export const setSelectionOffsets = (
       else sel.setBaseAndExtent(startNode, startOffsetInNode, endNode, endOffsetInNode)
       return
     }
-  } catch { }
+  } catch {
+    // Ignore errors from setBaseAndExtent
+  }
 
   const range = document.createRange()
   if (startNode) range.setStart(startNode, startOffsetInNode)

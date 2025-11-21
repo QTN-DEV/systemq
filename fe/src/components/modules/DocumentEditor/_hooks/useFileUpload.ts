@@ -11,7 +11,11 @@ export const useFileUpload = (
   setBlocks: React.Dispatch<React.SetStateAction<DocumentBlock[]>>,
   readOnly: boolean,
   addBlock: (afterId: string, type?: DocumentBlock['type']) => string,
-) => {
+): {
+  uploadingBlocks: Set<string>
+  handleFileUpload: (blockId: string, file: File, preferredType?: DocumentBlock['type'], cleanupOnFailure?: boolean, blocks?: DocumentBlock[]) => Promise<void>
+  insertFilesAsBlocks: (anchorId: string, files: FileList | File[]) => void
+} => {
   const [uploadingBlocks, setUploadingBlocks] = useState<Set<string>>(new Set())
 
   const uploadFileToServer = async (
@@ -61,8 +65,8 @@ export const useFileUpload = (
               fileName: uploadResult.fileName,
               fileSize: uploadResult.fileSize,
               content: uploadType === 'file'
-                ? uploadResult.fileName || file.name || b.content
-                : b.content || file.name || '',
+                ? uploadResult.fileName ?? file.name ?? b.content
+                : b.content ?? file.name ?? '',
             }
             : b,
         ),

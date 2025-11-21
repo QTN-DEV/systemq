@@ -5,7 +5,15 @@ import type { DocumentBlock, DocumentTableRow } from '@/types/documents'
 import type { TableCellRefs } from '../_types'
 import { cloneTableData, generateId } from '../_utils'
 
-export const useTableManagement = () => {
+export const useTableManagement = (): {
+  tableCellRefs: React.MutableRefObject<TableCellRefs>
+  tableCellContentRef: React.MutableRefObject<Record<string, string>>
+  updateTableCell: (block: DocumentBlock, cellId: string, value: string, updateBlock: (id: string, updates: Partial<DocumentBlock>) => void) => void
+  addTableRow: (block: DocumentBlock, updateBlock: (id: string, updates: Partial<DocumentBlock>) => void) => void
+  addTableColumn: (block: DocumentBlock, updateBlock: (id: string, updates: Partial<DocumentBlock>) => void) => void
+  removeTableRow: (block: DocumentBlock, updateBlock: (id: string, updates: Partial<DocumentBlock>) => void) => void
+  removeTableColumn: (block: DocumentBlock, updateBlock: (id: string, updates: Partial<DocumentBlock>) => void) => void
+} => {
   const tableCellRefs = useRef<TableCellRefs>({})
   const tableCellContentRef = useRef<Record<string, string>>({})
 
