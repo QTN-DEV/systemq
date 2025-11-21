@@ -1,7 +1,7 @@
-import { logger } from '@/lib/logger'
-import { useAuthStore } from '@/stores/authStore'
 import { config } from '@/lib/config'
+import { logger } from '@/lib/logger'
 import apiClient from '@/lib/shared/api/client'
+import { useAuthStore } from '@/stores/authStore'
 
 // Helper to ensure auth token is set before API calls
 const ensureAuth = () => {

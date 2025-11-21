@@ -1,7 +1,8 @@
+import type { AxiosError } from "axios";
 import type { ErrorInfo } from "react";
 
-import { AxiosError } from "axios";
 import { config } from "@/lib/config";
+import { logger } from "@/lib/logger";
 
 export interface AppError extends Error {
   code?: string;
@@ -10,22 +11,21 @@ export interface AppError extends Error {
 }
 
 export class GlobalErrorHandler {
-  static handleError = (error: Error, errorInfo?: ErrorInfo) => {
-    console.error("Global Error:", error);
-    console.error("Error Info:", errorInfo);
+  static handleError = (error: Error, errorInfo?: ErrorInfo): void => {
+    logger.error("Global Error:", error);
+    logger.error("Error Info:", errorInfo);
 
     // Here you would typically send to your error tracking service
     // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
 
     // For development, log detailed error information
     if (config.isDev) {
-      console.group("🔴 Error Details");
-      console.error("Error:", error);
-      console.error("Stack:", error.stack);
+      logger.error("🔴 Error Details");
+      logger.error("Error:", error);
+      logger.error("Stack:", error.stack);
       if (errorInfo) {
-        console.error("Component Stack:", errorInfo.componentStack);
+        logger.error("Component Stack:", errorInfo.componentStack);
       }
-      console.groupEnd();
     }
   };
 
@@ -80,11 +80,14 @@ export class GlobalErrorHandler {
     return appError;
   };
 
-  private static getErrorMessage = (status: number, data: any): string => {
+  private static getErrorMessage = (status: number, data: unknown): string => {
     // Try to extract message from response data
-    if (data?.message) return data.message;
-    if (data?.detail) return data.detail;
-    if (data?.error) return data.error;
+    if (typeof data === 'object' && data !== null) {
+      const dataObj = data as Record<string, unknown>;
+      if (typeof dataObj.message === 'string') return dataObj.message;
+      if (typeof dataObj.detail === 'string') return dataObj.detail;
+      if (typeof dataObj.error === 'string') return dataObj.error;
+    }
 
     // Fallback to status-based messages in Bahasa Indonesia
     switch (status) {

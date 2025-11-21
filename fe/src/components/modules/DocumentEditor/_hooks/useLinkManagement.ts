@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import type { ToolbarPosition, SavedSelection } from '../_types'
+
 import type { DocumentBlock } from '@/types/documents'
+
+import type { ToolbarPosition, SavedSelection } from '../_types'
 import {
   buildRangeWithin,
   isSelectionInside,
@@ -79,27 +81,27 @@ export const useLinkManagement = (
       linkEditAnchor.classList.add('inline-editor-link')
       linkEditAnchor.setAttribute('data-inline-link', '1')
       if (text) linkEditAnchor.textContent = text
-      updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+      updateBlock(blockId, { content: (el).innerHTML })
       setLinkEditAnchor(null)
       setShowLinkDialog(false)
       return
     }
 
     const saved = savedSelectionRef.current
-    let start = (el as HTMLElement).innerText.length
+    let start = (el).innerText.length
     let end = start
     if (saved && saved.blockId === blockId) {
       start = saved.start
       end = saved.end
     }
     try {
-      const range = buildRangeWithin(el as HTMLElement, start, end)
+      const range = buildRangeWithin(el, start, end)
       replaceRangeWithAnchor(range, href, text)
     } catch {
-      ;(el as HTMLElement).insertAdjacentHTML('beforeend', createAnchorHTML(href, text))
+      ;(el).insertAdjacentHTML('beforeend', createAnchorHTML(href, text))
     }
-    normalizeAnchors(el as HTMLElement)
-    updateBlock(blockId, { type: 'paragraph', content: (el as HTMLElement).innerHTML })
+    normalizeAnchors(el)
+    updateBlock(blockId, { type: 'paragraph', content: (el).innerHTML })
     setShowLinkDialog(false)
   }
 
@@ -118,7 +120,7 @@ export const useLinkManagement = (
     const span = document.createElement('span')
     span.textContent = text
     linkEditAnchor.replaceWith(span)
-    updateBlock(blockId, { content: (el as HTMLElement).innerHTML })
+    updateBlock(blockId, { content: (el).innerHTML })
     setShowLinkToolbar(false)
     setLinkEditAnchor(null)
   }
@@ -142,9 +144,9 @@ export const useLinkManagement = (
     if (readOnly) return
     const onMouseOver = (e: MouseEvent): void => {
       const t = e.target as HTMLElement
-      const anchor = t?.closest('a') as HTMLAnchorElement | null
+      const anchor = t?.closest('a')
       if (!anchor) return
-      const host = anchor.closest('.ce-editable') as HTMLElement | null
+      const host = anchor.closest('.ce-editable')
       if (!host) return
       const blockId =
         Object.keys(blockRefs.current).find((k) => blockRefs.current[k] === host) || null

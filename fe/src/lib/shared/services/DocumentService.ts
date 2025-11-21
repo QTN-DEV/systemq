@@ -1,7 +1,7 @@
-import { useAuthStore } from "@/stores/authStore";
 import { config } from "@/lib/config";
+import { logger } from "@/lib/logger";
 import apiClient from "@/lib/shared/api/client";
-
+import { useAuthStore } from "@/stores/authStore";
 import type {
   DocumentPermissions,
   AddUserPermissionRequest,
@@ -12,11 +12,11 @@ import type { DocumentItem, DocumentBlock } from "@/types/document-type";
 import type { EditHistoryEvent } from "@/types/documents";
 
 if (config.isDev) {
-  console.log("Document API base:", config.apiBaseUrl);
+  logger.log("Document API base:", config.apiBaseUrl);
 }
 
 // Helper to ensure auth token is set before API calls
-const ensureAuth = () => {
+const ensureAuth = (): void => {
   const session = useAuthStore.getState().getCurrentSession();
   if (session?.token) {
     apiClient.setAuthHeader(session.token);
@@ -130,8 +130,8 @@ export async function searchDocuments(
     const data = await apiClient.get<ApiDocumentItem[]>(endpoint)
     return data.map(transformApiDocument)
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('searchDocuments error:', err)
+     
+    logger.error('searchDocuments error:', err)
     return []
   }
 }
@@ -151,8 +151,8 @@ export async function getDocumentsByParentId(
     });
     return data.map(transformApiDocument);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error fetching documents:", error);
+     
+    logger.error("Error fetching documents:", error);
     return [];
   }
 }
@@ -166,8 +166,8 @@ export async function getActualItemCount(folderId: string): Promise<number> {
     );
     return data.length;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error fetching item count:", error);
+     
+    logger.error("Error fetching item count:", error);
     return 0;
   }
 }
@@ -187,8 +187,8 @@ export async function getDocumentById(
     );
     return transformApiDocument(data);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error fetching document by ID:", error);
+     
+    logger.error("Error fetching document by ID:", error);
     return null;
   }
 }
@@ -356,8 +356,8 @@ export async function createDocument(
 
     return transformApiDocument(response);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error creating document:", error);
+     
+    logger.error("Error creating document:", error);
     return null;
   }
 }
@@ -368,8 +368,8 @@ export async function deleteDocument(documentId: string): Promise<boolean> {
     await apiClient.delete(`/documents/${ encodeURIComponent(documentId)}`);
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error deleting document:", error);
+     
+    logger.error("Error deleting document:", error);
     return false;
   }
 }
@@ -388,8 +388,8 @@ export async function renameDocument(
     );
     return transformApiDocument(response);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error renaming document:", error);
+     
+    logger.error("Error renaming document:", error);
     return null;
   }
 }
@@ -408,8 +408,8 @@ export async function moveDocument(
     );
     return transformApiDocument(response);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error moving document:", error);
+     
+    logger.error("Error moving document:", error);
     return null;
   }
 }
@@ -435,14 +435,14 @@ export async function getAllAccessibleFolders(): Promise<DocumentItem[]> {
         }
       } catch (error) {
         // If permission check fails, skip this folder
-        console.warn(`Failed to check permissions for folder ${folder.id}:`, error)
+        logger.warn(`Failed to check permissions for folder ${folder.id}:`, error)
       }
     }
 
     return accessibleFolders
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error fetching folders:", error);
+     
+    logger.error("Error fetching folders:", error);
     return [];
   }
 }
@@ -469,8 +469,8 @@ export async function updateDocumentContent(
     );
     return transformApiDocument(response);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error updating document content:", error);
+     
+    logger.error("Error updating document content:", error);
     return null;
   }
 }
@@ -496,8 +496,8 @@ export async function getDocumentPermissions(
     );
     return response;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error fetching document permissions:", error);
+     
+    logger.error("Error fetching document permissions:", error);
     return null;
   }
 }
@@ -514,8 +514,8 @@ export async function addUserPermission(
     );
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error adding user permission:", error);
+     
+    logger.error("Error adding user permission:", error);
     return false;
   }
 }
@@ -532,8 +532,8 @@ export async function addDivisionPermission(
     );
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error adding division permission:", error);
+     
+    logger.error("Error adding division permission:", error);
     return false;
   }
 }
@@ -551,8 +551,8 @@ export async function removeUserPermission(
     );
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error removing user permission:", error);
+     
+    logger.error("Error removing user permission:", error);
     return false;
   }
 }
@@ -570,8 +570,8 @@ export async function removeDivisionPermission(
     );
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error removing division permission:", error);
+     
+    logger.error("Error removing division permission:", error);
     return false;
   }
 }
@@ -625,8 +625,8 @@ export async function searchForPermissions(
 
     return results;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error searching for permissions:", error);
+     
+    logger.error("Error searching for permissions:", error);
     return [];
   }
 }
@@ -639,8 +639,8 @@ export async function searchUsers(query: string): Promise<SearchUserResult[]> {
     );
     return response;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error searching users:", error);
+     
+    logger.error("Error searching users:", error);
     return [];
   }
 }
@@ -681,8 +681,8 @@ export async function getDocumentAccess(
       return { can_view: false, can_edit: false }
     }
     // log error lain, tetap fail-safe no access
-    // eslint-disable-next-line no-console
-    console.error('Error fetching document access:', error)
+     
+    logger.error('Error fetching document access:', error)
     return { can_view: false, can_edit: false }
   }
 }

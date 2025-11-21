@@ -291,10 +291,10 @@ export default function OrganizationChart({ className = '' }: OrganizationChartP
         elementsSelectable={false}
         edgesFocusable={false}
         nodesFocusable={false}
-        panOnDrag={true}
-        panOnScroll={true}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
+        panOnDrag
+        panOnScroll
+        zoomOnScroll
+        zoomOnPinch
       >
         <Controls 
           className="bg-white shadow-lg border border-gray-200 rounded-lg" 

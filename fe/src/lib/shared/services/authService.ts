@@ -1,7 +1,9 @@
 import { config } from "@/lib/config";
 import { useAuthStore } from "@/stores/authStore";
-import { ApiClient } from "../api/client";
 import type { Position, User } from "@/types/user-type";
+import type { AxiosRequestConfig } from "axios";
+
+import { ApiClient } from "../api/client";
 
 const API_URL = config.apiBaseUrl;
 
@@ -87,12 +89,12 @@ class AuthServiceAPI {
   // End CTOR
 
   // Private Methods
-  private setupAuthInterceptor() {
+  private setupAuthInterceptor(): void {
     // Add auth header to all requests
     const originalGet = this.client.get.bind(this.client);
     const originalPost = this.client.post.bind(this.client);
 
-    this.client.get = async <T>(url: string, config?: any): Promise<T> => {
+    this.client.get = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
       const session = this.getCurrentSession();
       if (session?.token) {
         this.client.setAuthHeader(session.token);
@@ -102,8 +104,8 @@ class AuthServiceAPI {
 
     this.client.post = async <T>(
       url: string,
-      data?: any,
-      config?: any
+      data?: unknown,
+      config?: AxiosRequestConfig
     ): Promise<T> => {
       const session = this.getCurrentSession();
       if (session?.token) {

@@ -1,5 +1,4 @@
-import type { ReactElement } from 'react';
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 
 import EditHistorySidebar from '@/components/EditHistorySidebar';
 import ShareDocumentModal from '@/components/ShareDocumentModal';

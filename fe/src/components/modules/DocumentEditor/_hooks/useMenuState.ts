@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+
 import type { MenuPlacement } from '../_types'
 
 export const useMenuState = () => {

@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react'
 import { Bold, Italic, Underline, X } from 'lucide-react'
+import type { ReactElement } from 'react'
+
 import type { ToolbarPosition, FormatState } from '../_types'
 
 interface TextToolbarProps {

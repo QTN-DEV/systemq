@@ -1,6 +1,6 @@
+import { logger } from '../lib/logger'
 import { getDocumentById, getDocumentPermissions, getFolderPathIds } from '../lib/shared/services/DocumentService'
-import type { DocumentPermission } from '../types/document-permissions'
-import type { PermissionLevel } from '../types/document-permissions'
+import type { DocumentPermission, PermissionLevel } from '../types/document-permissions'
 
 /**
  * Checks if a user has higher permissions in any ancestor folder
@@ -45,7 +45,7 @@ export async function validatePermissionInheritance(
         if (isDowngrade) {
           // Get folder details for the error message
           const folder = await getDocumentById(folderId, null)
-          const folderName = folder?.name || 'Unknown Folder'
+          const folderName = folder?.name ?? 'Unknown Folder'
           
           return {
             isValid: false,
@@ -62,7 +62,7 @@ export async function validatePermissionInheritance(
     
     return { isValid: true }
   } catch (error) {
-    console.error('Error validating permission inheritance:', error)
+    logger.error('Error validating permission inheritance:', error)
     // If there's an error, allow the operation to proceed
     // This prevents blocking legitimate operations due to technical issues
     return { isValid: true }
@@ -117,7 +117,7 @@ export async function getHighestAncestorPermission(
     
     return highestPermission
   } catch (error) {
-    console.error('Error getting highest ancestor permission:', error)
+    logger.error('Error getting highest ancestor permission:', error)
     return null
   }
 }

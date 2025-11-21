@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
+
 import { AUTOSAVE_DELAY } from '../_constants'
 
 export const useAutosave = (

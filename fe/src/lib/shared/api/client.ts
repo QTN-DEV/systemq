@@ -1,11 +1,13 @@
-import { config as appConfig } from "@/lib/config";
-import { GlobalErrorHandler } from "@/utils/errorHandler";
 import axios, {
+  type AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
+
+import { config as appConfig } from "@/lib/config";
+import { GlobalErrorHandler } from "@/utils/errorHandler";
 
 // Extend Axios config to include metadata
 declare module "axios" {
@@ -45,7 +47,7 @@ export class ApiClient {
     this.setupInterceptors();
   }
 
-  private setupInterceptors() {
+  private setupInterceptors(): void {
     // Request interceptor
     this.axios.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
@@ -70,10 +72,9 @@ export class ApiClient {
     // Response interceptor
     this.axios.interceptors.response.use(
       (response: AxiosResponse) => {
-        const duration =
-          Date.now() - (response.config.metadata?.startTime || 0);
-
         // Axios logging disabled for cleaner console
+        // const duration =
+        //   Date.now() - (response.config.metadata?.startTime || 0);
         // if (appConfig.isDev) {
         //   console.log(
         //     `✅ ${response.config.method?.toUpperCase()} ${
@@ -85,16 +86,16 @@ export class ApiClient {
 
         return response;
       },
-      async (error) => {
+      async (error: AxiosError) => {
         const appError = GlobalErrorHandler.handleApiError(error);
 
         // Implement retry logic for network errors and 5xx errors
         if (
           this.shouldRetry(error) &&
           error.config &&
-          !error.config.__retryCount
+          !(error.config as AxiosRequestConfig & { __retryCount?: number }).__retryCount
         ) {
-          return this.retryRequest(error.config);
+          return this.retryRequest(error.config as AxiosRequestConfig & { __retryCount?: number });
         }
 
         return Promise.reject(appError);
@@ -102,15 +103,19 @@ export class ApiClient {
     );
   }
 
-  private shouldRetry(error: any): boolean {
-    return (
-      !error.response || // Network error
-      (error.response.status >= 500 && error.response.status <= 599) // Server error
-    );
+  private shouldRetry(error: AxiosError | unknown): boolean {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as AxiosError;
+      return (
+        !axiosError.response || // Network error
+        (axiosError.response.status >= 500 && axiosError.response.status <= 599) // Server error
+      );
+    }
+    return false;
   }
 
-  private async retryRequest(config: any): Promise<AxiosResponse> {
-    config.__retryCount = config.__retryCount || 0;
+  private async retryRequest(config: AxiosRequestConfig & { __retryCount?: number }): Promise<AxiosResponse> {
+    config.__retryCount = config.__retryCount ?? 0;
 
     if (config.__retryCount >= this.retries) {
       throw config;
@@ -136,12 +141,12 @@ export class ApiClient {
     url: string,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
-    return await this.axios.get<T>(url, config);
+    return this.axios.get<T>(url, config);
   }
 
   async post<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.axios.post<T>(url, data, config);
@@ -151,7 +156,7 @@ export class ApiClient {
 
   async put<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.axios.put<T>(url, data, config);
@@ -161,7 +166,7 @@ export class ApiClient {
 
   async patch<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.axios.patch<T>(url, data, config);
@@ -179,7 +184,7 @@ export class ApiClient {
   async uploadFile<T>(
     url: string,
     file: File,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: { loaded: number; total?: number }) => void
   ): Promise<T> {
     const formData = new FormData();
 
@@ -201,22 +206,22 @@ export class ApiClient {
   }
 
   // Add authorization header
-  setAuthHeader(token: string) {
+  setAuthHeader(token: string): void {
     this.axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }
 
   // Remove authorization header
-  removeAuthHeader() {
+  removeAuthHeader(): void {
     delete this.axios.defaults.headers.common["Authorization"];
   }
 
   // Set custom header
-  setCustomHeader(key: string, value: string) {
+  setCustomHeader(key: string, value: string): void {
     this.axios.defaults.headers.common[key] = value;
   }
 
   // Remove custom header
-  removeCustomHeader(key: string) {
+  removeCustomHeader(key: string): void {
     delete this.axios.defaults.headers.common[key];
   }
 }

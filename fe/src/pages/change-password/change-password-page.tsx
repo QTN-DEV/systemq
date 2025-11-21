@@ -1,4 +1,5 @@
 import { type ReactElement } from "react";
+
 import useChangePassword from "./_hooks/useChangePassword";
 
 function ChangePassword(): ReactElement {

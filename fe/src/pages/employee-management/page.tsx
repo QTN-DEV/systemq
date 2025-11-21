@@ -1,5 +1,4 @@
-import type { ReactElement } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 
 import type { EmployeeListItem } from "@/lib/shared/services/EmployeeService";
 
@@ -8,9 +7,9 @@ import {
   NotificationBanner,
 } from "./_components";
 import type { EmployeeFormValues } from "./_forms/EmployeeFormSheet";
-import { EmployeeListSection, EmployeeModalsSection } from "./_sections";
 import { useEmployeeActions } from "./_hooks/useEmployeeActions";
 import { useEmployeeData } from "./_hooks/useEmployeeData";
+import { EmployeeListSection, EmployeeModalsSection } from "./_sections";
 
 const DEFAULT_ROWS_PER_PAGE = 10;
 
@@ -242,7 +241,7 @@ export default function EmployeeManagementPage(): ReactElement {
         }}
         onCreateEmployee={handleCreate}
         onExport={() => {
-          console.info("Export employees is not implemented yet.");
+          // Export employees is not implemented yet.
         }}
       />
 

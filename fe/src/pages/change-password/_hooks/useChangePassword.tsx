@@ -70,7 +70,7 @@ function useChangePassword() {
         const message = await authService.changePassword({
           userId: user.id,
           currentPassword: oldPassword,
-          newPassword: newPassword,
+          newPassword,
         });
         logger.log("Password change request:", { userId: user.id });
 

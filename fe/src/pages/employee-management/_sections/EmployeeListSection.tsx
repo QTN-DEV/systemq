@@ -1,4 +1,3 @@
-import type { EmployeeListItem } from "@/lib/shared/services/EmployeeService";
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -17,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { EmployeeListItem } from "@/lib/shared/services/EmployeeService";
 
 import { EmployeeTable } from "../_components/EmployeeTable";
 

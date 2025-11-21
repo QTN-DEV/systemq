@@ -9,6 +9,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { useSidebarMenu } from "../_hooks/useSidebarMenu";
+
 import { SidebarDocsMenu } from "./SidebarDocsMenu";
 import { SidebarMenuItem } from "./SidebarMenuItem";
 

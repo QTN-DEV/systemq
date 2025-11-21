@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { useAuthStore } from "@/stores/authStore";
+
 import type { AuthenticatedUser } from "@/lib/shared/services/authService";
+import { useAuthStore } from "@/stores/authStore";
 import type { DocumentItem, DocumentBreadcrumb } from "@/types/documents";
 
 import {
@@ -122,7 +123,7 @@ export interface GlobalDocumentsState {
 }
 
 export function useGlobalDocuments(): GlobalDocumentsState {
-  const currentUser = useAuthStore((state) => state.user) as AuthenticatedUser | null;
+  const currentUser = useAuthStore((state) => state.user);
 
   // Data Hooks
   const {

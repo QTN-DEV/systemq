@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+
 import type { DocumentBlock } from '@/types/documents'
 
 interface CodeBlockProps {
