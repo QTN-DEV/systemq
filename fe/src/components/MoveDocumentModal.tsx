@@ -6,7 +6,7 @@ import {
     Home,
     Check
   } from 'lucide-react'
-  import { useState, useEffect, useMemo, type ReactElement } from 'react'
+  import { useState, useEffect, useMemo, type ReactElement, KeyboardEvent } from 'react'
   import Swal from 'sweetalert2'
   
   import {
@@ -27,14 +27,14 @@ import {
   // ---- FIX: node type with children ----
   type FolderNode = DocumentItem & { children: FolderNode[] }
   
-  function MoveDocumentModal({ 
-    isOpen, 
-    onClose, 
-    documentId, 
-    documentName, 
+  function MoveDocumentModal({
+    isOpen,
+    onClose,
+    documentId,
+    documentName,
     currentParentId,
-    onMoveSuccess 
-  }: MoveDocumentModalProps): ReactElement {
+    onMoveSuccess
+  }: MoveDocumentModalProps): ReactElement | null {
     const [folders, setFolders] = useState<DocumentItem[]>([])
     const [loading, setLoading] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
@@ -87,13 +87,16 @@ import {
       filteredFolders.forEach(folder => {
         folderMap.set(folder.id, { ...folder, children: [] })
       })
-  
+
       // Build tree structure
       filteredFolders.forEach(folder => {
-        const node = folderMap.get(folder.id)!
-        if (folder.parentId && folderMap.has(folder.parentId)) {
-          folderMap.get(folder.parentId)!.children.push(node)
-        } else {
+        const node = folderMap.get(folder.id)
+        if (node && folder.parentId && folderMap.has(folder.parentId)) {
+          const parent = folderMap.get(folder.parentId)
+          if (parent) {
+            parent.children.push(node)
+          }
+        } else if (node) {
           rootFolders.push(node)
         }
       })
@@ -205,6 +208,14 @@ import {
             }`}
             style={{ paddingLeft: `${level * 20 + 12}px` }}
             onClick={() => handleFolderSelect(folder.id)}
+            onKeyDown={(e: KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleFolderSelect(folder.id);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Select folder ${folder.name}`}
           >
             {folder.children.length > 0 && (
               <button
@@ -237,7 +248,7 @@ import {
       ))
     }
   
-    if (!isOpen) return <></>
+    if (!isOpen) return null
   
     return (
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
@@ -287,6 +298,14 @@ import {
                     : 'hover:bg-gray-50'
                 }`}
                 onClick={() => handleFolderSelect(null)}
+                onKeyDown={(e: KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleFolderSelect(null);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Select root folder"
               >
                 <Home className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium">Root (All Documents)</span>

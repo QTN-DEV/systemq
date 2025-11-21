@@ -10,7 +10,7 @@ interface EditHistorySidebarProps {
   error: string | null
 }
 
-function EditHistorySidebar({ isOpen, onClose, events, error }: EditHistorySidebarProps): ReactElement {
+function EditHistorySidebar({ isOpen, onClose, events, error }: EditHistorySidebarProps): ReactElement | null {
   // Group by date buckets and editor within small time windows (e.g., 5 minutes)
   const grouped = useMemo(() => {
     if (!events || events.length === 0) return [] as Array<{
@@ -38,7 +38,7 @@ function EditHistorySidebar({ isOpen, onClose, events, error }: EditHistorySideb
       sortMs: number
     }> = []
 
-    for (const { label: dateLabel, events: monthEvents, sortMs } of Object.values(byMonth)) {
+    for (const { label: dateLabel, events: monthEvents, sortMs: _sortMs } of Object.values(byMonth)) {
       // Within the month, group consecutive events by same editor within 5 minutes window
       const entries: Array<{ editor: EditHistoryEvent['editor']; count: number; startMs: number; endMs: number }> = []
       let windowStart: Date | null = null
@@ -88,15 +88,15 @@ function EditHistorySidebar({ isOpen, onClose, events, error }: EditHistorySideb
 
       // Latest groups first within the day by end time
       entries.sort((a, b) => b.endMs - a.endMs)
-      result.push({ dateLabel, entries, sortMs })
+      result.push({ dateLabel, entries, sortMs: _sortMs })
     }
 
     // Latest month first
     result.sort((a, b) => b.sortMs - a.sortMs)
-    return result.map(({ sortMs, ...rest }) => rest)
+    return result.map(({ sortMs: _sortMs, ...rest }) => rest)
   }, [events])
 
-  if (!isOpen) return <></>
+  if (!isOpen) return null
 
   return (
     <aside className="w-full border-t border-gray-200 bg-slate-50 h-full flex flex-col flex-shrink-0 sm:max-w-sm lg:w-80 xl:w-80 lg:border-l lg:border-t-0">

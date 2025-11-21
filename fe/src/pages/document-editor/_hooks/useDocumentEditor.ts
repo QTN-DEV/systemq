@@ -110,7 +110,7 @@ export function useDocumentEditor(): {
           const updatedDoc = await updateDocumentContent(
             fileId,
             {
-              category: documentCategory ? documentCategory : null,
+              category: documentCategory ?? null,
               content: newBlocks,
             },
             { commit: false }
@@ -121,7 +121,7 @@ export function useDocumentEditor(): {
             if (Array.isArray(updatedDoc.content) && updatedDoc.content.length > 0) {
               setBlocks(updatedDoc.content);
             }
-            scheduleIdleCommit(updatedDoc.content || newBlocks);
+            scheduleIdleCommit(updatedDoc.content ?? newBlocks);
           }
         } catch (error) {
           logger.error('Failed to save document:', error);
@@ -158,7 +158,7 @@ export function useDocumentEditor(): {
       if (fileId && document) {
         try {
           const updated = await updateDocumentContent(fileId, {
-            category: newCategory ? newCategory : null,
+            category: newCategory ?? null,
             content: blocks,
           });
           if (updated) {
@@ -182,7 +182,7 @@ export function useDocumentEditor(): {
         void updateDocumentContent(
           fileId,
           {
-            category: documentCategory ? documentCategory : null,
+            category: documentCategory ?? null,
             content: blocks,
           },
           { commit: true }

@@ -9,8 +9,8 @@ import type { DocumentBlock } from '@/types/documents'
  * Converts a single DocumentBlock to HTML string.
  */
 function blockToHtml(block: DocumentBlock): string {
-  const content = block.content || ''
-  const alignment = block.alignment || 'left'
+  const content = block.content ?? ''
+  const alignment = block.alignment ?? 'left'
 
   switch (block.type) {
     case 'paragraph':
@@ -48,16 +48,16 @@ function blockToHtml(block: DocumentBlock): string {
 
     case 'image':
       if (block.url) {
-        return `<img src="${escapeHtml(block.url)}" alt="${escapeHtml(content || 'Image')}" />`
+        return `<img src="${escapeHtml(block.url)}" alt="${escapeHtml(content ?? 'Image')}" />`
       }
-      return `<p>${escapeHtml(content || 'Image')}</p>`
+      return `<p>${escapeHtml(content ?? 'Image')}</p>`
 
     case 'file':
       if (block.url) {
-        const fileName = block.fileName || content || 'File'
+        const fileName = block.fileName ?? content ?? 'File'
         return `<p><a href="${escapeHtml(block.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(fileName)}</a></p>`
       }
-      return `<p>${escapeHtml(block.fileName || content || 'File')}</p>`
+      return `<p>${escapeHtml(block.fileName ?? content ?? 'File')}</p>`
 
     case 'table':
       if (block.table && block.table.rows) {
@@ -65,7 +65,7 @@ function blockToHtml(block: DocumentBlock): string {
         for (const row of block.table.rows) {
           html += '<tr>'
           for (const cell of row.cells) {
-            const cellContent = cell.content || ''
+            const cellContent = cell.content ?? ''
             html += `<td>${escapeHtml(cellContent)}</td>`
           }
           html += '</tr>'
@@ -126,7 +126,7 @@ export function migrateHtmlToBlocks(html: string): DocumentBlock[] {
   // Parse each top-level element
   Array.from(temp.children).forEach((element) => {
     const tagName = element.tagName.toLowerCase()
-    const textContent = element.textContent || ''
+    const textContent = element.textContent ?? ''
 
     let block: DocumentBlock | null = null
 
@@ -165,7 +165,7 @@ export function migrateHtmlToBlocks(html: string): DocumentBlock[] {
 
       case 'ul':
         const ulItems = Array.from(element.querySelectorAll('li'))
-          .map((li) => li.textContent || '')
+          .map((li) => li.textContent ?? '')
           .join('\n')
         block = {
           id: `block-${blockId++}`,
@@ -176,7 +176,7 @@ export function migrateHtmlToBlocks(html: string): DocumentBlock[] {
 
       case 'ol':
         const olItems = Array.from(element.querySelectorAll('li'))
-          .map((li) => li.textContent || '')
+          .map((li) => li.textContent ?? '')
           .join('\n')
         block = {
           id: `block-${blockId++}`,
@@ -198,7 +198,7 @@ export function migrateHtmlToBlocks(html: string): DocumentBlock[] {
         block = {
           id: `block-${blockId++}`,
           type: 'code',
-          content: codeElement?.textContent || textContent,
+          content: codeElement?.textContent ?? textContent,
         }
         break
 
@@ -207,7 +207,7 @@ export function migrateHtmlToBlocks(html: string): DocumentBlock[] {
         block = {
           id: `block-${blockId++}`,
           type: 'image',
-          content: img.alt || '',
+          content: img.alt ?? '',
           url: img.src,
         }
         break
@@ -221,7 +221,7 @@ export function migrateHtmlToBlocks(html: string): DocumentBlock[] {
           row.querySelectorAll('td, th').forEach((cell, cellIndex) => {
             cells.push({
               id: `cell-${rowIndex}-${cellIndex}`,
-              content: cell.textContent || '',
+              content: cell.textContent ?? '',
             })
           })
           if (cells.length > 0) {
