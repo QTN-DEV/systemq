@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getFolderPathIds } from '@/lib/shared/services/DocumentService';
 import type { DocumentItem } from '@/types/documents';
@@ -14,6 +14,8 @@ export function DocumentBreadcrumb({
   fileName,
 }: DocumentBreadcrumbProps): ReactElement {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isSharedView = searchParams.get('view') === 'shared';
 
   const handleParentClick = (): void => {
     if (document.parentId) {
@@ -21,7 +23,8 @@ export function DocumentBreadcrumb({
         try {
           const parentPathIds = await getFolderPathIds(document.parentId ?? null);
           const parentPath = parentPathIds.join('/');
-          void navigate(`/documents/${parentPath}`);
+          const prefix = isSharedView ? 'shared/' : '';
+          void navigate(`/documents/${prefix}${parentPath}`);
         } catch {
           // If parent cannot be accessed, stay on current page
         }
@@ -34,11 +37,11 @@ export function DocumentBreadcrumb({
     <div className="flex items-center space-x-2 text-sm text-gray-500">
       <button
         onClick={(): void => {
-          void navigate('/documents');
+          void navigate(isSharedView ? '/documents/shared' : '/documents');
         }}
         className="hover:text-gray-700 transition-colors"
       >
-        All Documents
+        {isSharedView ? 'Shared with Me' : 'All Documents'}
       </button>
       <span>/</span>
       {document?.parentId && (

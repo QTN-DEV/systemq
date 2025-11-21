@@ -52,7 +52,7 @@ export const HeadingBlock = ({
         }
         normalizeAnchors(el as unknown as HTMLElement)
       }}
-      className={`ce-editable w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
+      className={`ce-editable whitespace-pre-wrap w-full bg-transparent outline-none overflow-hidden min-h-[1.5em] text-left text-gray-900 focus:outline-none ${typeClass}`}
       contentEditable={!readOnly}
       suppressContentEditableWarning
       data-placeholder={placeholder}

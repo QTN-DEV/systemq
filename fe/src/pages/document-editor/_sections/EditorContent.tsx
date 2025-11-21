@@ -6,6 +6,8 @@ import SearchableDropdown from '@/components/SearchableDropdown';
 import { getDocumentCategories } from '@/lib/shared/services/DocumentService';
 import type { DocumentItem, DocumentBlock } from '@/types/documents';
 
+import { formatDateTime } from '../_utils/formatDateTime';
+
 interface EditorContentProps {
   document: DocumentItem;
   fileName: string;
@@ -71,10 +73,8 @@ export function EditorContent({
         {document?.lastModified && (
           <div className="text-sm text-gray-500 mb-2">
             {document.lastModifiedBy?.name
-              ? `Last modified by ${document.lastModifiedBy.name} at ${new Date(
-                  document.lastModified
-                ).toLocaleString()}`
-              : `Last modified at ${new Date(document.lastModified).toLocaleString()}`}
+              ? `Last modified by ${document.lastModifiedBy.name} at ${formatDateTime(document.lastModified)}`
+              : `Last modified at ${formatDateTime(document.lastModified)}`}
           </div>
         )}
 

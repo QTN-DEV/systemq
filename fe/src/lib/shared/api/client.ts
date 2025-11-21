@@ -52,12 +52,13 @@ export class ApiClient {
         // Add timestamp for request tracking
         config.metadata = { startTime: Date.now() };
 
-        if (appConfig.isDev) {
-          console.log(
-            `🚀 ${config.method?.toUpperCase()} ${config.url}`,
-            config.data ? { data: config.data } : ""
-          );
-        }
+        // Axios logging disabled for cleaner console
+        // if (appConfig.isDev) {
+        //   console.log(
+        //     `🚀 ${config.method?.toUpperCase()} ${config.url}`,
+        //     config.data ? { data: config.data } : ""
+        //   );
+        // }
 
         return config;
       },
@@ -72,14 +73,15 @@ export class ApiClient {
         const duration =
           Date.now() - (response.config.metadata?.startTime || 0);
 
-        if (appConfig.isDev) {
-          console.log(
-            `✅ ${response.config.method?.toUpperCase()} ${
-              response.config.url
-            } (${duration}ms)`,
-            { status: response.status, data: response.data }
-          );
-        }
+        // Axios logging disabled for cleaner console
+        // if (appConfig.isDev) {
+        //   console.log(
+        //     `✅ ${response.config.method?.toUpperCase()} ${
+        //       response.config.url
+        //     } (${duration}ms)`,
+        //     { status: response.status, data: response.data }
+        //   );
+        // }
 
         return response;
       },
