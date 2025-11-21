@@ -52,7 +52,7 @@ SMTP_USE_TLS: bool = _get_bool("SMTP_USE_TLS", False)
 DEFAULT_PASSWORD: str = os.getenv("DEFAULT_PASSWORD", "change-me")
 
 # MinIO S3 Configuration
-MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "192.168.166.13:9000")
+MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "bucket.quantumteknologi.com")
 MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "VHhenBeNEZpPoD9f94LI")
 MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "91uSO3DYuPIwJr7D3nY5OhsI4YBQywOvLRr3YqAd")
 MINIO_BUCKET_NAME: str = os.getenv("MINIO_BUCKET_NAME", "internal-ops")
