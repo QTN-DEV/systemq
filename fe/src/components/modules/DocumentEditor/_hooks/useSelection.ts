@@ -47,7 +47,7 @@ export const useSelection = (blocks: DocumentBlock[]): {
       isSelectingRef.current = false
     }
     document.addEventListener('mouseup', handleUp)
-    return () => {
+    return (): void => {
       document.removeEventListener('mouseup', handleUp)
     }
   }, [])

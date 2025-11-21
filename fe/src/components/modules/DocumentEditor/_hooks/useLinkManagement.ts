@@ -184,7 +184,7 @@ export const useLinkManagement = (
     }
     document.addEventListener('mouseover', onMouseOver)
     document.addEventListener('mousedown', onMouseDown)
-    return () => {
+    return (): void => {
       document.removeEventListener('mouseover', onMouseOver)
       document.removeEventListener('mousedown', onMouseDown)
     }

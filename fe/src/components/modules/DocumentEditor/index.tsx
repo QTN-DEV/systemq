@@ -313,6 +313,7 @@ function DocumentEditorModular({
 
   const handleAnchorClick = (_e: React.MouseEvent, _blockId: string): void => {
     if (readOnly) {
+      // Early return for read-only mode
       return
     }
     // Anchor click handling can be added here if needed
