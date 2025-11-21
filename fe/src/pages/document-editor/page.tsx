@@ -44,17 +44,19 @@ export default function DocumentEditorPage(): ReactElement {
           <EditorHeader
             document={document}
             fileName={fileName}
+            documentCategory={documentCategory}
             canEdit={canEdit}
             onOpenShare={() => setShowShareModal(true)}
             onOpenHistory={() => {
               void openHistory();
             }}
+            onCategoryChange={handleCategoryChange}
             showHistory={showHistory}
             showHistoryButton={showHistoryButton}
           />
 
           {/* Main Content */}
-          <div className="flex flex-1 flex-col bg-white min-h-0 overflow-hidden">
+          <div className="flex flex-1 flex-col bg-gray-50 min-h-0 overflow-hidden">
             <div
               className={`flex-1 min-h-0 overflow-y-auto transition-[padding] duration-300 ease-in-out ${
                 showHistory ? 'xl:pr-8 2xl:pr-12' : ''
@@ -63,12 +65,10 @@ export default function DocumentEditorPage(): ReactElement {
               <EditorContentTipTap
                 document={document}
                 fileName={fileName}
-                documentCategory={documentCategory}
                 contentHtml={contentHtml}
                 initialBlocks={document?.content} // For migration: convert blocks if HTML missing
                 canEdit={canEdit}
                 onNameChange={handleNameChange}
-                onCategoryChange={handleCategoryChange}
                 onSave={handleSave}
               />
             </div>

@@ -4,6 +4,7 @@ import { Table } from '@tiptap/extension-table'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableRow } from '@tiptap/extension-table-row'
+import TextAlign from '@tiptap/extension-text-align'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useEffect, useCallback, useRef, type ReactElement } from 'react'
@@ -77,6 +78,9 @@ export function TipTapEditor({
       TableRow,
       TableHeader,
       TableCell,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
     ],
     content: getInitialContent(),
     editable: !readOnly,
@@ -139,12 +143,13 @@ export function TipTapEditor({
   }
 
   return (
-    <div className={`tiptap-editor-wrapper border border-gray-200 rounded-lg overflow-hidden ${className}`}>
+    <div className={`tiptap-editor-wrapper border border-gray-200 rounded-lg overflow-hidden bg-white ${className}`}>
       {!readOnly && <TipTapToolbar editor={editor} />}
       <EditorContent editor={editor} />
       <style>{`
         .tiptap-editor-wrapper .ProseMirror {
           outline: none;
+          background-color: white;
         }
         .tiptap-editor-wrapper .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
@@ -228,6 +233,18 @@ export function TipTapEditor({
         .tiptap-editor-wrapper .ProseMirror table th {
           background-color: #f9fafb;
           font-weight: bold;
+        }
+        .tiptap-editor-wrapper .ProseMirror [style*="text-align: left"] {
+          text-align: left;
+        }
+        .tiptap-editor-wrapper .ProseMirror [style*="text-align: center"] {
+          text-align: center;
+        }
+        .tiptap-editor-wrapper .ProseMirror [style*="text-align: right"] {
+          text-align: right;
+        }
+        .tiptap-editor-wrapper .ProseMirror [style*="text-align: justify"] {
+          text-align: justify;
         }
       `}</style>
     </div>
