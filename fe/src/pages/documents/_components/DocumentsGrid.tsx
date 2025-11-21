@@ -47,8 +47,7 @@ export function DocumentsGrid({
   showAddButton,
   onAdd,
   emptyMessage,
-}: DocumentsGridProps) {
-
+}: DocumentsGridProps): React.ReactElement {
   const filteredItems = items.filter((item) => item.type === type);
 
   return (

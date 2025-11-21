@@ -35,7 +35,7 @@ export function ManageSubordinatesSheet({
   employees,
   subordinateMap,
   onSave,
-}: ManageSubordinatesSheetProps) {
+}: ManageSubordinatesSheetProps): React.ReactElement {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -83,15 +83,15 @@ export function ManageSubordinatesSheet({
     });
   }, [employees, employee, subordinateMap, searchTerm, selectedIds]);
 
-  const handleRemoveSubordinate = (id: string) => {
+  const handleRemoveSubordinate = (id: string): void => {
     setSelectedIds((prev) => prev.filter((candidateId) => candidateId !== id));
   };
 
-  const handleAddSubordinate = (id: string) => {
+  const handleAddSubordinate = (id: string): void => {
     setSelectedIds((prev) => [...prev, id]);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     if (!employee) return;
     setIsSaving(true);
     try {
@@ -235,7 +235,7 @@ export function ManageSubordinatesSheet({
         </div>
 
         <SheetFooter className="px-0">
-          <Button type="button" onClick={handleSave} disabled={isSaving}>
+          <Button type="button" onClick={() => { void handleSave(); }} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </SheetFooter>

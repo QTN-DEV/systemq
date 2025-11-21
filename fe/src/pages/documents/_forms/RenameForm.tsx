@@ -27,7 +27,7 @@ export function RenameForm({
   onSubmit,
   item,
   isLoading,
-}: RenameFormProps) {
+}: RenameFormProps): React.ReactElement | null {
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function RenameForm({
     }
   }, [item]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     await onSubmit(name.trim());
   };
@@ -55,7 +55,7 @@ export function RenameForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => { void handleSubmit(e); }}>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="itemName">

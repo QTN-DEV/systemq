@@ -11,7 +11,7 @@ interface DocumentsBreadcrumbProps {
 export function DocumentsBreadcrumb({
   breadcrumbs,
   onBreadcrumbClick,
-}: DocumentsBreadcrumbProps) {
+}: DocumentsBreadcrumbProps): React.ReactElement | null {
   if (breadcrumbs.length <= 1) return null;
 
   return (

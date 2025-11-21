@@ -24,10 +24,10 @@ export function CreateFolderForm({
   onClose,
   onSubmit,
   isLoading,
-}: CreateFolderFormProps) {
+}: CreateFolderFormProps): React.ReactElement {
   const [name, setName] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     await onSubmit(name.trim());
     setName("");
@@ -43,7 +43,7 @@ export function CreateFolderForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => { void handleSubmit(e); }}>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="folderName">Folder Name</Label>

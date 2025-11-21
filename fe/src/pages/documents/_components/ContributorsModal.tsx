@@ -23,7 +23,7 @@ export function ContributorsModal({
   onClose,
   contributors,
   itemName,
-}: ContributorsModalProps) {
+}: ContributorsModalProps): React.ReactElement {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[460px]">

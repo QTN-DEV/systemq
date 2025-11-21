@@ -13,7 +13,7 @@ export function NotificationBanner({
   type,
   message,
   onClose,
-}: NotificationBannerProps) {
+}: NotificationBannerProps): React.ReactElement {
   const isSuccess = type === "success";
   const Icon = isSuccess ? CheckCircle2Icon : AlertCircleIcon;
 

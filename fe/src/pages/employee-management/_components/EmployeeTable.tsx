@@ -55,7 +55,7 @@ export function EmployeeTable({
   onManageSubordinates,
   onDeactivate,
   onActivate,
-}: EmployeeTableProps) {
+}: EmployeeTableProps): React.ReactElement {
   return (
     <Table>
       <TableHeader>
@@ -237,7 +237,7 @@ function RelationCell({
   emptyLabel,
   canManage,
   manageAction,
-}: RelationCellProps) {
+}: RelationCellProps): React.ReactElement {
   const preview = records.slice(0, 2);
   const remainder = records.slice(2);
   const hasRecords = records.length > 0;

@@ -20,7 +20,7 @@ export function DocumentsToolbar({
   globalQuery,
   onQueryChange,
   onClearQuery,
-}: DocumentsToolbarProps) {
+}: DocumentsToolbarProps): React.ReactElement {
   return (
     <div className="flex items-center justify-between border-b mb-4 pb-4">
       <Tabs value={activeFilter} onValueChange={onFilterChange}>

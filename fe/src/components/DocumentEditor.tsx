@@ -63,7 +63,7 @@ interface DocumentEditorProps {
 }
 
 /** Global CSS untuk placeholder & konsistensi link */
-const PlaceholderStyles = () => (
+const PlaceholderStyles = (): ReactElement => (
   <style>{`
   .ce-editable[contenteditable="true"]:empty:before {
     content: attr(data-placeholder);
@@ -266,7 +266,9 @@ function DocumentEditor({
           backward = Boolean(pos & Node.DOCUMENT_POSITION_PRECEDING)
         }
       }
-    } catch { }
+    } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
     return { start, end, backward }
   }
 
@@ -313,7 +315,9 @@ function DocumentEditor({
         else sel.setBaseAndExtent(startNode, startOffsetInNode, endNode, endOffsetInNode)
         return
       }
-    } catch { }
+    } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
 
     const range = document.createRange()
     if (startNode) range.setStart(startNode, startOffsetInNode)
@@ -444,7 +448,9 @@ function DocumentEditor({
     try {
       if (document.activeElement !== el) el.focus()
       setSelectionOffsets(el, start, end, backward)
-    } catch { }
+    } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
   }, [blocks])
 
   /** ---------- Selection end guard ---------- */
@@ -1165,9 +1171,10 @@ function DocumentEditor({
   useEffect(() => {
     setBlocks((prev) =>
       prev.map((b) => {
-        if ((b as any)?.type !== 'link') return b
-        const href = (b as any).url || (b as any).content || '#'
-        const text = (b as any).content || (b as any).url || 'Link'
+        const block = b as unknown as { type?: string; url?: string; content?: string };
+        if (block?.type !== 'link') return b
+        const href = block.url ?? block.content ?? '#'
+        const text = block.content ?? block.url ?? 'Link'
         return {
           ...b,
           type: 'paragraph' as DocumentBlock['type'],
@@ -1217,7 +1224,7 @@ function DocumentEditor({
             onMouseDown={(): void => { setActiveBlockId(block.id); isSelectingRef.current = true }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
-            onKeyDown={(e): void => { handleKeyDown(e as any, block.id) }}
+            onKeyDown={(e): void => { handleKeyDown(e as React.KeyboardEvent, block.id) }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
               prevContentRef.current[block.id] = html
@@ -1285,7 +1292,7 @@ function DocumentEditor({
               onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
               onKeyUp={() => saveSelectionForBlock(block.id)}
               onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
-              onKeyDown={(e): void => { handleKeyDown(e as any, block.id) }}
+              onKeyDown={(e): void => { handleKeyDown(e as React.KeyboardEvent, block.id) }}
               onInput={(e): void => {
                 const html = (e.currentTarget as HTMLDivElement).innerHTML
                 prevContentRef.current[block.id] = html
@@ -1623,7 +1630,7 @@ function DocumentEditor({
             onMouseDown={() => { setActiveBlockId(block.id); isSelectingRef.current = true }}
             onKeyUp={() => saveSelectionForBlock(block.id)}
             onClick={(e): void => { handleAnchorClick(e, block.id); saveSelectionForBlock(block.id) }}
-            onKeyDown={(e): void => { handleKeyDown(e as any, block.id) }}
+            onKeyDown={(e): void => { handleKeyDown(e as React.KeyboardEvent, block.id) }}
             onInput={(e): void => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML
               prevContentRef.current[block.id] = html
@@ -1680,7 +1687,9 @@ function DocumentEditor({
           italic: document.queryCommandState('italic'),
           underline: document.queryCommandState('underline'),
         })
-      } catch { }
+      } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
     }
     document.addEventListener('selectionchange', onSelectionChange)
     return () => document.removeEventListener('selectionchange', onSelectionChange)
@@ -1845,7 +1854,9 @@ function DocumentEditor({
                   italic: document.queryCommandState('italic'),
                   underline: document.queryCommandState('underline'),
                 })
-              } catch { }
+              } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
             }}
           >
             <Bold className="w-4 h-4" />
@@ -1863,7 +1874,9 @@ function DocumentEditor({
                   italic: document.queryCommandState('italic'),
                   underline: document.queryCommandState('underline'),
                 })
-              } catch { }
+              } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
             }}
           >
             <Italic className="w-4 h-4" />
@@ -1881,7 +1894,9 @@ function DocumentEditor({
                   italic: document.queryCommandState('italic'),
                   underline: document.queryCommandState('underline'),
                 })
-              } catch { }
+              } catch {
+      // Ignore selection errors - empty catch is intentional
+    }
             }}
           >
             <Underline className="w-4 h-4" />

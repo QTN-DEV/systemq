@@ -24,10 +24,10 @@ export function CreateFileForm({
   onClose,
   onSubmit,
   isLoading,
-}: CreateFileFormProps) {
+}: CreateFileFormProps): React.ReactElement {
   const [name, setName] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     await onSubmit(name.trim());
     setName("");
@@ -43,7 +43,7 @@ export function CreateFileForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => { void handleSubmit(e); }}>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fileName">Document Name</Label>

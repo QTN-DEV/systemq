@@ -45,7 +45,15 @@ export function SearchResultsSection({
         {globalResults.map((item) => (
           <div
             key={item.id}
-            onClick={() => void onOpenSearchItem(item)}
+            onClick={() => { void onOpenSearchItem(item); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                void onOpenSearchItem(item);
+              }
+            }}
+            role="button"
+            tabIndex={0}
             className="cursor-pointer"
           >
             {/* Search results cards - simplified for now */}
