@@ -7,11 +7,15 @@ import type { DocumentItem } from '@/types/documents';
 interface DocumentBreadcrumbProps {
   document: DocumentItem;
   fileName: string;
+  canEdit: boolean;
+  onNameChange: (name: string) => Promise<void>;
 }
 
 export function DocumentBreadcrumb({
   document,
   fileName,
+  canEdit,
+  onNameChange,
 }: DocumentBreadcrumbProps): ReactElement {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -34,27 +38,39 @@ export function DocumentBreadcrumb({
   };
 
   return (
-    <div className="flex items-center space-x-2 text-sm text-gray-500">
-      <button
-        onClick={(): void => {
-          void navigate(isSharedView ? '/documents/shared' : '/documents');
-        }}
-        className="hover:text-gray-700 transition-colors"
-      >
-        {isSharedView ? 'Shared with Me' : 'All Documents'}
-      </button>
-      <span>/</span>
-      {document?.parentId && (
-        <>
+    <div className="flex flex-col">
+      {/* Breadcrumb Path */}
+      <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+        <button
+          onClick={(): void => {
+            void navigate(isSharedView ? '/documents/shared' : '/documents');
+          }}
+          className="hover:text-gray-700 transition-colors"
+        >
+          {isSharedView ? 'Shared with Me' : 'All Documents'}
+        </button>
+        {document?.parentId && (
           <button onClick={handleParentClick} className="hover:text-gray-700 transition-colors">
             {document.path.length > 0
               ? document.path[document.path.length - 1]
               : 'Documents'}
           </button>
-          <span>/</span>
-        </>
+        )}
+      </div>
+      {/* Title Input */}
+      {canEdit ? (
+        <input
+          type="text"
+          value={fileName || 'New Document'}
+          onChange={(e) => {
+            void onNameChange(e.target.value);
+          }}
+          className="text-xl font-bold text-gray-900 bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 min-w-[250px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors"
+          placeholder="Untitled Document"
+        />
+      ) : (
+        <span className="text-xl font-bold text-gray-900">{fileName || 'New Document'}</span>
       )}
-      <span className="text-gray-900 font-medium">{fileName || 'New Document'}</span>
     </div>
   );
 }

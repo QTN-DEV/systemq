@@ -6,7 +6,6 @@ import { getDocumentCategories } from '@/lib/shared/services/DocumentService';
 import type { DocumentItem } from '@/types/documents';
 
 import { DocumentBreadcrumb } from '../_components/DocumentBreadcrumb';
-import { formatDateTime } from '../_utils/formatDateTime';
 
 interface EditorHeaderProps {
   document: DocumentItem;
@@ -16,6 +15,7 @@ interface EditorHeaderProps {
   onOpenShare: () => void;
   onOpenHistory: () => void;
   onCategoryChange: (category: string) => Promise<void>;
+  onNameChange: (name: string) => Promise<void>;
   showHistory: boolean;
   showHistoryButton: boolean;
 }
@@ -28,22 +28,20 @@ export function EditorHeader({
   onOpenShare,
   onOpenHistory,
   onCategoryChange,
+  onNameChange,
   showHistory,
   showHistoryButton,
 }: EditorHeaderProps): ReactElement {
   return (
-    <div className="bg-white h-16 flex items-center justify-center border-b border-gray-200 px-6 sticky top-0 z-10">
+    <div className="bg-white h-20 flex items-center justify-center border-b border-gray-200 px-6 py-2 sticky top-0 z-10">
       <div className="flex items-center justify-between bg-white w-full h-full">
-        <div>
-          <DocumentBreadcrumb document={document} fileName={fileName} />
-          {/* Last modified */}
-          {document?.lastModified && (
-            <div className="text-xs text-gray-500">
-              {document.lastModifiedBy?.name
-                ? `Last modified by ${document.lastModifiedBy.name} at ${formatDateTime(document.lastModified)}`
-                : `Last modified at ${formatDateTime(document.lastModified)}`}
-            </div>
-          )}
+        <div className="flex items-center">
+          <DocumentBreadcrumb
+            document={document}
+            fileName={fileName}
+            canEdit={canEdit}
+            onNameChange={onNameChange}
+          />
         </div>
 
         {/* Action Buttons */}
