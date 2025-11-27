@@ -198,15 +198,10 @@ export function useGlobalDocuments(): GlobalDocumentsState {
     Boolean(currentUser?.id && item.ownedBy?.id === currentUser.id);
 
   // Check if user is System Administrator
-  const isSystemAdmin = Boolean(
-    currentUser &&
-    (currentUser.position === "Admin" ||
-      currentUser.role === "admin" ||
-      (typeof currentUser.level === "string" &&
-        ["admin", "administrator", "superadmin", "principal"].includes(
-          currentUser.level.toLowerCase()
-        )))
-  );
+  const isSystemAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    return ["System Administrator", "CEO Office", "Internal Ops"].includes(currentUser.title ?? "");
+  }, [currentUser]);
 
   const canCreateHere =
     !isSharedView && (currentFolderId ? canEditFolder : true);
