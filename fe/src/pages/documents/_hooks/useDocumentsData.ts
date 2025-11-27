@@ -72,16 +72,10 @@ export function useDocumentsData(): {
   const canEditFolder = folderAccess?.can_edit ?? false;
 
   // Check if user is System Administrator
-  // Check both position and role fields, with case-insensitive matching for level
-  const isSystemAdmin = Boolean(
-    currentUser &&
-    (currentUser.position === "Admin" ||
-      currentUser.role === "admin" ||
-      (typeof currentUser.level === "string" &&
-        ["admin", "administrator", "superadmin", "principal"].includes(
-          currentUser.level.toLowerCase()
-        )))
-  );
+  const isSystemAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    return ["System Administrator", "CEO Office", "Internal Ops"].includes(currentUser.title ?? "");
+  }, [currentUser]);
 
   // Filter items based on view (My vs Shared) and ensure only items in current folder are shown
   // When at root (currentFolderId === null), only show items with no parent
