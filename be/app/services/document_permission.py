@@ -92,7 +92,7 @@ def _is_admin(user: User | None) -> bool:
     
     # Check title field for system admin roles
     title = (user.title or "").strip()
-    is_admin = title in ["System Administrator", "CEO Office", "Internal Ops"]
+    is_admin = title in ["System Administrator"]
     if is_admin:
         log_info(logger, "granting admin override (title)", user_id=user.employee_id, title=title)
     return is_admin
