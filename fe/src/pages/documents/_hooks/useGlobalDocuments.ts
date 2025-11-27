@@ -200,7 +200,7 @@ export function useGlobalDocuments(): GlobalDocumentsState {
   // Check if user is System Administrator
   const isSystemAdmin = useMemo(() => {
     if (!currentUser) return false;
-    return ["System Administrator", "CEO Office", "Internal Ops"].includes(currentUser.title ?? "");
+    return ["System Administrator"].includes(currentUser.title ?? "");
   }, [currentUser]);
 
   const canCreateHere =

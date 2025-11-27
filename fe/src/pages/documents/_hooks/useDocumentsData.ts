@@ -74,7 +74,7 @@ export function useDocumentsData(): {
   // Check if user is System Administrator
   const isSystemAdmin = useMemo(() => {
     if (!currentUser) return false;
-    return ["System Administrator", "CEO Office", "Internal Ops"].includes(currentUser.title ?? "");
+    return ["System Administrator"].includes(currentUser.title ?? "");
   }, [currentUser]);
 
   // Filter items based on view (My vs Shared) and ensure only items in current folder are shown

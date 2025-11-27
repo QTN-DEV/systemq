@@ -46,7 +46,7 @@ def _is_admin(user: UserProfile) -> bool:
     """Check if user should be treated as a global admin."""
     # Check title field for system admin roles
     title = (user.title or "").strip()
-    is_admin = title in ["System Administrator", "CEO Office", "Internal Ops"]
+    is_admin = title in ["System Administrator"]
     if is_admin:
         log_info(logger, "granting admin override (title)", user_id=user.id, title=title)
     return is_admin
