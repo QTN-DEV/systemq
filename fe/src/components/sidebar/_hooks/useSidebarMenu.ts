@@ -34,15 +34,8 @@ export function useSidebarMenu(): {
 
   // Check if user is System Administrator
   const isSystemAdmin = useMemo(() => {
-    return Boolean(
-      currentUser &&
-      (currentUser.position === "Admin" ||
-        currentUser.role === "admin" ||
-        (typeof currentUser.level === "string" &&
-          ["admin", "administrator", "superadmin", "principal"].includes(
-            currentUser.level.toLowerCase()
-          )))
-    );
+    if (!currentUser) return false;
+    return ["System Administrator", "CEO Office", "Internal Ops"].includes(currentUser.title ?? "");
   }, [currentUser]);
 
   const isPathActive = (path: string): boolean => {
