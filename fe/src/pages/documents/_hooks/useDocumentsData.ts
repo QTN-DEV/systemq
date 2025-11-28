@@ -80,8 +80,22 @@ export function useDocumentsData(): {
   // Filter items based on view (My vs Shared) and ensure only items in current folder are shown
   // When at root (currentFolderId === null), only show items with no parent
   // When in a subfolder, only show items with parentId matching currentFolderId
+  // EXCEPTION: In "Shared with Me" view at root, show ALL shared items (flat list) regardless of parentId
   const displayItems = useMemo(() => {
-    // First, filter by parent folder to ensure we only show items in the current folder
+    if (!currentUser) return currentItems;
+    
+    const myId = currentUser.id;
+    
+    // "Shared with Me" view at root: show ALL shared items flat (regardless of their folder structure)
+    // This allows users to see files shared with them even if the parent folder wasn't shared
+    if (isSharedView && currentFolderId === null) {
+      return currentItems.filter((item: DocumentItem) => {
+        // Show items not owned by current user (shared items)
+        return item.ownedBy?.id !== myId;
+      });
+    }
+    
+    // For all other cases, filter by parent folder
     let filtered = currentItems;
     if (currentFolderId === null) {
       // At root: only show items with no parent
@@ -91,18 +105,14 @@ export function useDocumentsData(): {
       filtered = currentItems.filter((item) => item.parentId === currentFolderId);
     }
     
-    if (!currentUser) return filtered;
-    
     // System Administrators see all documents in "My Documents" view (but still filtered by parent)
     if (!isSharedView && isSystemAdmin) {
       return filtered; // Show all documents for System Admin in "My Documents" (but only in current folder)
     }
     
-    const myId = currentUser.id;
-    
     return filtered.filter((item: DocumentItem) => {
       if (isSharedView) {
-        // Shared view: show items not owned by current user
+        // Shared view in subfolder: show items not owned by current user
         return item.ownedBy?.id !== myId;
       } else {
         // My Documents view: show only documents owned by current user
