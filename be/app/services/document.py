@@ -14,7 +14,6 @@ from app.models.document import (
     DocumentUserRef,
     EditHistoryEvent,
 )
-from app.models.user import User  # NEW
 from app.schemas.document import DocumentCreate
 
 
@@ -160,6 +159,7 @@ async def get_documents_by_parent(
         check_document_access,
         has_direct_document_access,
         has_ancestor_folder_access,
+        _resolve_user,
     )
 
     log_debug(
@@ -172,7 +172,7 @@ async def get_documents_by_parent(
     # Check if user is admin for special handling
     is_admin = False
     if user_id:
-        user = await User.find_one(User.employee_id == user_id)
+        user = await _resolve_user(user_id)
         if user and user.is_active:
             from app.services.document_permission import _is_admin
             is_admin = _is_admin(user)
@@ -218,21 +218,26 @@ async def get_documents_by_parent(
         # === Virtual root injection (hanya saat root listing dan bukan admin) ===
         # Admins already see all documents, so skip virtual injection
         if parent_id is None and not is_admin:
-            user = await User.find_one(User.employee_id == user_id)
+            user = await _resolve_user(user_id)
             if user and user.is_active:
                 virtuals: list[DocumentItem] = []
+
+                # Build list of possible user identifiers (employee_id and/or MongoDB ObjectId)
+                # This ensures we find documents regardless of which ID was used when sharing
+                user_identifiers = [str(user.id)]
+                if user.employee_id:
+                    user_identifiers.append(user.employee_id)
 
                 # Cari dokumen/folder non-root yang user adalah owner OR
                 # punya direct user permission OR punya division permission.
                 # (Kami mencari parent_id != None agar memang bukan already-root)
-                # print("user:", user_id, user.division)
                 candidates = await DocumentItem.find(
                     {
                         "is_deleted": False,
                         "parent_id": {"$ne": None},
                         "$or": [
-                            {"owned_by.id": user_id},
-                            {"user_permissions": {"$elemMatch": {"user_id": user_id}}},
+                            {"owned_by.id": {"$in": user_identifiers}},
+                            {"user_permissions": {"$elemMatch": {"user_id": {"$in": user_identifiers}}}},
                             {
                                 "division_permissions": {
                                     "$elemMatch": {
