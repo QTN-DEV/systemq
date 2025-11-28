@@ -1,6 +1,7 @@
 import type { AxiosRequestConfig } from "axios";
 
 import { config } from "@/lib/config";
+import { queryClient } from "@/main";
 import { useAuthStore } from "@/stores/authStore";
 import type { Position, User } from "@/types/user-type";
 
@@ -332,6 +333,8 @@ class AuthServiceAPI {
       );
     } finally {
       this.clearSession();
+      // Clear all React Query cache on logout
+      queryClient.clear();
     }
   }
   // End Public Methods

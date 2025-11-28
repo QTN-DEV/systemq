@@ -64,7 +64,6 @@ interface ApiDocumentItem {
 
 // Transform API response to match our internal type
 function transformApiDocument(apiDoc: ApiDocumentItem): DocumentItem {
-  console.log({apiDoc})
   return {
     contentHtml: apiDoc.content_html ?? undefined,
     id: apiDoc.id,
