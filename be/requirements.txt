@@ -26,3 +26,6 @@ motor
 pydantic[email]
 python-multipart
 boto3
+langchain-openai
+langchain-core
+slack-sdk

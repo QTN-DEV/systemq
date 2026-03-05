@@ -19,9 +19,22 @@ export function useSidebarMenu(): {
   const currentUser = useAuthStore((state) => state.user);
 
   const filteredMenuItems = useMemo(() => {
-    return menuConfig.menuItems.filter(
-      (item) => !item.roles || item.roles.includes(userRole)
-    );
+    return menuConfig.menuItems.filter((item) => {
+      // Role check
+      if (item.roles && !item.roles.includes(userRole)) {
+        return false;
+      }
+
+      // Feature toggle check: Only enable workloads features in production
+      if (
+        (item.id === "workload-tracking" || item.id === "workload-project-mapping") &&
+        import.meta.env.VITE_APP_ENV !== "production"
+      ) {
+        return false;
+      }
+
+      return true;
+    });
   }, [userRole]);
 
   const currentRole = useMemo(() => {
