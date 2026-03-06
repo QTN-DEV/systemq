@@ -1,5 +1,5 @@
 ## Project Overview
-
+ 
 SystemQ is a full-stack enterprise application for project management, employee administration, and document workflows. The repository is structured as a monorepo with separate backend (FastAPI + MongoDB) and frontend (React + TypeScript + Vite) applications.
 
 ## Repository Struure
