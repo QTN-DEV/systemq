@@ -30,3 +30,5 @@ python-multipart
 boto3
 slack-sdk
 aiohttp
+langchain-openai
+langchain-core
