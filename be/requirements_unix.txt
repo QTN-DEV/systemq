@@ -29,3 +29,4 @@ pydantic[email]
 python-multipart
 boto3
 slack-sdk
+aiohttp
