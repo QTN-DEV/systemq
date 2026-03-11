@@ -15,7 +15,9 @@ from app.models import (
     EditHistoryEvent,
     PasswordResetToken,
     Project,
+    ProjectMapping,
     SessionToken,
+    SlackMessage,
     SystemStatus,
     User,
 )
@@ -42,6 +44,8 @@ async def init_database() -> None:
             DocumentItem,
             DocumentHistory,
             EditHistoryEvent,
+            ProjectMapping,
+            SlackMessage,
         ],
     )
 

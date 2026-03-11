@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, Literal, Iterable
+from typing import Any, Iterable, Literal
 
 from app.logging_utils import get_logger, log_debug, log_info, log_warning
 from app.models.document import (
-    DocumentBlock,
     DocumentHistory,
     DocumentItem,
     DocumentOwner,
@@ -156,10 +155,10 @@ async def get_documents_by_parent(
     - Jika parent_id ada: tampilkan anak-anak folder itu seperti biasa, disaring oleh access checker.
     """
     from app.services.document_permission import (
-        check_document_access,
-        has_direct_document_access,
-        has_ancestor_folder_access,
         _resolve_user,
+        check_document_access,
+        has_ancestor_folder_access,
+        has_direct_document_access,
     )
 
     log_debug(
@@ -200,8 +199,8 @@ async def get_documents_by_parent(
     if user_id:
         from app.services.document_permission import (
             check_document_access,
-            has_direct_document_access,
             has_ancestor_folder_access,
+            has_direct_document_access,
         )
 
         # For admins, skip access filtering as they have access to all documents

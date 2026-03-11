@@ -14,8 +14,10 @@ import EmployeeManagement from "./pages/employee-management/page";
 import ForgotPassword from "./pages/forgot-password/forgot-password-page";
 import Home from "./pages/home/home-page";
 import LoginPage from "./pages/login/login-page";
+import ProjectMappingPage from "./pages/project-mapping/page";
 import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
+import WorkloadTrackingPage from "./pages/workload-tracking/page";
 
 function App(): ReactElement {
   return (
@@ -101,6 +103,31 @@ function App(): ReactElement {
           </DashboardLayout>
         }
       />
+
+      {import.meta.env.VITE_APP_ENV === "production" && (
+        <>
+          <Route
+            path="/workload-tracking"
+            element={
+              <RoleProtectedRoute allowed={["internalops"]}>
+                <DashboardLayout>
+                  <WorkloadTrackingPage />
+                </DashboardLayout>
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/project-mapping"
+            element={
+              <RoleProtectedRoute allowed={["internalops"]}>
+                <DashboardLayout>
+                  <ProjectMappingPage />
+                </DashboardLayout>
+              </RoleProtectedRoute>
+            }
+          />
+        </>
+      )}
 
       {/* Core Ops */}
       <Route

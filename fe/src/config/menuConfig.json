@@ -6,7 +6,14 @@
       "path": "/dashboard",
       "icon": "LayoutDashboard",
       "type": "item",
-      "roles": ["admin", "ceo", "employee", "hr", "internalops", "pm"]
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm"
+      ]
     },
     {
       "id": "structure-organization",
@@ -14,7 +21,14 @@
       "path": "/structure-organization",
       "icon": "Building2",
       "type": "item",
-      "roles": ["admin", "ceo", "employee", "hr", "internalops", "pm"]
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm"
+      ]
     },
     {
       "id": "employee-management",
@@ -22,7 +36,11 @@
       "path": "/employee-management",
       "icon": "Users",
       "type": "item",
-      "roles": ["admin", "hr", "internalops"]
+      "roles": [
+        "admin",
+        "hr",
+        "internalops"
+      ]
     },
     {
       "id": "documents",
@@ -30,7 +48,14 @@
       "path": "/documents",
       "icon": "FileText",
       "type": "item",
-      "roles": ["admin", "ceo", "employee", "hr", "internalops", "pm"]
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm"
+      ]
     },
     {
       "id": "project-management",
@@ -38,39 +63,92 @@
       "path": "/project-management",
       "icon": "Folder",
       "type": "item",
-      "roles": ["admin", "ceo", "internalops", "pm"]
+      "roles": [
+        "admin",
+        "ceo",
+        "internalops",
+        "pm"
+      ]
+    },
+    {
+      "id": "workload-tracking",
+      "title": "Workload Tracking Dashboard",
+      "path": "/workload-tracking",
+      "icon": "Activity",
+      "type": "item",
+      "roles": [
+        "internalops"
+      ]
+    },
+    {
+      "id": "workload-project-mapping",
+      "title": "Project Mapping",
+      "path": "/project-mapping",
+      "icon": "Network",
+      "type": "item",
+      "roles": [
+        "internalops"
+      ]
     }
   ],
   "roles": {
     "admin": {
       "name": "Admin",
       "color": "red",
-      "permissions": ["read", "create", "update", "delete", "admin"]
+      "permissions": [
+        "read",
+        "create",
+        "update",
+        "delete",
+        "admin"
+      ]
     },
     "ceo": {
       "name": "CEO",
       "color": "red",
-      "permissions": ["read", "create", "update", "delete", "admin"]
+      "permissions": [
+        "read",
+        "create",
+        "update",
+        "delete",
+        "admin"
+      ]
     },
     "employee": {
-      "name": "Employee", 
+      "name": "Employee",
       "color": "blue",
-      "permissions": ["read", "create"]
+      "permissions": [
+        "read",
+        "create"
+      ]
     },
     "hr": {
       "name": "HR",
       "color": "pink",
-      "permissions": ["read", "create", "update"]
+      "permissions": [
+        "read",
+        "create",
+        "update"
+      ]
     },
     "internalops": {
       "name": "Internal Ops",
-      "color": "green", 
-      "permissions": ["read", "create", "update", "delete"]
+      "color": "green",
+      "permissions": [
+        "read",
+        "create",
+        "update",
+        "delete"
+      ]
     },
     "pm": {
       "name": "Project Manager",
       "color": "purple",
-      "permissions": ["read", "create", "update"]
+      "permissions": [
+        "read",
+        "create",
+        "update"
+      ]
     }
   }
 }

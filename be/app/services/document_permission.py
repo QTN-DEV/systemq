@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Literal, Optional
 
 from beanie import PydanticObjectId
 
 from app.logging_utils import get_logger, log_debug, log_info, log_warning
-from app.models.document import DocumentItem, DocumentPermission, DivisionPermission
+from app.models.document import DivisionPermission, DocumentItem, DocumentPermission
 from app.models.user import User
 from app.services.document import DocumentNotFoundError, get_document_by_id
 

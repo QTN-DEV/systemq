@@ -1,17 +1,19 @@
 """App models package."""
 
+from .document import DocumentHistory, DocumentItem, EditHistoryEvent
 from .enums import (
     ALLOWED_EMPLOYMENT_TYPES,
     ALLOWED_POSITIONS,
     EmploymentTypeLiteral,
     PositionLiteral,
 )
-from .password_reset_token import PasswordResetToken
-from .session_token import SessionToken
-from .user import User
-from .document import DocumentItem, DocumentHistory, EditHistoryEvent
-from .project import Project
 from .health import SystemStatus
+from .password_reset_token import PasswordResetToken
+from .project import Project
+from .project_mapping import ProjectMapping
+from .session_token import SessionToken
+from .slack_message import SlackMessage
+from .user import User
 
 __all__ = [
     "ALLOWED_EMPLOYMENT_TYPES",
@@ -25,5 +27,7 @@ __all__ = [
     "DocumentHistory",
     "EditHistoryEvent",
     "Project",
+    "ProjectMapping",
     "SystemStatus",
+    "SlackMessage",
 ]

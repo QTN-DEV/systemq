@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from beanie.operators import In, Or
-from beanie import PydanticObjectId
-from bson import ObjectId
 
-from app.core.security import generate_random_password, hash_password
-from app.models.enums import ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS, ALLOWED_DIVISIONS
+from app.core.security import hash_password
+from app.models.enums import ALLOWED_DIVISIONS, ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS
 from app.models.user import User
 from app.services.email import EmailConfigurationError, send_email
 from constants import APP_NAME, DEFAULT_PASSWORD
