@@ -23,6 +23,15 @@ export interface ProjectMapping {
     updated_at: string;
 }
 
+interface ProjectMappingApiResponse {
+    id?: string;
+    _id?: string;
+    project_name: string;
+    mapped_names: string[];
+    created_at: string;
+    updated_at: string;
+}
+
 export default function ProjectMappingPage() {
     const [mappings, setMappings] = useState<ProjectMapping[]>([]);
     const [distinctNames, setDistinctNames] = useState<string[]>([]);
@@ -39,6 +48,47 @@ export default function ProjectMappingPage() {
         loadData();
     }, []);
 
+    const normalizeMapping = (mapping: ProjectMappingApiResponse): ProjectMapping => ({
+        id: mapping.id ?? mapping._id ?? "",
+        project_name: mapping.project_name,
+        mapped_names: mapping.mapped_names,
+        created_at: mapping.created_at,
+        updated_at: mapping.updated_at,
+    });
+
+    const getErrorMessage = (errorData: unknown, fallback: string) => {
+        if (typeof errorData === "string") {
+            return errorData;
+        }
+
+        if (typeof errorData === "object" && errorData !== null) {
+            const detail = (errorData as { detail?: unknown }).detail;
+
+            if (typeof detail === "string") {
+                return detail;
+            }
+
+            if (Array.isArray(detail)) {
+                return detail
+                    .map((item) => {
+                        if (typeof item === "string") {
+                            return item;
+                        }
+
+                        if (typeof item === "object" && item !== null) {
+                            const message = (item as { msg?: unknown }).msg;
+                            return typeof message === "string" ? message : JSON.stringify(item);
+                        }
+
+                        return String(item);
+                    })
+                    .join(", ");
+            }
+        }
+
+        return fallback;
+    };
+
     const loadData = async () => {
         try {
             setIsLoading(true);
@@ -51,10 +101,10 @@ export default function ProjectMappingPage() {
                 throw new Error("Failed to load project mappings data");
             }
 
-            const mappingsData = await mappingsRes.json();
+            const mappingsData: ProjectMappingApiResponse[] = await mappingsRes.json();
             const namesData = await namesRes.json();
 
-            setMappings(mappingsData);
+            setMappings(mappingsData.map(normalizeMapping));
             setDistinctNames(namesData);
         } catch (error) {
             console.error("Failed to load data:", error);
@@ -91,8 +141,15 @@ export default function ProjectMappingPage() {
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || "Failed to save Project mapping");
+                let errData: unknown = null;
+
+                try {
+                    errData = await response.json();
+                } catch {
+                    errData = null;
+                }
+
+                throw new Error(getErrorMessage(errData, "Failed to save Project mapping"));
             }
 
             toast.success(`Project mapping ${editingMapping ? "updated" : "created"} successfully`);
@@ -119,6 +176,7 @@ export default function ProjectMappingPage() {
         setEditingMapping(mapping);
         setNewProjectName(mapping.project_name);
         setSelectedNames(mapping.mapped_names);
+        setError("");
         setIsOpen(true);
     };
 
@@ -140,7 +198,7 @@ export default function ProjectMappingPage() {
             await loadData();
         } catch (error) {
             console.error("Failed to delete mapping:", error);
-            toast.error("Failed to delete mapping");
+            toast.error(error instanceof Error ? error.message : "Failed to delete mapping");
         }
     };
 
@@ -264,7 +322,15 @@ export default function ProjectMappingPage() {
                 </div>
             )}
 
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <Dialog
+                open={isOpen}
+                onOpenChange={(open) => {
+                    setIsOpen(open);
+                    if (!open) {
+                        resetForm();
+                    }
+                }}
+            >
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                         <DialogTitle>{editingMapping ? "Edit Project Mapping" : "Create New Project Mapping"}</DialogTitle>
