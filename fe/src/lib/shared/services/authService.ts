@@ -11,7 +11,7 @@ const API_URL = config.apiBaseUrl;
 
 // Types
 export interface AuthenticatedUser extends User {
-  role: "admin" | "employee" | "internalops" | "pm" | "ceo";
+  role: "admin" | "employee" | "internalops" | "pm" | "ceo" | "superadmin";
 }
 
 export interface AuthSession {
@@ -154,6 +154,9 @@ class AuthServiceAPI {
 
   private derivePosition(value: string | null | undefined): Position {
     const normalized = value?.toLowerCase() ?? "";
+    if (normalized.includes("superadmin") || normalized.includes("system administrator")) {
+      return "Super Admin";
+    }
     if (normalized.includes("admin")) return "Admin";
     if (normalized.includes("ceo")) return "CEO";
     if (normalized.includes("internal") || normalized.includes("operation"))
@@ -167,6 +170,8 @@ class AuthServiceAPI {
 
   private deriveRole(position: Position): AuthenticatedUser["role"] {
     switch (position) {
+      case "Super Admin":
+        return "superadmin";
       case "Admin":
         return "admin";
       case "CEO":

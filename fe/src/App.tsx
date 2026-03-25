@@ -109,7 +109,7 @@ function App(): ReactElement {
           <Route
             path="/workload-tracking"
             element={
-              <RoleProtectedRoute allowed={["internalops"]}>
+              <RoleProtectedRoute allowed={["internalops", "superadmin"]}>
                 <DashboardLayout>
                   <WorkloadTrackingPage />
                 </DashboardLayout>

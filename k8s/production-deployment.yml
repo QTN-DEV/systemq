@@ -20,6 +20,9 @@ spec:
           # replace with your PROD backend image/tag
           image: quantumteknologi/systemq-prod-be:latest
           imagePullPolicy: Always
+          env:
+            - name: APP_ENV
+              value: "production"
           envFrom:
             - secretRef:
                 name: systemq-prod-secrets

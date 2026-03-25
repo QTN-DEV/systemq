@@ -1,7 +1,9 @@
 import {
+  Activity,
   FileText,
   LayoutDashboard,
   Building2,
+  Network,
   Users,
   Folder,
 } from "lucide-react";
@@ -15,9 +17,11 @@ import { SidebarMenuItem } from "./SidebarMenuItem";
 
 // Icon mapping
 const iconMap = {
+  Activity,
   FileText,
   LayoutDashboard,
   Building2,
+  Network,
   Users,
   Folder,
 };

@@ -20,6 +20,9 @@ spec:
           # replace image tag with your staging image if different
           image: quantumteknologi/systemq-staging-be:latest
           imagePullPolicy: Always
+          env:
+            - name: APP_ENV
+              value: "staging"
           envFrom:
             - secretRef:
                 name: systemq-staging-secrets

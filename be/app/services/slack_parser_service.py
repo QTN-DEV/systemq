@@ -22,7 +22,9 @@ def parse_message_content(content: str) -> Tuple[Optional[ParsedResult], int, in
         return None, 0, 0, 0
 
     try:
-        chat = ChatOpenAI(model="gpt-5.1-codex-mini", api_key=os.environ.get("OPENAI_API_KEY", ""))
+        chat = ChatOpenAI(
+            model="gpt-5.4-nano-2026-03-17", api_key=os.environ.get("OPENAI_API_KEY", "")
+        )
         parser = JsonOutputParser(pydantic_object=ParsedResult)
         format_instructions = parser.get_format_instructions()
         current_year = datetime.now().year

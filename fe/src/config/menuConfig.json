@@ -77,7 +77,8 @@
       "icon": "Activity",
       "type": "item",
       "roles": [
-        "internalops"
+        "internalops",
+        "superadmin"
       ]
     },
     {
@@ -139,6 +140,17 @@
         "create",
         "update",
         "delete"
+      ]
+    },
+    "superadmin": {
+      "name": "Super Admin",
+      "color": "red",
+      "permissions": [
+        "read",
+        "create",
+        "update",
+        "delete",
+        "admin"
       ]
     },
     "pm": {

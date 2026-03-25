@@ -43,8 +43,8 @@ export default function ProjectMappingPage() {
         try {
             setIsLoading(true);
             const [mappingsRes, namesRes] = await Promise.all([
-                fetch(`${config.apiBaseUrl}/api/project-mapping/mappings`),
-                fetch(`${config.apiBaseUrl}/api/project-mapping/distinct-names`),
+                fetch(`${config.apiBaseUrl}/project-mapping/mappings`),
+                fetch(`${config.apiBaseUrl}/project-mapping/distinct-names`),
             ]);
 
             if (!mappingsRes.ok || !namesRes.ok) {
@@ -79,8 +79,8 @@ export default function ProjectMappingPage() {
             };
 
             const url = editingMapping
-                ? `${config.apiBaseUrl}/api/project-mapping/mappings/${editingMapping.id}`
-                : `${config.apiBaseUrl}/api/project-mapping/mappings`;
+                ? `${config.apiBaseUrl}/project-mapping/mappings/${editingMapping.id}`
+                : `${config.apiBaseUrl}/project-mapping/mappings`;
 
             const response = await fetch(url, {
                 method: editingMapping ? "PUT" : "POST",
@@ -128,7 +128,7 @@ export default function ProjectMappingPage() {
         }
 
         try {
-            const response = await fetch(`${config.apiBaseUrl}/api/project-mapping/mappings/${id}`, {
+            const response = await fetch(`${config.apiBaseUrl}/project-mapping/mappings/${id}`, {
                 method: "DELETE",
             });
 

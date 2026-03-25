@@ -1,6 +1,8 @@
 # Tahap pertama: Build aplikasi
 FROM node:22 AS build
 
+ARG VITE_APP_ENV=development
+
 # Set working directory
 WORKDIR /app
 
@@ -12,7 +14,7 @@ RUN npm install --legacy-peer-deps
 
 # Salin seluruh file aplikasi ke dalam container
 COPY . .
-RUN echo "VITE_API_BASE_URL=PLACEHOLDER_API_URL" > .env
+RUN printf "VITE_API_BASE_URL=PLACEHOLDER_API_URL\nVITE_APP_ENV=%s\n" "$VITE_APP_ENV" > .env
 
 # Build aplikasi untuk production
 RUN npm run build

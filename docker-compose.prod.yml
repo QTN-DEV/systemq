@@ -8,6 +8,8 @@ services:
     container_name: systemq-prod-be
     ports:
       - "${PORT:-3000}:3000"
+    environment:
+      APP_ENV: production
     restart: always
     volumes:
       - ../../storage:/app/storage
@@ -16,6 +18,8 @@ services:
     build:
       context: ./fe
       dockerfile: Dockerfile
+      args:
+        VITE_APP_ENV: production
     ports:
       - "${PORT:-5173}:5173"
 

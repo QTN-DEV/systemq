@@ -59,7 +59,7 @@ export default function WorkloadTrackingPage() {
                 offset: "0",
             });
 
-            const response = await fetch(`${config.apiBaseUrl}/api/workloads/entries?${searchParams.toString()}`);
+            const response = await fetch(`${config.apiBaseUrl}/workloads/entries?${searchParams.toString()}`);
             if (!response.ok) {
                 throw new Error("Failed to fetch summary data");
             }
@@ -84,8 +84,8 @@ export default function WorkloadTrackingPage() {
     const fetchTaskStatus = async () => {
         try {
             const [parserRes, crawlerRes] = await Promise.all([
-                fetch(`${config.apiBaseUrl}/api/background-tasks/parser/status`),
-                fetch(`${config.apiBaseUrl}/api/background-tasks/crawler/status`)
+                fetch(`${config.apiBaseUrl}/background-tasks/parser/status`),
+                fetch(`${config.apiBaseUrl}/background-tasks/crawler/status`)
             ]);
 
             if (parserRes.ok) setParserStatus(await parserRes.json());
@@ -105,7 +105,7 @@ export default function WorkloadTrackingPage() {
         try {
             setTaskLoading(true);
             const action = parserStatus?.is_running ? 'stop' : 'start';
-            const response = await fetch(`${config.apiBaseUrl}/api/background-tasks/parser/${action}`, {
+            const response = await fetch(`${config.apiBaseUrl}/background-tasks/parser/${action}`, {
                 method: 'POST'
             });
             if (response.ok) {
@@ -127,7 +127,7 @@ export default function WorkloadTrackingPage() {
                 return;
             }
 
-            const response = await fetch(`${config.apiBaseUrl}/api/background-tasks/crawler/start`, {
+            const response = await fetch(`${config.apiBaseUrl}/background-tasks/crawler/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -151,7 +151,7 @@ export default function WorkloadTrackingPage() {
     const stopCrawler = async () => {
         try {
             setTaskLoading(true);
-            const response = await fetch(`${config.apiBaseUrl}/api/background-tasks/crawler/stop`, {
+            const response = await fetch(`${config.apiBaseUrl}/background-tasks/crawler/stop`, {
                 method: 'POST'
             });
             if (response.ok) {
@@ -174,7 +174,7 @@ export default function WorkloadTrackingPage() {
                 return;
             }
 
-            const response = await fetch(`${config.apiBaseUrl}/api/workloads/export-excel?start_date=${startDate}&end_date=${endDate}`);
+            const response = await fetch(`${config.apiBaseUrl}/workloads/export-excel?start_date=${startDate}&end_date=${endDate}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to generate Excel file: ${response.status} ${response.statusText}`);

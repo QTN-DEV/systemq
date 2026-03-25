@@ -19,16 +19,25 @@ router = APIRouter(prefix="/project-mapping", tags=["Project Mappings"])
 
 @router.get("/distinct-names", response_model=List[str])
 async def get_distinct_project_names():
-    """Get all distinct project names from parsed day plans."""
+    """Get all distinct project names from parsed standup results."""
     try:
-        pipeline = [
-            {"$match": {"parsed_result": {"$ne": None}}},
-            {"$unwind": "$parsed_result.workload_summary"},
-            {"$group": {"_id": "$parsed_result.workload_summary.project_name"}},
-            {"$sort": {"_id": 1}},
-        ]
-        results = await SlackMessage.aggregate(pipeline).to_list()
-        return [result["_id"] for result in results if result.get("_id")]
+        messages = await SlackMessage.find({"parsed_result": {"$ne": None}}).to_list()
+
+        project_names: set[str] = set()
+        for message in messages:
+            parsed_result = message.parsed_result or {}
+
+            for summary in parsed_result.get("workload_summary", []):
+                project_name = (summary.get("project_name") or "").strip()
+                if project_name:
+                    project_names.add(project_name)
+
+            for day_plan in parsed_result.get("day_plan", []):
+                project_name = (day_plan.get("project_name") or "").strip()
+                if project_name:
+                    project_names.add(project_name)
+
+        return sorted(project_names)
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to retrieve distinct project names")
 

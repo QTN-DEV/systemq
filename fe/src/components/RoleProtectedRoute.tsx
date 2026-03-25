@@ -4,7 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 
 interface RoleProtectedRouteProps {
-  allowed: Array<'admin' | 'employee' | 'hr' | 'internalops' | 'pm' | 'ceo'>
+  allowed: Array<'admin' | 'employee' | 'hr' | 'internalops' | 'pm' | 'ceo' | 'superadmin'>
   children: ReactNode
 }
 
@@ -23,5 +23,4 @@ export default function RoleProtectedRoute({ allowed, children }: RoleProtectedR
 
   return children as ReactElement
 }
-
 

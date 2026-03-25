@@ -1,6 +1,6 @@
 export type EmploymentType = 'full-time' | 'part-time' | 'intern'
 
-export type Position = 'Admin' | 'CEO' | 'Internal Ops' | 'Div Lead' | 'PM' | 'Team Member'
+export type Position = 'Super Admin' | 'Admin' | 'CEO' | 'Internal Ops' | 'Div Lead' | 'PM' | 'Team Member'
 
 export interface User {
   id: string
@@ -15,4 +15,3 @@ export interface User {
   avatar: string
   employmentType?: EmploymentType
 }
-
