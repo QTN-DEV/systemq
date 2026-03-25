@@ -3,6 +3,34 @@
 const DEFAULT_API_BASE_URL = 'http://localhost:47430';
 
 const env = import.meta.env;
+const runtimeEnv =
+  typeof window !== "undefined" ? (window as Window & { env?: Record<string, string> }).env : undefined;
+
+const normalizeApiBaseUrl = (value: string | undefined): string => {
+  const rawValue = value?.trim();
+  if (!rawValue) return DEFAULT_API_BASE_URL;
+
+  try {
+    const url = new URL(rawValue);
+    const isLocalHost =
+      url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1" ||
+      url.hostname === "0.0.0.0";
+
+    if (
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:" &&
+      url.protocol === "http:" &&
+      !isLocalHost
+    ) {
+      url.protocol = "https:";
+    }
+
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return rawValue.replace(/\/$/, "");
+  }
+};
 
 // Parse comma-separated values into array
 export const parseList = (value: string | undefined): string[] => {
@@ -11,7 +39,7 @@ export const parseList = (value: string | undefined): string[] => {
 };
 
 export const config = {
-  apiBaseUrl: (env.VITE_API_BASE_URL as string) || DEFAULT_API_BASE_URL,
+  apiBaseUrl: normalizeApiBaseUrl(runtimeEnv?.VITE_API_BASE_URL || (env.VITE_API_BASE_URL as string)),
   bucketDomain: (env.VITE_BUCKET_DOMAIN as string) || 'bucket.quantumteknologi.com',
   bucketUseSSL: env.VITE_BUCKET_USE_SSL === undefined ? true : (env.VITE_BUCKET_USE_SSL as string) === 'true',
   isDev: (env.DEV) ?? (env.MODE === 'development'),
