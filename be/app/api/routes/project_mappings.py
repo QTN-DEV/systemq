@@ -17,6 +17,16 @@ from app.schemas.project_mapping import (
 router = APIRouter(prefix="/project-mapping", tags=["Project Mappings"])
 
 
+def serialize_mapping(mapping: ProjectMapping) -> ProjectMappingResponse:
+    return ProjectMappingResponse(
+        id=str(mapping.id),
+        project_name=mapping.project_name,
+        mapped_names=mapping.mapped_names,
+        created_at=mapping.created_at,
+        updated_at=mapping.updated_at,
+    )
+
+
 @router.get("/distinct-names", response_model=List[str])
 async def get_distinct_project_names():
     """Get all distinct project names from parsed standup results."""
@@ -46,7 +56,7 @@ async def get_distinct_project_names():
 async def get_project_mappings():
     """Get all project mappings."""
     mappings = await ProjectMapping.find_all().sort(+ProjectMapping.created_at).to_list()
-    return mappings
+    return [serialize_mapping(mapping) for mapping in mappings]
 
 
 @router.post(
@@ -73,7 +83,7 @@ async def create_project_mapping(request: CreateProjectMappingRequest):
         mapped_names=request.mapped_names,
     )
     await mapping.insert()
-    return mapping
+    return serialize_mapping(mapping)
 
 
 @router.get("/mappings/{mapping_id}", response_model=ProjectMappingResponse)
@@ -82,7 +92,7 @@ async def get_project_mapping_by_id(mapping_id: PydanticObjectId):
     mapping = await ProjectMapping.get(mapping_id)
     if not mapping:
         raise HTTPException(status_code=404, detail="Project mapping not found")
-    return mapping
+    return serialize_mapping(mapping)
 
 
 @router.put("/mappings/{mapping_id}", response_model=ProjectMappingResponse)
@@ -114,7 +124,7 @@ async def update_project_mapping(
     existing_mapping.updated_at = datetime.utcnow()
     await existing_mapping.save()
 
-    return existing_mapping
+    return serialize_mapping(existing_mapping)
 
 
 @router.delete("/mappings/{mapping_id}", status_code=status.HTTP_204_NO_CONTENT)

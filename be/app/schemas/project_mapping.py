@@ -23,7 +23,7 @@ class UpdateProjectMappingRequest(BaseModel):
 class ProjectMappingResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str | None = Field(None, description="Unique identifier for the mapping", alias="_id")
+    id: str = Field(description="Unique identifier for the mapping")
     project_name: str = Field(description="The main project name")
     mapped_names: List[str] = Field(
         description="List of project_name values that map to this project"
