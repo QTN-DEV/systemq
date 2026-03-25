@@ -32,3 +32,4 @@ slack-sdk
 aiohttp
 langchain-openai
 langchain-core
+pandas
