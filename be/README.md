@@ -51,6 +51,22 @@ The script activates the virtual environment and runs the application on `http:/
 
 Interactive API documentation is published at `http://localhost:8000/docs` (Swagger UI) and `http://localhost:8000/redoc` (ReDoc).
 
+## Running Slack Jobs from CLI
+
+Two helper scripts are available for manual Slack data processing:
+
+```bash
+python3 be/scripts/run_history_crawler.py --start-date=YYYY-MM-DD --end-date=YYYY-MM-DD
+python3 be/scripts/run_slack_parser.py
+```
+
+Notes:
+
+- `--start-date` is required for the crawler.
+- `--end-date` is optional; if omitted, the crawler fetches up to the current time.
+- Both scripts initialize the same MongoDB/Beanie configuration used by the API.
+- The parser runs until there are no more unparsed `slack_messages` records left.
+
 ## Database Bootstrapping
 
 On startup the application connects to MongoDB and initialises Beanie with the registered document models. It also ensures an administrator account exists:
