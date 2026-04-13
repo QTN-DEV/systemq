@@ -1,7 +1,7 @@
 """Workload endpoints."""
 
 import io
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, List, Optional
 
 import pandas as pd
@@ -15,12 +15,32 @@ from app.schemas.workload import WorkloadEntriesResponse
 router = APIRouter(prefix="/workloads", tags=["Workloads"])
 
 
-def get_mapped_project_name(project_name: str, project_mappings: List[ProjectMapping]) -> str:
-    if not project_name:
-        return project_name
+def _normalize_project_name(project_name: str) -> str:
+    return project_name.strip().casefold()
+
+
+def _find_project_mapping(
+    project_name: str,
+    project_mappings: List[ProjectMapping],
+) -> ProjectMapping | None:
+    normalized_project_name = _normalize_project_name(project_name)
+    if not normalized_project_name:
+        return None
+
     for mapping in project_mappings:
-        if project_name in mapping.mapped_names:
-            return mapping.project_name
+        normalized_mapped_names = {
+            _normalize_project_name(mapped_name) for mapped_name in mapping.mapped_names
+        }
+        if normalized_project_name in normalized_mapped_names:
+            return mapping
+
+    return None
+
+
+def get_mapped_project_name(project_name: str, project_mappings: List[ProjectMapping]) -> str:
+    mapping = _find_project_mapping(project_name, project_mappings)
+    if mapping is not None:
+        return mapping.project_name
     return project_name
 
 
@@ -31,6 +51,7 @@ async def _load_project_mappings() -> List[ProjectMapping]:
 async def _fetch_workload_messages(
     user_id: Optional[str] = None,
     excluded_user_ids: Optional[str] = None,
+    since_timestamp: Optional[int] = None,
 ) -> list[SlackMessage]:
     excluded_users = set(excluded_user_ids.split(",")) if excluded_user_ids else set()
 
@@ -44,8 +65,29 @@ async def _fetch_workload_messages(
     if excluded_users:
         query_params["user_id"] = {"$nin": list(excluded_users)}
 
+    if since_timestamp is not None:
+        query_params["timestamp"] = {"$gte": since_timestamp}
+
     messages = await SlackMessage.find(query_params).sort(-SlackMessage.timestamp).to_list()
     return messages
+
+def _extract_recent_mapped_project_names(
+    messages: list[SlackMessage],
+    project_mappings: list[ProjectMapping],
+) -> set[str]:
+    recent_project_names: set[str] = set()
+
+    for message in messages:
+        parsed_result = message.parsed_result or {}
+        workload_summary = parsed_result.get("workload_summary", [])
+
+        for summary in workload_summary:
+            original_project = (summary.get("project_name") or "").strip()
+            mapping = _find_project_mapping(original_project, project_mappings)
+            if mapping is not None:
+                recent_project_names.add(mapping.project_name)
+
+    return recent_project_names
 
 
 def _resolve_date_range(
@@ -172,6 +214,26 @@ def _autosize_worksheet(worksheet) -> None:
         adjusted_width = min(max_length + 2, 50)
         worksheet.column_dimensions[column_letter].width = adjusted_width
 
+@router.get("/ongoing-projects", response_model=list[str])
+async def get_ongoing_projects() -> list[str]:
+    """Return ongoing projects that had workload activity in the past week."""
+    project_mappings = await _load_project_mappings()
+    one_week_ago = datetime.now(UTC) - timedelta(days=7)
+    recent_messages = await _fetch_workload_messages(
+        since_timestamp=int(one_week_ago.timestamp())
+    )
+    recent_project_names = _extract_recent_mapped_project_names(
+        recent_messages,
+        project_mappings,
+    )
+
+    print("RECENT PROJECT NAMES")
+    print(recent_project_names)
+
+    if not recent_project_names:
+        return []
+
+    return sorted(recent_project_names)
 
 @router.get("/entries", response_model=WorkloadEntriesResponse)
 async def get_workload_entries(
