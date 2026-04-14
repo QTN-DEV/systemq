@@ -1,16 +1,19 @@
 """Workload endpoints."""
 
 import io
+import os
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, List, Optional
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from slack_sdk.errors import SlackApiError
 
 from app.models.project_mapping import ProjectMapping
 from app.models.slack_message import SlackMessage
-from app.schemas.workload import WorkloadEntriesResponse
+from app.services.slack_crawler_service import slack_crawler
+from app.schemas.workload import WorkloadEntriesResponse, WorkloadStandupSummary
 
 router = APIRouter(prefix="/workloads", tags=["Workloads"])
 
@@ -214,6 +217,132 @@ def _autosize_worksheet(worksheet) -> None:
         adjusted_width = min(max_length + 2, 50)
         worksheet.column_dimensions[column_letter].width = adjusted_width
 
+
+def _get_monitored_channels() -> list[str]:
+    raw = os.environ.get("MONITORED_CHANNELS", "")
+    return [channel_id.strip() for channel_id in raw.split(",") if channel_id.strip()]
+
+
+def _utc_day_bounds() -> tuple[float, float]:
+    now = datetime.now(UTC)
+    start_of_day = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    return start_of_day.timestamp(), now.timestamp()
+
+
+async def _fetch_channel_member_ids(channel_id: str) -> set[str]:
+    member_ids: set[str] = set()
+    cursor: Optional[str] = None
+
+    print("CHANNEL ID")
+    print(channel_id)
+
+    while True:
+        response = await slack_crawler.client.conversations_members(
+            channel=channel_id,
+            cursor=cursor,
+            limit=200,
+        )
+        print("RESPONSE")
+        print(response)
+        member_ids.update(response.get("members", []))
+
+        cursor = response.get("response_metadata", {}).get("next_cursor")
+        if not cursor:
+            break
+
+    return member_ids
+
+
+async def _fetch_today_submitter_ids(channel_id: str) -> set[str]:
+    submitter_ids: set[str] = set()
+    cursor: Optional[str] = None
+    oldest_ts, latest_ts = _utc_day_bounds()
+
+    while True:
+        response = await slack_crawler.client.conversations_history(
+            channel=channel_id,
+            oldest=str(oldest_ts),
+            latest=str(latest_ts),
+            limit=200,
+            cursor=cursor,
+            inclusive=True,
+        )
+
+        for message in response.get("messages", []):
+            if slack_crawler._should_process_message(message):
+                submitter_ids.add(message["user"])
+
+        cursor = response.get("response_metadata", {}).get("next_cursor")
+        if not response.get("has_more") or not cursor:
+            break
+
+    return submitter_ids
+
+
+async def _resolve_user_names(user_ids: set[str]) -> list[str]:
+    users: list[tuple[str, str]] = []
+
+    for user_id in sorted(user_ids):
+        response = await slack_crawler.client.users_info(user=user_id)
+        user = response.get("user", {})
+        if user.get("deleted") or user.get("is_bot"):
+            continue
+
+        profile = user.get("profile", {})
+        display_name = (
+            profile.get("display_name")
+            or profile.get("real_name")
+            or user.get("real_name")
+            or user.get("name")
+            or user_id
+        )
+        users.append((display_name.casefold(), display_name))
+
+    return [display_name for _, display_name in sorted(users)]
+
+
+
+@router.get("/standup-summary", response_model=WorkloadStandupSummary)
+async def get_standup_summary() -> WorkloadStandupSummary:
+    """Return who has and has not submitted today's standup."""
+    channel_ids = _get_monitored_channels()
+    if not channel_ids:
+        return WorkloadStandupSummary(
+            people_has_submitted=[],
+            people_not_submitted=[],
+        )
+
+    try:
+        channel_member_ids: set[str] = set()
+        submitted_user_ids: set[str] = set()
+
+        for channel_id in channel_ids:
+            channel_member_ids.update(await _fetch_channel_member_ids(channel_id))
+            submitted_user_ids.update(await _fetch_today_submitter_ids(channel_id))
+
+        submitted_member_ids = channel_member_ids & submitted_user_ids
+        not_submitted_member_ids = channel_member_ids - submitted_member_ids
+
+        print("SUBMITTED MEMBER IDS")
+        print(submitted_member_ids)
+        print("NOT SUBMITTED MEMBER IDS")
+        print(not_submitted_member_ids)
+
+        return WorkloadStandupSummary(
+            people_has_submitted=await _resolve_user_names(submitted_member_ids),
+            people_not_submitted=await _resolve_user_names(not_submitted_member_ids),
+        )
+    except SlackApiError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to retrieve standup summary from Slack: {exc.response.get('error', str(exc))}",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve standup summary: {exc}",
+        ) from exc
+
 @router.get("/ongoing-projects", response_model=list[str])
 async def get_ongoing_projects() -> list[str]:
     """Return ongoing projects that had workload activity in the past week."""
@@ -226,9 +355,6 @@ async def get_ongoing_projects() -> list[str]:
         recent_messages,
         project_mappings,
     )
-
-    print("RECENT PROJECT NAMES")
-    print(recent_project_names)
 
     if not recent_project_names:
         return []

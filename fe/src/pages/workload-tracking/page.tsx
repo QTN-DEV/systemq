@@ -22,12 +22,21 @@ export interface WorkloadApiResponse {
     summary: WorkloadSummary;
 }
 
+export interface WorkloadStandupSummary {
+    people_has_submitted: string[];
+    people_not_submitted: string[];
+}
+
 export default function WorkloadTrackingPage() {
     const [summaryData, setSummaryData] = useState<WorkloadApiResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(false);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [ongoingProjects, setOngoingProjects] = useState<string[]>([]);
+    const [ongoingProjectsLoading, setOngoingProjectsLoading] = useState(true);
+    const [standupSummary, setStandupSummary] = useState<WorkloadStandupSummary | null>(null);
+    const [standupSummaryLoading, setStandupSummaryLoading] = useState(true);
 
     // Background Task States
     const [parserStatus, setParserStatus] = useState<any>(null);
@@ -79,6 +88,52 @@ export default function WorkloadTrackingPage() {
             fetchSummaryData();
         }
     }, [startDate, endDate]);
+
+    const fetchOngoingProjects = async () => {
+        try {
+            setOngoingProjectsLoading(true);
+
+            const response = await fetch(`${config.apiBaseUrl}/workloads/ongoing-projects`);
+            if (!response.ok) {
+                throw new Error("Failed to fetch ongoing projects");
+            }
+
+            const data = await response.json();
+            setOngoingProjects(data);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to fetch ongoing projects");
+            console.error("Error fetching ongoing projects:", err);
+        } finally {
+            setOngoingProjectsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchOngoingProjects();
+    }, []);
+
+    const fetchStandupSummary = async () => {
+        try {
+            setStandupSummaryLoading(true);
+
+            const response = await fetch(`${config.apiBaseUrl}/workloads/standup-summary`);
+            if (!response.ok) {
+                throw new Error("Failed to fetch standup summary");
+            }
+
+            const data = await response.json();
+            setStandupSummary(data);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to fetch standup summary");
+            console.error("Error fetching standup summary:", err);
+        } finally {
+            setStandupSummaryLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStandupSummary();
+    }, []);
 
     // Background Tasks Functions
     const fetchTaskStatus = async () => {
@@ -440,6 +495,98 @@ export default function WorkloadTrackingPage() {
                     </CardContent>
                 </Card>
             )}
+
+            <Card className="mb-6">
+                <CardHeader>
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <CardTitle>Ongoing Projects</CardTitle>
+                            <CardDescription>
+                                Active mapped projects detected from the last 7 days
+                            </CardDescription>
+                        </div>
+                        <Badge variant="secondary">{ongoingProjects.length}</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {ongoingProjectsLoading ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading ongoing projects...
+                        </div>
+                    ) : ongoingProjects.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {ongoingProjects.map((projectName) => (
+                                <div
+                                    key={projectName}
+                                    className="rounded-lg border bg-card px-4 py-3"
+                                >
+                                    <p className="font-medium">{projectName}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            No ongoing projects found in the last 7 days.
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Today's Standup Summary</CardTitle>
+                    <CardDescription>
+                        Compared against members in the monitored Slack channel
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {standupSummaryLoading ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading standup summary...
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="rounded-lg border bg-card p-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <h3 className="font-medium">Submitted</h3>
+                                    <Badge>{standupSummary?.people_has_submitted.length ?? 0}</Badge>
+                                </div>
+                                {standupSummary?.people_has_submitted.length ? (
+                                    <div className="space-y-2">
+                                        {standupSummary.people_has_submitted.map((person) => (
+                                            <div key={person} className="rounded-md bg-muted px-3 py-2 text-sm">
+                                                {person}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No submissions found today.</p>
+                                )}
+                            </div>
+
+                            <div className="rounded-lg border bg-card p-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <h3 className="font-medium">Not Submitted</h3>
+                                    <Badge variant="secondary">{standupSummary?.people_not_submitted.length ?? 0}</Badge>
+                                </div>
+                                {standupSummary?.people_not_submitted.length ? (
+                                    <div className="space-y-2">
+                                        {standupSummary.people_not_submitted.map((person) => (
+                                            <div key={person} className="rounded-md bg-muted px-3 py-2 text-sm">
+                                                {person}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Everyone has submitted standup.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>

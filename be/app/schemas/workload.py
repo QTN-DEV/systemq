@@ -37,6 +37,9 @@ class WorkloadEntry(BaseModel):
     notes: str
     timestamp: int
 
+class WorkloadStandupSummary(BaseModel):
+    people_has_submitted: List[str]
+    people_not_submitted: List[str]
 
 class WorkloadEntriesResponse(BaseModel):
     entries: List[WorkloadEntry]
