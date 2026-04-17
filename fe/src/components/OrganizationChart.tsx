@@ -749,7 +749,10 @@ export default function OrganizationChart({
     const internalPadding = 30;
     const projectBaseY = maxTreeY + 300;
 
-    if (uniqueProjects.length > 0) {
+    // When filtering by a single project, the chart is already narrowed to
+    // that project's members — rendering a project box or polygon on top of
+    // it would just be redundant noise, so skip both.
+    if (uniqueProjects.length > 0 && !activeProjectFilter) {
       if (activeDivisionFilter) {
         // --- 2a. DIVISION VIEW: render projects as SVG polygon overlays
         // drawn directly on top of the structure chart. We do NOT render
