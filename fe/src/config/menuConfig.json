@@ -90,6 +90,33 @@
       "roles": [
         "internalops"
       ]
+    },
+    {
+      "id": "tracker",
+      "title": "Tracker",
+      "path": "/tracker/products",
+      "icon": "Kanban",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm"
+      ]
+    },
+    {
+      "id": "tracker-config",
+      "title": "Tracker Config",
+      "path": "/tracker/config",
+      "icon": "Settings2",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "internalops"
+      ]
     }
   ],
   "roles": {

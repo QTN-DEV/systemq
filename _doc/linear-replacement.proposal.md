@@ -30,13 +30,14 @@ The recommended MVP includes:
 
 The recommended product structure is:
 
-- `Initiative` = planning bucket
-- `Project` = execution bucket
+- `Product` = strategic portfolio layer
+- `Initiative` = planning bucket (belongs to one Product)
+- `InitiativeProject` = execution bucket (belongs to one Initiative; renamed from "Project" to avoid conflict with internal project catalog)
 - `Issue` = work item
 - `Sub-issue` = child work item
-- `Triage` = intake lane for new work before project assignment
+- `Triage` = intake lane for new work before initiative_project assignment
 
-Each project belongs to exactly one initiative.
+Each initiative belongs to exactly one product. Each initiative_project belongs to exactly one initiative.
 
 This is a good MVP compromise because leadership gets visibility at the initiative level, while execution remains project and issue based.
 
@@ -120,9 +121,22 @@ That means the MVP should focus on operational workflow, not on product polish o
 
 ## Core Product Concepts
 
+### Product
+
+Product is the top-level portfolio layer. It groups related initiatives under a single
+strategic objective or business area.
+
+Allowed complexity in MVP:
+
+- name
+- description
+- status
+- owner
+- optional target date
+
 ### Initiative
 
-Initiative is a lightweight planning layer above projects.
+Initiative is a planning layer below Product and above InitiativeProjects.
 
 Use initiative to represent a strategic stream, major business objective, or high-level delivery bucket. It should remain simple in MVP.
 
@@ -136,11 +150,13 @@ Allowed complexity in MVP:
 
 Avoid turning initiative into a full portfolio-management object in phase 1.
 
-### Project
+### InitiativeProject
 
-Project is the primary execution container. Work is delivered through projects.
+InitiativeProject is the primary execution container. Work is delivered through initiative_projects.
+This was called "project" in the original proposal but is renamed to avoid a naming
+collision with the existing internal project catalog used by the standup system.
 
-Each project:
+Each initiative_project:
 
 - belongs to exactly one initiative
 - contains many issues
