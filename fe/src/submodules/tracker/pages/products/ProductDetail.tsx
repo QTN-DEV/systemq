@@ -1,12 +1,10 @@
 import { type ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ChevronLeft, MoreHorizontal, Plus, Settings } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-
-import { StatusBadge } from '../../components/StatusBadge'
+import { PageLayout } from '../../components/PageLayout'
+import { StatusIcon } from '../../components/IssueIcons'
 import { useInitiatives } from '../../hooks/useInitiatives'
 import { useProduct } from '../../hooks/useProducts'
 
@@ -16,86 +14,129 @@ export default function ProductDetail(): ReactElement {
   const { data: product, isLoading } = useProduct(id!)
   const { data: initiatives = [] } = useInitiatives(id)
 
-  if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>
-  if (!product) return <div className="p-6 text-sm text-destructive">Product not found.</div>
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-full text-sm text-muted-foreground animate-pulse">
+      Loading product details…
+    </div>
+  )
+  
+  if (!product) return (
+    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+      <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4 text-destructive">
+        <ChevronLeft className="w-6 h-6" />
+      </div>
+      <h3 className="text-lg font-semibold">Product not found</h3>
+      <p className="text-sm text-muted-foreground mt-1">The product you are looking for does not exist or has been removed.</p>
+      <Button variant="outline" size="sm" onClick={() => navigate('/tracker/products')} className="mt-6">
+        Back to Products
+      </Button>
+    </div>
+  )
+
+  const breadcrumbs = [
+    { label: 'Tracker', href: '/tracker/products' },
+    { label: 'Products', href: '/tracker/products' },
+    { label: product.key }
+  ]
+
+  const actions = (
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+        <Settings className="w-4 h-4" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+        <MoreHorizontal className="w-4 h-4" />
+      </Button>
+      <Button 
+        size="sm" 
+        className="h-8 gap-1.5 px-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        onClick={() => navigate(`/tracker/initiatives?product_id=${id}`)}
+      >
+        <Plus className="w-3.5 h-3.5" />
+        <span>New Initiative</span>
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <button
-              onClick={() => navigate('/tracker/products')}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Products
-            </button>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-sm font-mono text-muted-foreground">{product.key}</span>
-          </div>
-          <h1 className="text-2xl font-semibold">{product.name}</h1>
-          {product.description && (
-            <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
-          )}
-        </div>
-        <StatusBadge status={product.status} />
-      </div>
-
-      <div className="flex gap-4 text-sm text-muted-foreground">
-        {product.target_date && <span>Target: {product.target_date}</span>}
-        <span>{initiatives.length} initiative{initiatives.length !== 1 ? 's' : ''}</span>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-3 flex-row items-center justify-between">
-          <CardTitle className="text-base font-medium">Initiatives</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate(`/tracker/initiatives?product_id=${id}`)}
-          >
-            View all
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0">
-          {initiatives.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              No initiatives yet.{' '}
-              <button
-                className="underline"
-                onClick={() => navigate(`/tracker/initiatives?product_id=${id}`)}
-              >
-                Create one
-              </button>
+    <PageLayout breadcrumbs={breadcrumbs} actions={actions}>
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Hero Section */}
+        <div className="px-8 py-8 border-b bg-muted/5">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-3">
+              <StatusIcon status={product.status} className="w-5 h-5" />
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{product.key}</span>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Target</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {initiatives.map((i) => (
-                  <TableRow
+            <h1 className="text-3xl font-bold tracking-tight mb-2">{product.name}</h1>
+            {product.description && (
+              <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
+                {product.description}
+              </p>
+            )}
+            
+            <div className="flex items-center gap-6 mt-8 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-muted-foreground/60">Status</span>
+                <span className="text-foreground capitalize">{product.status.replace(/_/g, ' ')}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-muted-foreground/60">Target Date</span>
+                <span className="text-foreground">{product.target_date ?? 'No target date'}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-muted-foreground/60">Initiatives</span>
+                <span className="text-foreground">{initiatives.length} Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Initiatives List */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto py-8 px-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Active Initiatives</h2>
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => navigate(`/tracker/initiatives?product_id=${id}`)}>
+                View all
+              </Button>
+            </div>
+
+            <div className="border rounded-lg overflow-hidden divide-y divide-border/50 bg-card/30">
+              {initiatives.length === 0 ? (
+                <div className="p-12 text-center">
+                  <p className="text-sm text-muted-foreground">No initiatives found for this product.</p>
+                  <Button variant="link" size="sm" className="mt-2 text-primary" onClick={() => navigate(`/tracker/initiatives?product_id=${id}`)}>
+                    Create your first initiative
+                  </Button>
+                </div>
+              ) : (
+                initiatives.map((i) => (
+                  <div
                     key={i.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="group flex items-center px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => navigate(`/tracker/initiatives/${i.id}`)}
                   >
-                    <TableCell className="font-mono text-xs text-muted-foreground">{i.key}</TableCell>
-                    <TableCell className="font-medium">{i.name}</TableCell>
-                    <TableCell><StatusBadge status={i.status} /></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{i.target_date ?? '—'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                    <div className="w-16 font-mono text-[11px] text-muted-foreground group-hover:text-foreground">
+                      {i.key}
+                    </div>
+                    <div className="flex-1 text-sm font-medium tracking-tight">
+                      {i.name}
+                    </div>
+                    <div className="w-32 flex items-center gap-2">
+                      <StatusIcon status={i.status} />
+                      <span className="text-xs text-muted-foreground capitalize">{i.status.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div className="w-32 text-xs text-muted-foreground">
+                      {i.target_date ?? '—'}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </PageLayout>
   )
 }
