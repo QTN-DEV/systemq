@@ -98,3 +98,29 @@ export async function activateEmployee(employeeId: string): Promise<{ message: s
   return response
 }
 
+export interface ChartEmployeePayload {
+  id: string
+  name: string
+  email?: string | null
+  title?: string | null
+  division?: string | null
+  level?: string | null
+  position?: string | null
+  subordinates?: string[]
+  projects?: string[]
+  avatar?: string | null
+}
+
+export interface SaveChartResult {
+  created: number
+  updated: number
+  deactivated: number
+  skipped: number
+}
+
+export async function saveChart(employees: ChartEmployeePayload[]): Promise<SaveChartResult> {
+  ensureAuth();
+  const response = await apiClient.post<SaveChartResult>('/employees/chart/save', { employees })
+  return response
+}
+
