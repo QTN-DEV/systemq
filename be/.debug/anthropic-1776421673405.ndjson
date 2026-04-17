@@ -1,0 +1,11 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "thinking_delta", "thinking": "The user just", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "thinking_delta", "thinking": " said \"heeeello\" which is a casual greeting. This is a simple interaction where I should greet them back in a friendly way. I don't need to use", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "thinking_delta", "thinking": " any tools for this - it's just a normal conversational greeting.", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "thinking_stop", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "text_start", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "text_delta", "text": "Hello there! ", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "text_delta", "text": "\ud83d\udc4b How can I help you today?", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "text_end", "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}
+{"type": "cost", "total_cost_usd": 0.0044544, "message_id": "msg_01Sw7AjiBpFxg2gSt8b8YNoy"}

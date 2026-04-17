@@ -1,0 +1,12 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "thinking_delta", "thinking": "The user just", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "thinking_delta", "thinking": " said \"heeeello\" which seems like a casual greeting with a drawn out \"hello\". I should respond with a friendly greeting back. There's no task", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "thinking_delta", "thinking": " to perform here, so I don't need to use any tools - just a simple friendly response.", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "thinking_stop", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "text_start", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "text_delta", "text": "Hello there", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "text_delta", "text": "! \ud83d\udc4b Nice to meet you! How can I help you today? I'm Claude Code and I'm ready", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "text_delta", "text": " to assist with any coding, development, or technical tasks you might have.", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "text_end", "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
+{"type": "cost", "total_cost_usd": 0.042923499999999996, "message_id": "msg_01BY32NQAaBBh1EMHzHBhydU"}
