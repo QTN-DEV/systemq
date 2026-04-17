@@ -7,10 +7,21 @@ from datetime import date
 from beanie import PydanticObjectId
 
 from app.submodules.tracker.models.initiative import TrackerInitiative
+from app.submodules.tracker.services.config import get_allowed_statuses
 
 
 class InitiativeNotFoundError(ValueError):
     pass
+
+
+class InvalidStatusError(ValueError):
+    pass
+
+
+async def _validate_planning_status(status: str) -> None:
+    allowed = await get_allowed_statuses("planning_status")
+    if status not in allowed:
+        raise InvalidStatusError(f"Invalid status '{status}'. Allowed: {allowed}")
 
 
 class InitiativeKeyConflictError(ValueError):
@@ -58,6 +69,7 @@ async def create_initiative(
     owner_id: str | None = None,
     target_date: date | None = None,
 ) -> dict:
+    await _validate_planning_status(status)
     existing = await TrackerInitiative.find_one(TrackerInitiative.key == key)
     if existing is not None:
         raise InitiativeKeyConflictError(f"Initiative key '{key}' already exists")
@@ -80,6 +92,8 @@ async def update_initiative(initiative_id: str, **kwargs) -> dict:
     if i is None:
         raise InitiativeNotFoundError(f"Initiative '{initiative_id}' not found")
 
+    if "status" in kwargs and kwargs["status"] is not None:
+        await _validate_planning_status(kwargs["status"])
     if "key" in kwargs and kwargs["key"] is not None:
         conflict = await TrackerInitiative.find_one(TrackerInitiative.key == kwargs["key"])
         if conflict and str(conflict.id) != initiative_id:

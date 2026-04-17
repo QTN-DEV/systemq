@@ -24,6 +24,13 @@ async def get_config(config_type: str) -> dict:
     return {"config_type": cfg.config_type, "values": cfg.values, "updated_at": cfg.updated_at}
 
 
+async def get_allowed_statuses(config_type: str) -> list[str]:
+    cfg = await TrackerConfig.find_one(TrackerConfig.config_type == config_type)
+    if cfg is None:
+        return _DEFAULTS.get(config_type, [])
+    return cfg.values
+
+
 async def update_config(config_type: str, values: list[str]) -> dict:
     cfg = await TrackerConfig.find_one(TrackerConfig.config_type == config_type)
     if cfg is None:

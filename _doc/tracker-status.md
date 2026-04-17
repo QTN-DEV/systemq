@@ -36,9 +36,10 @@ with the existing Slack-catalog `Project` model).
 - Self-parent guard on `parent_issue_id`
 - Key uniqueness enforced at service layer
 - Event emission on status change and assignment change
+- Status validation against `TrackerConfig.values` at write time
 - Config seeded on startup with default values
 
-**Routes** — 22 endpoints, all under `/tracker/*`, registered in `be/app/api/routes/__init__.py`:
+**Routes** — 23 endpoints, all under `/tracker/*`, registered in `be/app/api/routes/__init__.py`:
 
 ```
 GET/POST   /tracker/products
@@ -53,7 +54,7 @@ GET/PATCH  /tracker/initiative-projects/{id}
 GET/POST   /tracker/issues                ?initiative_project_id= ?status= ?assignee_id= ?priority=
 GET/PATCH  /tracker/issues/{id}
 GET/POST   /tracker/issues/{id}/comments
-GET        /tracker/issues/{id}/events    (write path only; read route pending)
+GET        /tracker/issues/{id}/events
 
 GET/PUT    /tracker/config/planning-statuses
 GET/PUT    /tracker/config/issue-statuses
@@ -73,14 +74,14 @@ GET/PUT    /tracker/config/issue-statuses
 - `api/products.ts` — list, get, create, update
 - `api/initiatives.ts` — list (filterable by product_id), get, create, update
 - `api/initiative-projects.ts` — list (filterable by initiative_id), get, create, update
-- `api/issues.ts` — list (filterable), get, create, update, comments CRUD
+- `api/issues.ts` — list (filterable), get, create, update, comments CRUD, events list
 - `api/config.ts` — get/put planning-statuses, get/put issue-statuses
 
 **Hooks** — React Query wrappers per entity with query invalidation on mutations:
 - `useProducts`, `useProduct`, `useCreateProduct`, `useUpdateProduct`
 - `useInitiatives`, `useInitiative`, `useCreateInitiative`, `useUpdateInitiative`
 - `useInitiativeProjects`, `useInitiativeProject`, `useCreateInitiativeProject`, `useUpdateInitiativeProject`
-- `useIssues`, `useIssue`, `useCreateIssue`, `useUpdateIssue`, `useComments`, `useCreateComment`
+- `useIssues`, `useIssue`, `useCreateIssue`, `useUpdateIssue`, `useComments`, `useCreateComment`, `useEvents`
 - `usePlanningStatuses`, `useIssueStatuses`, `useUpdatePlanningStatuses`, `useUpdateIssueStatuses`
 
 **Shared components:**
@@ -93,10 +94,18 @@ GET/PUT    /tracker/config/issue-statuses
 - `/tracker/initiative-projects` — `InitiativeProjectList` — table + create dialog, filterable via `?initiative_id=`
 - `/tracker/config` — `TrackerConfigPage` — editable chip lists for both status types
 
+**Pages — Phase 1B (detail views, full workflow):**
+- `/tracker/products/:id` — `ProductDetail` — breadcrumb, initiatives table
+- `/tracker/initiatives/:id` — `InitiativeDetail` — breadcrumb, projects table
+- `/tracker/initiative-projects/:id` — `InitiativeProjectDetail` — issue list with status filter + create issue dialog
+- `/tracker/issues/:id` — `IssueDetail` — two-column: TipTap description, comment thread, sidebar with status/priority selects + activity events
+- `/tracker/my-tasks` — `MyTasks` — issues assigned to current user, grouped by status order from config
+
 **Registration:**
 - All routes added to `fe/src/App.tsx`
-- Two menu entries added to `fe/src/config/menuConfig.json`:
+- Menu entries in `fe/src/config/menuConfig.json`:
   - `Tracker` — all authenticated roles → `/tracker/products`
+  - `My Tasks` — all authenticated roles → `/tracker/my-tasks`
   - `Tracker Config` — admin/ceo/internalops only → `/tracker/config`
 
 ---
@@ -104,33 +113,18 @@ GET/PUT    /tracker/config/issue-statuses
 ## Known Gaps / Not Yet Built
 
 ### Backend
-
 | Item | Notes |
 |---|---|
-| `GET /tracker/issues/{id}/events` read route | `IssueEvent` write path exists; read endpoint not wired |
-| Status validation against config | Services accept any `str`; should validate against `TrackerConfig.values` at write time |
 | Soft delete endpoints | `archived_at` field exists on all models; no `DELETE` or archive route yet |
 | Auth enforcement | Routes have no `Depends(get_current_user)` — consistent with rest of app but worth hardening |
 
-### Frontend — Phase 1B (detail views)
-
-| Page | Route | Notes |
-|---|---|---|
-| `ProductDetail` | `/tracker/products/:id` | Initiatives list + progress |
-| `InitiativeDetail` | `/tracker/initiatives/:id` | Projects list + issue summary |
-| `InitiativeProjectDetail` | `/tracker/initiative-projects/:id` | Issue list with filters + create |
-| `IssueDetail` | `/tracker/issues/:id` | Full issue view, TipTap description, comments, event history |
-
 ### Frontend — Phase 1C (dashboard views, deferred)
-
 | Page | Route | Notes |
 |---|---|---|
 | `LeadershipDashboard` | `/tracker/leadership` | Product-first summary cards with progress |
 | `TriageInbox` | `/tracker/triage` | Issues filtered by `status=triage`, quick-action toolbar |
-| `MyTasks` | `/tracker/my-tasks` | Issues assigned to current user, grouped by status |
 
 ### Out of Scope (Post-MVP)
-
 - Issue dependency/blocker graph
 - Notifications and reminders
 - Labels and custom fields
@@ -139,14 +133,3 @@ GET/PUT    /tracker/config/issue-statuses
 - Slack/email integrations
 - Advanced access control
 - Full-text search across descriptions
-
----
-
-## Suggested Next Steps
-
-1. **Add `GET /tracker/issues/{id}/events`** read endpoint — one-liner route + service query
-2. **Wire status validation** in issue/planning services — fetch allowed values from `TrackerConfig` before write
-3. **Build Phase 1B detail pages** — start with `InitiativeProjectDetail` (most day-to-day useful), then `IssueDetail`
-4. **`IssueDetail`** — reuse TipTap editor (`fe/src/components/modules/DocumentEditor/TipTapEditor.tsx`) for description field
-5. **Build `TriageInbox`** — filtered issue list with quick-action buttons (assign, move to project, close)
-6. **Build `MyTasks`** — issues assigned to `authStore.user.id`, grouped by status

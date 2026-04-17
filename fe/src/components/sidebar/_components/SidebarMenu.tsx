@@ -1,11 +1,15 @@
 import {
   Activity,
+  type LucideIcon,
   FileText,
   LayoutDashboard,
   Building2,
   Network,
   Users,
   Folder,
+  Kanban,
+  Settings2,
+  CircleHelp,
 } from "lucide-react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +28,8 @@ const iconMap = {
   Network,
   Users,
   Folder,
+  Kanban,
+  Settings2,
 };
 
 interface SidebarMenuProps {
@@ -44,7 +50,8 @@ export function SidebarMenu({
     <ScrollArea className="flex-1 px-2 py-4">
       <nav className="space-y-1">
         {filteredMenuItems.map((item) => {
-          const Icon = iconMap[item.icon as keyof typeof iconMap];
+          const Icon: LucideIcon =
+            iconMap[item.icon as keyof typeof iconMap] ?? CircleHelp;
           const isActive = isPathActive(item.path);
 
           // Documents dropdown

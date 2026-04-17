@@ -8,12 +8,23 @@ from beanie import PydanticObjectId
 
 from app.submodules.tracker.models.event import IssueEvent
 from app.submodules.tracker.models.issue import TrackerIssue
+from app.submodules.tracker.services.config import get_allowed_statuses
 
 _CLOSED_STATUSES = {"done", "canceled"}
 
 
 class IssueNotFoundError(ValueError):
     pass
+
+
+class InvalidStatusError(ValueError):
+    pass
+
+
+async def _validate_issue_status(status: str) -> None:
+    allowed = await get_allowed_statuses("issue_status")
+    if status not in allowed:
+        raise InvalidStatusError(f"Invalid status '{status}'. Allowed: {allowed}")
 
 
 def _utcnow() -> datetime:
@@ -67,6 +78,23 @@ async def get_issue_by_id(issue_id: str) -> dict:
     return _serialize(issue)
 
 
+async def list_events(issue_id: str) -> list[dict]:
+    events = await IssueEvent.find(
+        IssueEvent.issue_id == PydanticObjectId(issue_id)
+    ).sort("-created_at").to_list()
+    return [
+        {
+            "id": str(e.id),
+            "issue_id": str(e.issue_id),
+            "actor_id": str(e.actor_id) if e.actor_id else None,
+            "event_type": e.event_type,
+            "payload": e.payload,
+            "created_at": e.created_at,
+        }
+        for e in events
+    ]
+
+
 async def create_issue(
     title: str,
     *,
@@ -79,6 +107,7 @@ async def create_issue(
     reporter_id: str | None = None,
     triage_owner_id: str | None = None,
 ) -> dict:
+    await _validate_issue_status(status)
     issue = TrackerIssue(
         title=title,
         initiative_project_id=PydanticObjectId(initiative_project_id) if initiative_project_id else None,
@@ -125,6 +154,7 @@ async def update_issue(issue_id: str, actor_id: str | None = None, **kwargs) -> 
         issue.description = kwargs["description"]
     if "status" in kwargs and kwargs["status"] is not None:
         new_status = kwargs["status"]
+        await _validate_issue_status(new_status)
         if new_status != old_status:
             issue.status = new_status
             if new_status in _CLOSED_STATUSES and issue.closed_at is None:

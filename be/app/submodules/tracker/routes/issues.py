@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.submodules.tracker.schemas.comment import CommentCreate, CommentResponse
+from app.submodules.tracker.schemas.comment import CommentCreate, CommentResponse, IssueEventResponse
 from app.submodules.tracker.schemas.issue import IssueCreate, IssueResponse, IssueUpdate
 from app.submodules.tracker.services import comment as comment_service
 from app.submodules.tracker.services import issue as issue_service
-from app.submodules.tracker.services.issue import IssueNotFoundError
+from app.submodules.tracker.services.issue import InvalidStatusError, IssueNotFoundError
 
 router = APIRouter(prefix="/issues", tags=["Tracker"])
 
@@ -31,17 +31,20 @@ async def list_issues(
 
 @router.post("/", response_model=IssueResponse, status_code=status.HTTP_201_CREATED)
 async def create_issue(payload: IssueCreate) -> IssueResponse:
-    issue = await issue_service.create_issue(
-        payload.title,
-        initiative_project_id=payload.initiative_project_id,
-        parent_issue_id=payload.parent_issue_id,
-        description=payload.description,
-        status=payload.status,
-        priority=payload.priority,
-        assignee_id=payload.assignee_id,
-        reporter_id=payload.reporter_id,
-        triage_owner_id=payload.triage_owner_id,
-    )
+    try:
+        issue = await issue_service.create_issue(
+            payload.title,
+            initiative_project_id=payload.initiative_project_id,
+            parent_issue_id=payload.parent_issue_id,
+            description=payload.description,
+            status=payload.status,
+            priority=payload.priority,
+            assignee_id=payload.assignee_id,
+            reporter_id=payload.reporter_id,
+            triage_owner_id=payload.triage_owner_id,
+        )
+    except InvalidStatusError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return IssueResponse.model_validate(issue)
 
 
@@ -75,3 +78,9 @@ async def list_comments(issue_id: str) -> list[CommentResponse]:
 async def create_comment(issue_id: str, payload: CommentCreate) -> CommentResponse:
     c = await comment_service.create_comment(issue_id, payload.author_id, payload.body)
     return CommentResponse.model_validate(c)
+
+
+@router.get("/{issue_id}/events", response_model=list[IssueEventResponse])
+async def list_events(issue_id: str) -> list[IssueEventResponse]:
+    events = await issue_service.list_events(issue_id)
+    return [IssueEventResponse.model_validate(e) for e in events]

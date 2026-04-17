@@ -107,6 +107,21 @@
       ]
     },
     {
+      "id": "my-tasks",
+      "title": "My Tasks",
+      "path": "/tracker/my-tasks",
+      "icon": "CheckSquare",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm"
+      ]
+    },
+    {
       "id": "tracker-config",
       "title": "Tracker Config",
       "path": "/tracker/config",

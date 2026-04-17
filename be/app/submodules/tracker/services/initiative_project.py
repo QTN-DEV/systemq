@@ -5,10 +5,21 @@ from __future__ import annotations
 from beanie import PydanticObjectId
 
 from app.submodules.tracker.models.initiative_project import InitiativeProject
+from app.submodules.tracker.services.config import get_allowed_statuses
 
 
 class InitiativeProjectNotFoundError(ValueError):
     pass
+
+
+class InvalidStatusError(ValueError):
+    pass
+
+
+async def _validate_planning_status(status: str) -> None:
+    allowed = await get_allowed_statuses("planning_status")
+    if status not in allowed:
+        raise InvalidStatusError(f"Invalid status '{status}'. Allowed: {allowed}")
 
 
 class InitiativeProjectKeyConflictError(ValueError):
@@ -56,6 +67,7 @@ async def create_initiative_project(
     status: str = "planned",
     owner_id: str | None = None,
 ) -> dict:
+    await _validate_planning_status(status)
     existing = await InitiativeProject.find_one(InitiativeProject.key == key)
     if existing is not None:
         raise InitiativeProjectKeyConflictError(f"InitiativeProject key '{key}' already exists")
@@ -87,6 +99,7 @@ async def update_initiative_project(ip_id: str, **kwargs) -> dict:
     if "description" in kwargs:
         ip.description = kwargs["description"]
     if "status" in kwargs and kwargs["status"] is not None:
+        await _validate_planning_status(kwargs["status"])
         ip.status = kwargs["status"]
     if "owner_id" in kwargs:
         ip.owner_id = PydanticObjectId(kwargs["owner_id"]) if kwargs["owner_id"] else None

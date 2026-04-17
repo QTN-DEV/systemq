@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type IssueFilters, createIssue, createComment, getIssue, listComments, listIssues, updateIssue } from '../api/issues'
+import { type IssueFilters, createIssue, createComment, getIssue, listComments, listEvents, listIssues, updateIssue } from '../api/issues'
 import type { CreateCommentPayload } from '../types/comment'
 import type { CreateIssuePayload, UpdateIssuePayload } from '../types/issue'
 
@@ -38,6 +38,14 @@ export function useUpdateIssue() {
       qc.invalidateQueries({ queryKey: ['tracker', 'issues'] })
       qc.invalidateQueries({ queryKey: ['tracker', 'issues', id] })
     },
+  })
+}
+
+export function useEvents(issueId: string) {
+  return useQuery({
+    queryKey: ['tracker', 'events', issueId],
+    queryFn: () => listEvents(issueId),
+    enabled: !!issueId,
   })
 }
 

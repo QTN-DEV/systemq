@@ -7,10 +7,21 @@ from datetime import date
 from beanie import PydanticObjectId
 
 from app.submodules.tracker.models.product import TrackerProduct
+from app.submodules.tracker.services.config import get_allowed_statuses
 
 
 class ProductNotFoundError(ValueError):
     pass
+
+
+class InvalidStatusError(ValueError):
+    pass
+
+
+async def _validate_planning_status(status: str) -> None:
+    allowed = await get_allowed_statuses("planning_status")
+    if status not in allowed:
+        raise InvalidStatusError(f"Invalid status '{status}'. Allowed: {allowed}")
 
 
 class ProductKeyConflictError(ValueError):
@@ -53,6 +64,7 @@ async def create_product(
     owner_id: str | None = None,
     target_date: date | None = None,
 ) -> dict:
+    await _validate_planning_status(status)
     existing = await TrackerProduct.find_one(TrackerProduct.key == key)
     if existing is not None:
         raise ProductKeyConflictError(f"Product key '{key}' already exists")
@@ -74,6 +86,8 @@ async def update_product(product_id: str, **kwargs) -> dict:
     if p is None:
         raise ProductNotFoundError(f"Product '{product_id}' not found")
 
+    if "status" in kwargs and kwargs["status"] is not None:
+        await _validate_planning_status(kwargs["status"])
     if "key" in kwargs and kwargs["key"] is not None:
         conflict = await TrackerProduct.find_one(TrackerProduct.key == kwargs["key"])
         if conflict and str(conflict.id) != product_id:

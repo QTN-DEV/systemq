@@ -1,8 +1,9 @@
-"""Comment schemas."""
+"""Comment and event schemas."""
 
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -20,3 +21,12 @@ class CommentResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+
+
+class IssueEventResponse(BaseModel):
+    id: str
+    issue_id: str
+    actor_id: str | None = None
+    event_type: str
+    payload: dict[str, Any] = {}
+    created_at: datetime

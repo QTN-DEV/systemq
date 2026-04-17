@@ -19,8 +19,13 @@ import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
 import ProductList from "./submodules/tracker/pages/products/ProductList";
+import ProductDetail from "./submodules/tracker/pages/products/ProductDetail";
 import InitiativeList from "./submodules/tracker/pages/initiatives/InitiativeList";
+import InitiativeDetail from "./submodules/tracker/pages/initiatives/InitiativeDetail";
 import InitiativeProjectList from "./submodules/tracker/pages/initiative-projects/InitiativeProjectList";
+import InitiativeProjectDetail from "./submodules/tracker/pages/initiative-projects/InitiativeProjectDetail";
+import IssueDetail from "./submodules/tracker/pages/issues/IssueDetail";
+import MyTasks from "./submodules/tracker/pages/my-tasks/MyTasks";
 import TrackerConfigPage from "./submodules/tracker/pages/config/TrackerConfigPage";
 
 function App(): ReactElement {
@@ -274,6 +279,56 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <InitiativeProjectList />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker/products/:id"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProductDetail />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker/initiatives/:id"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <InitiativeDetail />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker/initiative-projects/:id"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <InitiativeProjectDetail />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker/issues/:id"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <IssueDetail />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker/my-tasks"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <MyTasks />
             </DashboardLayout>
           </ProtectedRoute>
         }

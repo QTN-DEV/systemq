@@ -38,3 +38,16 @@ export async function listComments(issueId: string): Promise<IssueComment[]> {
 export async function createComment(issueId: string, data: CreateCommentPayload): Promise<IssueComment> {
   return apiClient.post<IssueComment>(`/tracker/issues/${issueId}/comments`, data)
 }
+
+export interface IssueEvent {
+  id: string
+  issue_id: string
+  actor_id: string | null
+  event_type: string
+  payload: Record<string, unknown>
+  created_at: string
+}
+
+export async function listEvents(issueId: string): Promise<IssueEvent[]> {
+  return apiClient.get<IssueEvent[]>(`/tracker/issues/${issueId}/events`)
+}
