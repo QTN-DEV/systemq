@@ -41,12 +41,22 @@ interface CustomNodeData {
   projectName?: string;
   onRemoveProject?: (empId: string, projectName: string) => void;
   onDivisionClick?: (division: string) => void; // NEW: Callback for clicking the division badge
+  // Search/highlight flags driven by the top-right name search box.
+  isHighlighted?: boolean;
+  isDimmed?: boolean;
 }
 
 // 1. Custom node component for employee cards
 function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
-  const { employee, isClone, projectName, onRemoveProject, onDivisionClick } =
-    data;
+  const {
+    employee,
+    isClone,
+    projectName,
+    onRemoveProject,
+    onDivisionClick,
+    isHighlighted,
+    isDimmed,
+  } = data;
   const hasSupervisor = data.hasSupervisor;
 
   const getInitials = (name: string): string => {
@@ -86,9 +96,17 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
     employee.position as unknown as string,
   );
 
+  // Styling hooks for the name-search highlight.
+  // - Highlighted cards get a bright yellow ring + subtle scale.
+  // - Non-matching cards (when a search is active) fade out.
+  const highlightClasses = isHighlighted
+    ? "ring-4 ring-yellow-400 ring-offset-2 scale-[1.05] shadow-2xl z-10"
+    : "";
+  const dimClasses = isDimmed ? "opacity-25 grayscale" : "";
+
   return (
     <div
-      className={`rounded-lg shadow-lg border-2 min-w-[200px] max-w-[200px] hover:shadow-xl transition-all duration-200 hover:-translate-y-1 bg-white cursor-grab active:cursor-grabbing relative ${card} ${isClone ? "border-dashed opacity-95" : ""}`}
+      className={`rounded-lg shadow-lg border-2 min-w-[200px] max-w-[200px] hover:shadow-xl transition-all duration-200 hover:-translate-y-1 bg-white cursor-grab active:cursor-grabbing relative ${card} ${isClone ? "border-dashed opacity-95" : ""} ${highlightClasses} ${dimClasses}`}
     >
       {/* ---------------- DIVISION BADGE (Now Clickable) ---------------- */}
       {employee.division && (
@@ -212,9 +230,167 @@ function ProjectGroupNode({ data }: { data: { name: string } }): ReactElement {
   );
 }
 
+// --- Geometry helpers for the polygon overlay --------------------------------
+
+type Pt = { x: number; y: number };
+
+// Andrew's monotone chain convex hull. Returns the hull points in CCW order.
+function convexHull(points: Pt[]): Pt[] {
+  if (points.length <= 2) return [...points];
+  const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o: Pt, a: Pt, b: Pt): number =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+  const lower: Pt[] = [];
+  for (const p of sorted) {
+    while (
+      lower.length >= 2 &&
+      cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0
+    ) {
+      lower.pop();
+    }
+    lower.push(p);
+  }
+
+  const upper: Pt[] = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (
+      upper.length >= 2 &&
+      cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0
+    ) {
+      upper.pop();
+    }
+    upper.push(p);
+  }
+
+  lower.pop();
+  upper.pop();
+  return [...lower, ...upper];
+}
+
+// Push each hull point outward from the centroid by `padding` px so the
+// polygon has some breathing room around the cards it encloses.
+// `extraTop` adds additional vertical padding ONLY to vertices that sit
+// above the centroid, giving extra headroom for the label pill so the
+// top edge doesn't feel cramped compared to the other sides.
+function expandPolygon(
+  points: Pt[],
+  padding: number,
+  extraTop: number = 0,
+): Pt[] {
+  if (points.length === 0) return points;
+  const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+  const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
+  return points.map((p) => {
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist === 0) return p;
+    const expandedY = p.y + (dy / dist) * padding;
+    // Upper-half vertices get pushed further up by `extraTop`.
+    const finalY = p.y < cy ? expandedY - extraTop : expandedY;
+    return {
+      x: p.x + (dx / dist) * padding,
+      y: finalY,
+    };
+  });
+}
+
+// Palette for polygon groupings. We cycle through in render order so each
+// project gets a distinct, consistent color.
+const POLYGON_PALETTE = [
+  { fill: "rgba(249, 115, 22, 0.14)", stroke: "#f97316" }, // orange
+  { fill: "rgba(59, 130, 246, 0.14)", stroke: "#3b82f6" }, // blue
+  { fill: "rgba(16, 185, 129, 0.14)", stroke: "#10b981" }, // green
+  { fill: "rgba(168, 85, 247, 0.14)", stroke: "#a855f7" }, // purple
+  { fill: "rgba(239, 68, 68, 0.14)", stroke: "#ef4444" }, // red
+  { fill: "rgba(234, 179, 8, 0.14)", stroke: "#eab308" }, // amber
+];
+
+// 2b. SVG polygon overlay for project grouping (used in division view).
+function ProjectPolygonNode({
+  data,
+}: {
+  data: {
+    name: string;
+    points: Pt[];
+    width: number;
+    height: number;
+    colorIndex: number;
+  };
+}): ReactElement {
+  const { fill, stroke } = POLYGON_PALETTE[data.colorIndex % POLYGON_PALETTE.length];
+  const d =
+    data.points.length === 0
+      ? ""
+      : `M ${data.points.map((p) => `${p.x} ${p.y}`).join(" L ")} Z`;
+
+  // Find the top-most hull vertex (smallest y) to anchor the label.
+  const topPoint = data.points.reduce<Pt>(
+    (best, p) => (p.y < best.y ? p : best),
+    data.points[0] ?? { x: 0, y: 0 },
+  );
+
+  // Place the label INSIDE the top padding area of the polygon and
+  // horizontally centered within the node's bounding box.
+  const labelText = data.name.toUpperCase();
+  const labelWidth = Math.max(80, labelText.length * 7 + 24);
+  const labelHeight = 22;
+  const labelX = Math.max(0, data.width / 2 - labelWidth / 2);
+  const labelY = topPoint.y + 10;
+
+  return (
+    <div
+      style={{
+        width: data.width,
+        height: data.height,
+        pointerEvents: "none",
+      }}
+    >
+      <svg
+        width={data.width}
+        height={data.height}
+        style={{ overflow: "visible" }}
+      >
+        <path
+          d={d}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={2.5}
+          strokeDasharray="8 5"
+          strokeLinejoin="round"
+        />
+        {/* Label pill sits in the extra top-padding zone of the polygon */}
+        <rect
+          x={labelX}
+          y={labelY}
+          rx={6}
+          ry={6}
+          width={labelWidth}
+          height={labelHeight}
+          fill={stroke}
+        />
+        <text
+          x={labelX + labelWidth / 2}
+          y={labelY + labelHeight / 2 + 4}
+          fontSize="11"
+          fontWeight={700}
+          fill="white"
+          textAnchor="middle"
+          style={{ letterSpacing: "0.04em" }}
+        >
+          {labelText}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
 const nodeTypes = {
   employee: EmployeeNode,
   projectGroup: ProjectGroupNode,
+  projectPolygon: ProjectPolygonNode,
 };
 
 interface OrganizationChartProps {
@@ -240,6 +416,15 @@ export default function OrganizationChart({
   >(null); // NEW: Filter state
   // Track projects that exist but have no members yet (empty project boxes)
   const [standaloneProjects, setStandaloneProjects] = useState<string[]>([]);
+  // Free-moved nodes (currently only orphan employees) keep their last
+  // user-dragged position here, so re-renders of the layout don't snap them
+  // back to the tree-computed spot.
+  const [customPositions, setCustomPositions] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+  // Search term used to highlight matching employees by name. Empty string
+  // means no active search and all cards render at full opacity.
+  const [highlightQuery, setHighlightQuery] = useState<string>("");
   const [hasChanges, setHasChanges] = useState(false);
 
   // Fetch and Mock Data
@@ -396,6 +581,14 @@ export default function OrganizationChart({
       currentRootX += rootWidth;
     });
 
+    // Normalized search query (case-insensitive, trimmed). Empty = no active
+    // search, so nothing gets highlighted or dimmed.
+    const q = highlightQuery.trim().toLowerCase();
+    const isMatch = (emp: EmployeeListItem): boolean => {
+      if (!q) return false;
+      return (emp.name ?? "").toLowerCase().includes(q);
+    };
+
     // --- 1. RENDER ORG CHART ---
     visibleEmployees.forEach((emp) => {
       const safeX =
@@ -403,14 +596,32 @@ export default function OrganizationChart({
       const safeY =
         typeof (emp as any).orgY === "number" ? (emp as any).orgY : 0;
 
+      // If the user has freely moved this node AND it is currently an
+      // orphan (no supervisor, no subordinates), honour that custom
+      // position instead of the tree-computed one so it doesn't snap back.
+      // Nodes that later get wired into the hierarchy revert to the tree
+      // layout automatically.
+      const hasSubs = (emp.subordinates?.length ?? 0) > 0;
+      const hasSupervisor = visibleEmployees.some((o) =>
+        o.subordinates?.includes(emp.id),
+      );
+      const isOrphan = !hasSubs && !hasSupervisor;
+      const customPos = customPositions[emp.id];
+      const nodePosition =
+        isOrphan && customPos ? customPos : { x: safeX - 100, y: safeY };
+
+      const highlighted = isMatch(emp);
+
       nodes.push({
         id: emp.id,
         type: "employee",
-        position: { x: safeX - 100, y: safeY },
+        position: nodePosition,
         data: {
           employee: emp,
           hasSupervisor: !(emp as any).isRoot,
           onDivisionClick: setActiveDivisionFilter, // Pass the setter so clicks trigger a filter
+          isHighlighted: highlighted,
+          isDimmed: q.length > 0 && !highlighted,
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
@@ -458,73 +669,169 @@ export default function OrganizationChart({
 
     const uniqueProjects = Array.from(projectEmployeeMap.keys());
     const internalSpacingX = 220;
-    const internalSpacingY = 160;
+    // internalSpacingY was 160 which made the vertical gap visually much
+    // bigger than the horizontal one (card width ≈ 200, card height ≈ 80).
+    // With 100 the row gap (~20 px) roughly matches the column gap.
+    const internalSpacingY = 100;
     const headerHeight = 60;
     const internalPadding = 30;
     const projectBaseY = maxTreeY + 300;
 
     if (uniqueProjects.length > 0) {
-      const groupHorizontalGap = 80;
-      const groupWidthInNodes = 2;
-      const fixedGroupWidth =
-        groupWidthInNodes * internalSpacingX +
-        internalPadding * 2 -
-        (internalSpacingX - 200);
+      if (activeDivisionFilter) {
+        // --- 2a. DIVISION VIEW: render projects as SVG polygon overlays
+        // drawn directly on top of the structure chart. We do NOT render
+        // the project group boxes below the chart in this mode.
+        // Employee cards on the main chart are roughly 200 x 100 px
+        // (including their drop shadow). We add generous padding so the
+        // polygon doesn't hug the cards too tightly.
+        const cardWidth = 200;
+        const cardHeight = 100;
+        const hullPadding = 72;
+        // Extra headroom above the top vertices so the label pill has its
+        // own space instead of visually squeezing the top edge.
+        const extraTopPadding = 48;
 
-      let totalProjectsWidth =
-        uniqueProjects.length * (fixedGroupWidth + groupHorizontalGap) -
-        groupHorizontalGap;
-      let currentGroupX = -(totalProjectsWidth / 2);
+        let colorIndex = 0;
+        uniqueProjects.forEach((projName) => {
+          const empIdsInProject = projectEmployeeMap.get(projName)!;
+          if (empIdsInProject.length === 0) return;
 
-      uniqueProjects.forEach((projName) => {
-        const empIdsInProject = projectEmployeeMap.get(projName)!;
-        const groupId = `group-${projName.replace(/\s+/g, "-").toLowerCase()}`;
-        const rowCount = Math.ceil(empIdsInProject.length / groupWidthInNodes);
-        // Ensure empty projects still have a visible drop-zone area
-        const effectiveRowCount = Math.max(rowCount, 1);
-        const groupHeight =
-          headerHeight +
-          effectiveRowCount * internalSpacingY +
-          internalPadding * 2 -
-          (internalSpacingY - 120);
+          // Collect all four corners of every member card so even a
+          // single-member project produces a valid rectangle hull.
+          const cornerPoints: Pt[] = [];
+          empIdsInProject.forEach((empId) => {
+            const emp = employeeMap.get(empId);
+            if (!emp) return;
+            const orgX = (emp as any).orgX as number | undefined;
+            const orgY = (emp as any).orgY as number | undefined;
+            if (typeof orgX !== "number" || typeof orgY !== "number") return;
 
-        nodes.push({
-          id: groupId,
-          type: "projectGroup",
-          position: { x: currentGroupX, y: projectBaseY },
-          style: { width: fixedGroupWidth, height: groupHeight },
-          data: { name: projName },
-          draggable: true,
-        });
+            // Honour custom positions for orphans so the polygon tracks
+            // wherever the user dragged them.
+            const custom = customPositions[empId];
+            const topLeftX = custom ? custom.x : orgX - 100;
+            const topLeftY = custom ? custom.y : orgY;
 
-        empIdsInProject.forEach((empId, index) => {
-          const emp = employeeMap.get(empId)!;
-          const gridX =
-            (index % groupWidthInNodes) * internalSpacingX + internalPadding;
-          const gridY =
-            Math.floor(index / groupWidthInNodes) * internalSpacingY +
-            headerHeight;
+            cornerPoints.push({ x: topLeftX, y: topLeftY });
+            cornerPoints.push({ x: topLeftX + cardWidth, y: topLeftY });
+            cornerPoints.push({
+              x: topLeftX + cardWidth,
+              y: topLeftY + cardHeight,
+            });
+            cornerPoints.push({ x: topLeftX, y: topLeftY + cardHeight });
+          });
+
+          if (cornerPoints.length === 0) return;
+
+          const hull = expandPolygon(
+            convexHull(cornerPoints),
+            hullPadding,
+            extraTopPadding,
+          );
+          const minX = Math.min(...hull.map((p) => p.x));
+          const minY = Math.min(...hull.map((p) => p.y));
+          const maxX = Math.max(...hull.map((p) => p.x));
+          const maxY = Math.max(...hull.map((p) => p.y));
+
+          // Express hull points relative to the node's top-left (the SVG
+          // is positioned at that anchor).
+          const relPoints = hull.map((p) => ({
+            x: p.x - minX,
+            y: p.y - minY,
+          }));
 
           nodes.push({
-            id: `${emp.id}-proj-${groupId}`,
-            type: "employee",
-            parentId: groupId,
-            extent: "parent",
-            position: { x: gridX, y: gridY },
+            id: `polygon-${projName.replace(/\s+/g, "-").toLowerCase()}`,
+            type: "projectPolygon",
+            position: { x: minX, y: minY },
             data: {
-              employee: emp,
-              hasSupervisor: false,
-              isClone: true,
-              projectName: projName,
-              onRemoveProject: handleRemoveFromProject,
+              name: projName,
+              points: relPoints,
+              width: maxX - minX,
+              height: maxY - minY,
+              colorIndex,
             },
-            sourcePosition: Position.Bottom,
-            targetPosition: Position.Top,
+            draggable: false,
+            selectable: false,
+            // Put polygons behind employee cards.
+            zIndex: -10,
           });
+          colorIndex += 1;
         });
+      } else {
+        // --- 2b. DEFAULT VIEW: render project group boxes below chart.
+        const groupHorizontalGap = 80;
+        const groupWidthInNodes = 2;
+        const fixedGroupWidth =
+          groupWidthInNodes * internalSpacingX +
+          internalPadding * 2 -
+          (internalSpacingX - 200);
 
-        currentGroupX += fixedGroupWidth + groupHorizontalGap;
-      });
+        let totalProjectsWidth =
+          uniqueProjects.length * (fixedGroupWidth + groupHorizontalGap) -
+          groupHorizontalGap;
+        let currentGroupX = -(totalProjectsWidth / 2);
+
+        uniqueProjects.forEach((projName) => {
+          const empIdsInProject = projectEmployeeMap.get(projName)!;
+          const groupId = `group-${projName.replace(/\s+/g, "-").toLowerCase()}`;
+          const rowCount = Math.ceil(
+            empIdsInProject.length / groupWidthInNodes,
+          );
+          // Ensure empty projects still have a visible drop-zone area
+          const effectiveRowCount = Math.max(rowCount, 1);
+          // The last row only needs card height (≈ 80px) at the bottom,
+          // so we compensate by subtracting (spacing - lastRowHeight).
+          const lastRowHeight = 80;
+          const groupHeight =
+            headerHeight +
+            effectiveRowCount * internalSpacingY +
+            internalPadding * 2 -
+            (internalSpacingY - lastRowHeight);
+
+          nodes.push({
+            id: groupId,
+            type: "projectGroup",
+            position: { x: currentGroupX, y: projectBaseY },
+            style: { width: fixedGroupWidth, height: groupHeight },
+            data: { name: projName },
+            draggable: true,
+          });
+
+          empIdsInProject.forEach((empId, index) => {
+            const emp = employeeMap.get(empId)!;
+            const gridX =
+              (index % groupWidthInNodes) * internalSpacingX + internalPadding;
+            const gridY =
+              Math.floor(index / groupWidthInNodes) * internalSpacingY +
+              headerHeight;
+
+            const cloneHighlighted = isMatch(emp);
+
+            nodes.push({
+              id: `${emp.id}-proj-${groupId}`,
+              type: "employee",
+              parentId: groupId,
+              extent: "parent",
+              position: { x: gridX, y: gridY },
+              data: {
+                employee: emp,
+                hasSupervisor: false,
+                isClone: true,
+                projectName: projName,
+                onRemoveProject: handleRemoveFromProject,
+                isHighlighted: cloneHighlighted,
+                isDimmed: q.length > 0 && !cloneHighlighted,
+              },
+              sourcePosition: Position.Bottom,
+              targetPosition: Position.Top,
+            });
+          });
+
+          currentGroupX += fixedGroupWidth + groupHorizontalGap;
+        });
+      }
     }
 
     return { nodes, edges };
@@ -533,7 +840,9 @@ export default function OrganizationChart({
     handleRemoveFromProject,
     activeDivisionFilter,
     standaloneProjects,
-  ]); // Added dependency on filter
+    customPositions,
+    highlightQuery,
+  ]); // Added dependency on filter + custom positions + highlight
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -631,11 +940,34 @@ export default function OrganizationChart({
             handleRemoveFromProject(employeeId, sourceProjectName);
           }
         } else {
-          setNodes([...initialNodes]);
+          // Determine if this is an "orphan" node: not a supervisor of
+          // anyone AND not a subordinate of anyone. Orphans may be placed
+          // freely on the canvas without snapping back to the auto layout.
+          const emp = employees.find((e) => e.id === employeeId);
+          const hasNoSubordinates = !emp?.subordinates?.length;
+          const isNotSubordinate = !employees.some((e) =>
+            e.subordinates?.includes(employeeId),
+          );
+          const isOrphan = hasNoSubordinates && isNotSubordinate;
+
+          if (isOrphan) {
+            // Persist the dragged-to position so future layout rebuilds
+            // (e.g. after state changes) won't reset it.
+            setCustomPositions((prev) => ({
+              ...prev,
+              [employeeId]: {
+                x: draggedNode.position.x,
+                y: draggedNode.position.y,
+              },
+            }));
+          } else {
+            // Hierarchical nodes still snap back so the tree stays tidy.
+            setNodes([...initialNodes]);
+          }
         }
       }
     },
-    [nodes, initialNodes, setNodes, handleRemoveFromProject],
+    [nodes, initialNodes, setNodes, handleRemoveFromProject, employees],
   );
 
   const handleNodeClick = useCallback((_: any, node: Node): void => {
@@ -883,28 +1215,67 @@ export default function OrganizationChart({
           </div>
         </Panel>
 
-        {hasChanges && (
-          <Panel position="top-right" className="m-4">
-            <button
-              onClick={handleSaveChart}
-              className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center space-x-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+        {/* Top-right toolbox: name-search highlighter + (optional) Save button */}
+        <Panel position="top-right" className="m-4">
+          <div className="flex flex-col items-end gap-2">
+            {/* Name search / highlighter */}
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
+              <div className="pl-3 pr-1 text-gray-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={highlightQuery}
+                onChange={(e) => setHighlightQuery(e.target.value)}
+                placeholder="Highlight by name..."
+                className="px-2 py-2 text-sm w-56 outline-none bg-transparent"
+              />
+              {highlightQuery && (
+                <button
+                  onClick={() => setHighlightQuery("")}
+                  className="px-2 h-full text-gray-400 hover:text-gray-600"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {hasChanges && (
+              <button
+                onClick={handleSaveChart}
+                className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center space-x-2"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Save Chart</span>
-            </button>
-          </Panel>
-        )}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>Save Chart</span>
+              </button>
+            )}
+          </div>
+        </Panel>
         <Controls className="bg-white shadow-lg border border-gray-200 rounded-lg" />
         <MiniMap maskColor="rgba(255, 255, 255, 0.8)" />
         <Background
