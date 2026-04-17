@@ -7,6 +7,7 @@ import {
   useEdgesState,
   Handle,
   Panel,
+  ConnectionMode,
   type Connection,
   type Edge,
   type Node,
@@ -119,19 +120,43 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
         </button>
       )}
 
-      {!isClone && (
-        <Handle
-          type="target"
-          position={Position.Top}
-          style={{
+      {/* 4-sided connection handles (each side has source + target stacked
+          so the user can drag a connection from any direction). In clones
+          inside project groups we still hide the handles. */}
+      {!isClone &&
+        (
+          [
+            { id: "top", position: Position.Top },
+            { id: "right", position: Position.Right },
+            { id: "bottom", position: Position.Bottom },
+            { id: "left", position: Position.Left },
+          ] as const
+        ).map(({ id, position }) => {
+          const baseStyle = {
             background: "#3b82f6",
             width: 12,
             height: 12,
             border: "none",
-            opacity: hasSupervisor ? 1 : 0.5,
-          }}
-        />
-      )}
+            opacity:
+              id === "top" && !hasSupervisor ? 0.5 : 1,
+          } as const;
+          return (
+            <div key={id}>
+              <Handle
+                id={`${id}-target`}
+                type="target"
+                position={position}
+                style={baseStyle}
+              />
+              <Handle
+                id={`${id}-source`}
+                type="source"
+                position={position}
+                style={baseStyle}
+              />
+            </div>
+          );
+        })}
 
       <div className="p-2 pointer-events-none">
         <div className="flex items-center space-x-3 mt-1">
@@ -167,18 +192,6 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
         </div>
       </div>
 
-      {!isClone && (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          style={{
-            background: "#3b82f6",
-            width: 12,
-            height: 12,
-            border: "none",
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -411,6 +424,12 @@ export default function OrganizationChart({
               id: `${emp.id}-${subordinateId}`,
               source: emp.id,
               target: subordinateId,
+              // Explicitly attach to bottom of supervisor / top of subordinate.
+              // Without these, React Flow picks the first rendered handle
+              // (which is "top-*") and the hierarchy lines appear to leave
+              // from the top of each card instead of the bottom.
+              sourceHandle: "bottom-source",
+              targetHandle: "top-target",
               style: { stroke: "#3b82f6", strokeWidth: 3 },
             });
           }
@@ -675,6 +694,72 @@ export default function OrganizationChart({
     setSelectedProject(null);
   };
 
+  const handleAddEmployee = useCallback(() => {
+    // Generate a unique id for the new employee (view-only id).
+    const newId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `emp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const newEmployee: EmployeeListItem = {
+      id: newId,
+      name: "New Employee",
+      email: "",
+      title: "New Role",
+      division: activeDivisionFilter ?? "Engineering",
+      position: "Team Member",
+      subordinates: [],
+      projects: [],
+      avatar: null,
+      is_active: true,
+    };
+
+    setEmployees((prev) => [...prev, newEmployee]);
+    setHasChanges(true);
+    // Immediately open the edit modal so the user can fill in details.
+    setSelectedEmployee(newEmployee);
+  }, [activeDivisionFilter]);
+
+  const handleDeleteEmployee = useCallback((employeeId: string) => {
+    setEmployees((prev) => {
+      // Remove the employee entirely AND clean it from every other
+      // employee's subordinates list so no dangling references remain.
+      const filtered = prev
+        .filter((emp) => emp.id !== employeeId)
+        .map((emp) => {
+          if (emp.subordinates?.includes(employeeId)) {
+            return {
+              ...emp,
+              subordinates: emp.subordinates.filter((id) => id !== employeeId),
+            };
+          }
+          return emp;
+        });
+      return filtered;
+    });
+    setHasChanges(true);
+    setSelectedEmployee(null);
+  }, []);
+
+  const handleDeleteProject = useCallback((projectName: string) => {
+    // Drop from every employee's projects array.
+    setEmployees((prev) =>
+      prev.map((emp) => {
+        if (emp.projects?.includes(projectName)) {
+          return {
+            ...emp,
+            projects: emp.projects.filter((p) => p !== projectName),
+          };
+        }
+        return emp;
+      }),
+    );
+    // Drop from the standalone (empty-box) list if present.
+    setStandaloneProjects((prev) => prev.filter((p) => p !== projectName));
+    setHasChanges(true);
+    setSelectedProject(null);
+  }, []);
+
   const handleAddProject = useCallback(() => {
     setStandaloneProjects((prevStandalone) => {
       // Gather every project name already present (from employees + standalone)
@@ -714,14 +799,15 @@ export default function OrganizationChart({
         onNodeClick={handleNodeClick}
         onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
+        connectionMode={ConnectionMode.Loose}
         fitView
         fitViewOptions={{ padding: 0.1 }}
         minZoom={0.1}
         maxZoom={1.5}
         defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
-        nodesDraggable={true}
-        nodesConnectable={true}
-        elementsSelectable={true}
+        nodesDraggable
+        nodesConnectable
+        elementsSelectable
       >
         {/* NEW: Clear Filter Button Panel */}
         {activeDivisionFilter && (
@@ -749,29 +835,52 @@ export default function OrganizationChart({
           </Panel>
         )}
 
-        {/* Add Project Button */}
+        {/* Editor Toolbar: Add Employee + Add Project */}
         <Panel position="bottom-left" className="m-4">
-          <button
-            onClick={handleAddProject}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center space-x-2"
-            title="Add a new project box to the chart"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
+          <div className="flex items-center gap-2 bg-white/90 backdrop-blur border border-gray-200 rounded-lg shadow-md p-2">
+            <button
+              onClick={handleAddEmployee}
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors duration-200 flex items-center space-x-2"
+              title="Add a new employee to the chart"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>Add Project</span>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Add Employee</span>
+            </button>
+            <button
+              onClick={handleAddProject}
+              className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-md shadow-sm transition-colors duration-200 flex items-center space-x-2"
+              title="Add a new project box to the chart"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Add Project</span>
+            </button>
+          </div>
         </Panel>
 
         {hasChanges && (
@@ -876,19 +985,48 @@ export default function OrganizationChart({
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end space-x-3">
+            <div className="mt-6 flex items-center justify-between">
               <button
-                onClick={() => setSelectedEmployee(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                onClick={() => {
+                  if (!selectedEmployee) return;
+                  const confirmed = window.confirm(
+                    `Delete employee "${selectedEmployee.name}"? This will remove them from the chart and from any supervisor's subordinates.`,
+                  );
+                  if (confirmed) handleDeleteEmployee(selectedEmployee.id);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center space-x-2"
+                title="Delete this employee from the chart"
               >
-                Cancel
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"
+                  />
+                </svg>
+                <span>Delete</span>
               </button>
-              <button
-                onClick={handleSaveEmployeeDetails}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Save Changes
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setSelectedEmployee(null)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEmployeeDetails}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -929,19 +1067,48 @@ export default function OrganizationChart({
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end space-x-3">
+            <div className="mt-6 flex items-center justify-between">
               <button
-                onClick={() => setSelectedProject(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                onClick={() => {
+                  if (!selectedProject) return;
+                  const confirmed = window.confirm(
+                    `Delete project "${selectedProject.oldName}"? This will remove the project box and detach it from every employee.`,
+                  );
+                  if (confirmed) handleDeleteProject(selectedProject.oldName);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center space-x-2"
+                title="Delete this project and detach it from all employees"
               >
-                Cancel
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"
+                  />
+                </svg>
+                <span>Delete</span>
               </button>
-              <button
-                onClick={handleSaveProjectDetails}
-                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
-              >
-                Save Project
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setSelectedProject(null)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveProjectDetails}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+                >
+                  Save Project
+                </button>
+              </div>
             </div>
           </div>
         </div>
