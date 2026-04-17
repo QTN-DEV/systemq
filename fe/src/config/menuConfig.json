@@ -58,94 +58,97 @@
       ]
     },
     {
-      "id": "project-management",
-      "title": "Project Management",
-      "path": "/project-management",
-      "icon": "Folder",
-      "type": "item",
-      "roles": [
-        "admin",
-        "ceo",
-        "internalops",
-        "pm"
-      ]
-    },
-    {
-      "id": "workload-tracking",
-      "title": "Workload Tracking Dashboard",
-      "path": "/workload-tracking",
+      "id": "workload-report",
+      "title": "Workload Report",
       "icon": "Activity",
-      "type": "item",
+      "type": "collapsible",
       "roles": [
         "internalops",
         "superadmin"
+      ],
+      "children": [
+        {
+          "id": "workload-tracking",
+          "title": "Workload Tracking Dashboard",
+          "path": "/workload-tracking",
+          "roles": [
+            "internalops",
+            "superadmin"
+          ]
+        },
+        {
+          "id": "workload-project-mapping",
+          "title": "Project Mapping",
+          "path": "/project-mapping",
+          "roles": [
+            "internalops"
+          ]
+        }
       ]
     },
     {
-      "id": "workload-project-mapping",
-      "title": "Project Mapping",
-      "path": "/project-mapping",
-      "icon": "Network",
-      "type": "item",
-      "roles": [
-        "internalops"
-      ]
-    },
-    {
-      "id": "tracker",
-      "title": "Tracker",
-      "path": "/tracker/products",
-      "icon": "Kanban",
-      "type": "item",
+      "id": "project-management-group",
+      "title": "Project Management",
+      "icon": "Folder",
+      "type": "collapsible",
       "roles": [
         "admin",
         "ceo",
-        "employee",
-        "hr",
         "internalops",
-        "pm"
-      ]
-    },
-    {
-      "id": "triage",
-      "title": "Triage Inbox",
-      "path": "/tracker/triage",
-      "icon": "Inbox",
-      "type": "item",
-      "roles": [
-        "admin",
-        "ceo",
+        "pm",
         "employee",
-        "hr",
-        "internalops",
-        "pm"
-      ]
-    },
-    {
-      "id": "my-tasks",
-      "title": "My Tasks",
-      "path": "/tracker/my-tasks",
-      "icon": "CheckSquare",
-      "type": "item",
-      "roles": [
-        "admin",
-        "ceo",
-        "employee",
-        "hr",
-        "internalops",
-        "pm"
-      ]
-    },
-    {
-      "id": "tracker-config",
-      "title": "Tracker Config",
-      "path": "/tracker/config",
-      "icon": "Settings2",
-      "type": "item",
-      "roles": [
-        "admin",
-        "ceo",
-        "internalops"
+        "hr"
+      ],
+      "children": [
+        {
+          "id": "tracker",
+          "title": "Tracker",
+          "path": "/tracker/products",
+          "roles": [
+            "admin",
+            "ceo",
+            "employee",
+            "hr",
+            "internalops",
+            "pm"
+          ]
+        },
+        {
+          "id": "triage",
+          "title": "Triage Inbox",
+          "path": "/tracker/triage",
+          "roles": [
+            "admin",
+            "ceo",
+            "employee",
+            "hr",
+            "internalops",
+            "pm"
+          ]
+        },
+        {
+          "id": "my-tasks",
+          "title": "My Tasks",
+          "path": "/tracker/my-tasks",
+          "roles": [
+            "admin",
+            "ceo",
+            "employee",
+            "hr",
+            "internalops",
+            "pm"
+          ]
+        },
+        {
+          "id": "tracker-config",
+          "title": "Tracker Config",
+          "path": "/tracker/config",
+          "roles": [
+            "admin",
+            "ceo",
+            "internalops"
+          ]
+        }
       ]
     }
   ],

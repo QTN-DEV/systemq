@@ -6,8 +6,23 @@ import { useAuthStore } from "@/stores/authStore";
 
 import { useSidebarUser } from "./useSidebarUser";
 
+interface MenuItem {
+  id: string;
+  title: string;
+  path?: string;
+  icon: string;
+  type?: string;
+  roles?: string[];
+  children?: Array<{
+    id: string;
+    title: string;
+    path: string;
+    roles?: string[];
+  }>;
+}
+
 export function useSidebarMenu(): {
-  filteredMenuItems: Array<{ id: string; title: string; path: string; icon: string; roles?: string[] }>
+  filteredMenuItems: MenuItem[]
   currentRole: { name: string; color: string }
   isPathActive: (path: string) => boolean
   isDocsPathActive: () => boolean
@@ -19,22 +34,34 @@ export function useSidebarMenu(): {
   const currentUser = useAuthStore((state) => state.user);
 
   const filteredMenuItems = useMemo(() => {
-    return menuConfig.menuItems.filter((item) => {
-      // Role check
-      if (item.roles && !item.roles.includes(userRole)) {
-        return false;
-      }
+    const filterItems = (items: any[]): MenuItem[] => {
+      return items.filter((item) => {
+        // Role check
+        if (item.roles && !item.roles.includes(userRole)) {
+          return false;
+        }
 
-      // Feature toggle check: Only enable workloads features in production
-      if (
-        (item.id === "workload-tracking" || item.id === "workload-project-mapping") &&
-        import.meta.env.VITE_APP_ENV !== "production"
-      ) {
-        return false;
-      }
+        // Feature toggle check: Only enable workloads features in production
+        if (
+          (item.id === "workload-tracking" || item.id === "workload-project-mapping" || item.id === "workload-report") &&
+          import.meta.env.VITE_APP_ENV !== "production"
+        ) {
+          return false;
+        }
 
-      return true;
-    });
+        return true;
+      }).map((item) => {
+        if (item.children) {
+          return {
+            ...item,
+            children: filterItems(item.children)
+          };
+        }
+        return item;
+      }).filter(item => !item.children || item.children.length > 0);
+    };
+
+    return filterItems(menuConfig.menuItems);
   }, [userRole]);
 
   const currentRole = useMemo(() => {

@@ -15,7 +15,7 @@ import { useSidebarUser } from "./sidebar/_hooks/useSidebarUser";
 
 function Sidebar(): ReactElement {
   // Hooks - Business Logic
-  const { isCollapsed, docsOpen, toggleCollapse, toggleDocsOpen } =
+  const { isCollapsed, openMenus, toggleCollapse, toggleMenu } =
     useSidebar();
   const { displayName, userTitle, initials, avatarUrl } = useSidebarUser();
   const { currentRole } = useSidebarMenu();
@@ -45,8 +45,8 @@ function Sidebar(): ReactElement {
 
       <SidebarMenu
         isCollapsed={isCollapsed}
-        docsOpen={docsOpen}
-        onToggleDocsOpen={toggleDocsOpen}
+        openMenus={openMenus}
+        onToggleMenu={toggleMenu}
       />
 
       <SidebarFooter isCollapsed={isCollapsed} onLogout={handleLogout} />

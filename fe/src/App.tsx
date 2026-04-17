@@ -231,18 +231,6 @@ function App(): ReactElement {
 
       {/* Productivity */}
       <Route
-        path="/project-management"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <div className="p-8">
-                <h1 className="text-2xl font-bold">Project Management</h1>
-              </div>
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/daily-startup-tracker"
         element={
           <DashboardLayout>
