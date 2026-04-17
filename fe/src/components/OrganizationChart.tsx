@@ -24,6 +24,16 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   getEmployees,
   saveChart,
   type EmployeeListItem as BaseEmployeeListItem,
@@ -220,16 +230,50 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
 }
 
 // 2. Custom node component for Project Group Containers
-function ProjectGroupNode({ data }: { data: { name: string } }): ReactElement {
+function ProjectGroupNode({
+  data,
+}: {
+  data: { name: string; onEdit?: (name: string) => void };
+}): ReactElement {
   return (
-    <div className="rounded-xl border-4 border-dashed border-orange-400 bg-orange-50/50 h-full w-full relative group shadow-inner cursor-pointer hover:shadow-lg hover:border-orange-500 transition-all duration-200">
-      <div className="absolute top-0 left-0 right-0 h-10 bg-orange-100/70 rounded-t-lg flex items-center px-4 border-b-2 border-dashed border-orange-400 group-hover:bg-orange-200/70 transition-colors duration-200 pointer-events-none">
-        <span className="text-xs font-bold text-orange-600 uppercase tracking-widest mr-2">
+    <div
+      className="rounded-xl border-4 border-dashed border-orange-400 bg-orange-50/50 h-full w-full relative group shadow-inner cursor-pointer hover:shadow-lg hover:border-orange-500 transition-all duration-200"
+      title={`Click to filter by project "${data.name}"`}
+    >
+      <div className="absolute top-0 left-0 right-0 h-10 bg-orange-100/70 rounded-t-lg flex items-center px-4 border-b-2 border-dashed border-orange-400 group-hover:bg-orange-200/70 transition-colors duration-200">
+        <span className="text-xs font-bold text-orange-600 uppercase tracking-widest mr-2 pointer-events-none">
           Project:
         </span>
-        <h3 className="font-extrabold text-sm text-gray-900 truncate flex-1">
+        <h3 className="font-extrabold text-sm text-gray-900 truncate flex-1 pointer-events-none">
           {data.name}
         </h3>
+        {data.onEdit && (
+          <button
+            type="button"
+            aria-label={`Rename or delete project ${data.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onEdit?.(data.name);
+            }}
+            className="ml-2 w-6 h-6 flex items-center justify-center rounded text-orange-600 hover:bg-orange-200/80 pointer-events-auto"
+            title="Rename or delete this project"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -323,6 +367,7 @@ function ProjectPolygonNode({
     width: number;
     height: number;
     colorIndex: number;
+    onPolygonClick?: (name: string) => void;
   };
 }): ReactElement {
   const { fill, stroke } = POLYGON_PALETTE[data.colorIndex % POLYGON_PALETTE.length];
@@ -345,6 +390,17 @@ function ProjectPolygonNode({
   const labelX = Math.max(0, data.width / 2 - labelWidth / 2);
   const labelY = topPoint.y + 10;
 
+  // Only the polygon outline/label should catch clicks; the interior stays
+  // transparent to pointer events so employee cards beneath remain usable.
+  const handleClick = (e: React.MouseEvent): void => {
+    e.stopPropagation();
+    data.onPolygonClick?.(data.name);
+  };
+  const interactiveStyle: React.CSSProperties = {
+    pointerEvents: "auto",
+    cursor: data.onPolygonClick ? "pointer" : "default",
+  };
+
   return (
     <div
       style={{
@@ -365,7 +421,11 @@ function ProjectPolygonNode({
           strokeWidth={2.5}
           strokeDasharray="8 5"
           strokeLinejoin="round"
-        />
+          onClick={handleClick}
+          style={interactiveStyle}
+        >
+          <title>{`Click to filter by project "${data.name}"`}</title>
+        </path>
         {/* Label pill sits in the extra top-padding zone of the polygon */}
         <rect
           x={labelX}
@@ -375,6 +435,8 @@ function ProjectPolygonNode({
           width={labelWidth}
           height={labelHeight}
           fill={stroke}
+          onClick={handleClick}
+          style={interactiveStyle}
         />
         <text
           x={labelX + labelWidth / 2}
@@ -383,7 +445,8 @@ function ProjectPolygonNode({
           fontWeight={700}
           fill="white"
           textAnchor="middle"
-          style={{ letterSpacing: "0.04em" }}
+          style={{ letterSpacing: "0.04em", ...interactiveStyle }}
+          onClick={handleClick}
         >
           {labelText}
         </text>
@@ -411,7 +474,6 @@ export default function OrganizationChart({
   // States for Editing Modals & Filtering
   const [selectedEmployee, setSelectedEmployee] =
     useState<EmployeeListItem | null>(null);
-  const [editForm, setEditForm] = useState<Partial<EmployeeListItem>>({});
   const [selectedProject, setSelectedProject] = useState<{
     oldName: string;
     newName: string;
@@ -419,6 +481,12 @@ export default function OrganizationChart({
   const [activeDivisionFilter, setActiveDivisionFilter] = useState<
     string | null
   >(null); // NEW: Filter state
+  // Project-level filter. Stacks on top of the division filter if both are
+  // set. Activated by clicking a project group box (default view) or a
+  // project polygon (division view).
+  const [activeProjectFilter, setActiveProjectFilter] = useState<
+    string | null
+  >(null);
   // Track projects that exist but have no members yet (empty project boxes)
   const [standaloneProjects, setStandaloneProjects] = useState<string[]>([]);
   // Free-moved nodes (currently only orphan employees) keep their last
@@ -434,6 +502,10 @@ export default function OrganizationChart({
   // Controls the "Add Employee" sheet (the same dialog used by the
   // employee-management page, for consistency).
   const [addEmployeeSheetOpen, setAddEmployeeSheetOpen] = useState(false);
+  // Employee queued for deletion via the AlertDialog confirm. Separate from
+  // the sheet state so the sheet can stay open behind the confirm dialog.
+  const [pendingDeleteEmployee, setPendingDeleteEmployee] =
+    useState<EmployeeListItem | null>(null);
 
   // Fetch employees from the backend. No mock overrides: divisions and
   // project assignments are whatever the `users` collection says they are.
@@ -451,10 +523,6 @@ export default function OrganizationChart({
       } catch {}
     })();
   }, []);
-
-  useEffect(() => {
-    if (selectedEmployee) setEditForm(selectedEmployee);
-  }, [selectedEmployee]);
 
   const handleRemoveFromProject = useCallback(
     (empId: string, projectName: string) => {
@@ -482,10 +550,17 @@ export default function OrganizationChart({
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
-    // NEW: Apply the division filter to the dataset before processing layout
-    const visibleEmployees = activeDivisionFilter
-      ? employees.filter((emp) => emp.division === activeDivisionFilter)
-      : employees;
+    // Apply division + project filters. Both can be active at once; the
+    // chart narrows to the intersection.
+    const visibleEmployees = employees
+      .filter((emp) =>
+        activeDivisionFilter ? emp.division === activeDivisionFilter : true,
+      )
+      .filter((emp) =>
+        activeProjectFilter
+          ? (emp.projects ?? []).includes(activeProjectFilter)
+          : true,
+      );
 
     const employeeMap = new Map<string, EmployeeListItem>();
     const rootEmployees: EmployeeListItem[] = [];
@@ -748,6 +823,7 @@ export default function OrganizationChart({
               width: maxX - minX,
               height: maxY - minY,
               colorIndex,
+              onPolygonClick: setActiveProjectFilter,
             },
             draggable: false,
             selectable: false,
@@ -792,7 +868,11 @@ export default function OrganizationChart({
             type: "projectGroup",
             position: { x: currentGroupX, y: projectBaseY },
             style: { width: fixedGroupWidth, height: groupHeight },
-            data: { name: projName },
+            data: {
+              name: projName,
+              onEdit: (n: string) =>
+                setSelectedProject({ oldName: n, newName: n }),
+            },
             draggable: true,
           });
 
@@ -836,6 +916,7 @@ export default function OrganizationChart({
     employees,
     handleRemoveFromProject,
     activeDivisionFilter,
+    activeProjectFilter,
     standaloneProjects,
     customPositions,
     highlightQuery,
@@ -973,25 +1054,59 @@ export default function OrganizationChart({
       if (data && (data as any).employee)
         setSelectedEmployee((data as any).employee as EmployeeListItem);
     } else if (node.type === "projectGroup") {
-      setSelectedProject({
-        oldName: node.data.name as string,
-        newName: node.data.name as string,
-      });
+      // Clicking the body of a project group activates the project filter.
+      // The small pencil icon in the header opens the rename/delete modal.
+      setActiveProjectFilter(node.data.name as string);
     }
   }, []);
 
-  const handleSaveEmployeeDetails = () => {
-    if (!editForm.id) return;
-    setEmployees((prev) =>
-      prev.map((emp) =>
-        emp.id === editForm.id
-          ? ({ ...emp, ...editForm } as EmployeeListItem)
-          : emp,
-      ),
-    );
-    setHasChanges(true);
-    setSelectedEmployee(null);
-  };
+  const handleSubmitEditEmployee = useCallback(
+    async (values: EmployeeFormValues): Promise<boolean> => {
+      const targetId = values.id.trim();
+      if (!targetId) return false;
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.id === targetId
+            ? ({
+                ...emp,
+                name: values.name.trim() || emp.name,
+                email: values.email.trim(),
+                title: values.title.trim() || null,
+                division: values.division || undefined,
+                level: values.level || null,
+                position: values.position || null,
+                employment_type: values.employment_type,
+                projects: values.projects ?? emp.projects ?? [],
+              } as EmployeeListItem)
+            : emp,
+        ),
+      );
+      setHasChanges(true);
+      setSelectedEmployee(null);
+      return true;
+    },
+    [],
+  );
+
+  // Pre-populate the edit sheet with the selected employee's data.
+  const editInitialValues = useMemo<
+    Partial<EmployeeFormValues> | undefined
+  >(() => {
+    if (!selectedEmployee) return undefined;
+    return {
+      id: selectedEmployee.id,
+      name: selectedEmployee.name ?? "",
+      email: selectedEmployee.email ?? "",
+      title: selectedEmployee.title ?? "",
+      division: selectedEmployee.division ?? "",
+      level: selectedEmployee.level ?? "",
+      position: selectedEmployee.position ?? "",
+      employment_type:
+        (selectedEmployee.employment_type as EmployeeFormValues["employment_type"]) ??
+        "full-time",
+      projects: selectedEmployee.projects ?? [],
+    };
+  }, [selectedEmployee]);
 
   const handleSaveProjectDetails = () => {
     if (!selectedProject) return;
@@ -1017,6 +1132,10 @@ export default function OrganizationChart({
         prev.map((p) =>
           p === selectedProject.oldName ? selectedProject.newName : p,
         ),
+      );
+      // If the renamed project is the current filter, retarget the filter.
+      setActiveProjectFilter((prev) =>
+        prev === selectedProject.oldName ? selectedProject.newName : prev,
       );
       setHasChanges(true);
     }
@@ -1110,6 +1229,8 @@ export default function OrganizationChart({
     );
     // Drop from the standalone (empty-box) list if present.
     setStandaloneProjects((prev) => prev.filter((p) => p !== projectName));
+    // Clear the project filter if it pointed at the deleted project.
+    setActiveProjectFilter((prev) => (prev === projectName ? null : prev));
     setHasChanges(true);
     setSelectedProject(null);
   }, []);
@@ -1183,29 +1304,60 @@ export default function OrganizationChart({
         nodesConnectable
         elementsSelectable
       >
-        {/* NEW: Clear Filter Button Panel */}
-        {activeDivisionFilter && (
+        {/* Active-filter chips. One pill per active filter (division /
+            project). Clicking the × on a pill clears just that filter. */}
+        {(activeDivisionFilter !== null || activeProjectFilter !== null) && (
           <Panel position="top-left" className="m-4">
-            <button
-              onClick={() => setActiveDivisionFilter(null)}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center space-x-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
-              <span>Clear Filter ({activeDivisionFilter})</span>
-            </button>
+            <div className="flex flex-col items-start gap-2">
+              {activeDivisionFilter && (
+                <button
+                  onClick={() => setActiveDivisionFilter(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center space-x-2"
+                  title="Clear division filter"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  <span>Division: {activeDivisionFilter}</span>
+                  <span className="ml-1 text-slate-300">×</span>
+                </button>
+              )}
+              {activeProjectFilter && (
+                <button
+                  onClick={() => setActiveProjectFilter(null)}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center space-x-2"
+                  title="Clear project filter"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  <span>Project: {activeProjectFilter}</span>
+                  <span className="ml-1 text-orange-200">×</span>
+                </button>
+              )}
+            </div>
           </Panel>
         )}
 
@@ -1328,122 +1480,59 @@ export default function OrganizationChart({
         />
       </ReactFlow>
 
-      {/* Editable Employee Popup */}
-      {selectedEmployee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-xl w-[360px] max-w-[90vw] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Edit Employee
-              </h3>
-              <button
-                onClick={() => setSelectedEmployee(null)}
-                className="px-2 py-1 text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
+      {/* Edit Employee sheet (same dialog as Add Employee / Employee Mgmt) */}
+      <EmployeeFormSheet
+        open={Boolean(selectedEmployee)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEmployee(null);
+        }}
+        mode="edit"
+        initialValues={editInitialValues}
+        onSubmit={handleSubmitEditEmployee}
+        showProjects
+        deleteLabel="Delete Employee"
+        onDelete={
+          selectedEmployee
+            ? () => setPendingDeleteEmployee(selectedEmployee)
+            : undefined
+        }
+      />
 
-            <div className="space-y-4 text-sm">
-              <div className="flex flex-col space-y-1">
-                <label className="text-gray-600 font-medium">Name</label>
-                <input
-                  type="text"
-                  value={editForm.name || ""}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, name: e.target.value })
-                  }
-                  className="border border-gray-300 rounded px-3 py-2 outline-none focus:border-blue-500"
-                />
-              </div>
-              <div className="flex flex-col space-y-1">
-                <label className="text-gray-600 font-medium">Title</label>
-                <input
-                  type="text"
-                  value={editForm.title || ""}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, title: e.target.value })
-                  }
-                  className="border border-gray-300 rounded px-3 py-2 outline-none focus:border-blue-500"
-                />
-              </div>
-              <div className="flex flex-col space-y-1">
-                <label className="text-gray-600 font-medium">Division</label>
-                <input
-                  type="text"
-                  value={editForm.division || ""}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, division: e.target.value })
-                  }
-                  className="border border-gray-300 rounded px-3 py-2 outline-none focus:border-blue-500"
-                  placeholder="e.g. Engineering"
-                />
-              </div>
-              <div className="flex flex-col space-y-1">
-                <label className="text-gray-600 font-medium">
-                  Projects (comma separated)
-                </label>
-                <input
-                  type="text"
-                  value={editForm.projects?.join(", ") || ""}
-                  onChange={(e) => {
-                    const projectList = e.target.value
-                      .split(",")
-                      .map((p) => p.trim())
-                      .filter(Boolean);
-                    setEditForm({ ...editForm, projects: projectList });
-                  }}
-                  className="border border-gray-300 rounded px-3 py-2 outline-none focus:border-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  if (!selectedEmployee) return;
-                  const confirmed = window.confirm(
-                    `Delete employee "${selectedEmployee.name}"? This will remove them from the chart and from any supervisor's subordinates.`,
-                  );
-                  if (confirmed) handleDeleteEmployee(selectedEmployee.id);
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center space-x-2"
-                title="Delete this employee from the chart"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"
-                  />
-                </svg>
-                <span>Delete</span>
-              </button>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setSelectedEmployee(null)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEmployeeDetails}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete confirmation */}
+      <AlertDialog
+        open={Boolean(pendingDeleteEmployee)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteEmployee(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove{" "}
+              <span className="font-medium text-foreground">
+                {pendingDeleteEmployee?.name}
+              </span>{" "}
+              ({pendingDeleteEmployee?.id}) from the chart? This will also
+              detach them from any supervisor&apos;s subordinates list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDeleteEmployee) {
+                  handleDeleteEmployee(pendingDeleteEmployee.id);
+                }
+                setPendingDeleteEmployee(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Editable Project Group Popup */}
       {selectedProject && (
