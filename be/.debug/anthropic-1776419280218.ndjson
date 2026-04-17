@@ -1,0 +1,11 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "thinking_delta", "thinking": "The user is just", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "thinking_delta", "thinking": " greeting me with \"hi\". I should respond with a friendly greeting and let them know I'm ready to help. I don't need to use any tools", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "thinking_delta", "thinking": " for a simple greeting.", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "thinking_stop", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "text_start", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "text_delta", "text": "Hi there! I'm Claude, and I'm here to help you with any coding", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "text_delta", "text": ", file management, or project tasks you might have. What would you like to work on today?", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "text_end", "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}
+{"type": "cost", "total_cost_usd": 0.005022799999999999, "message_id": "msg_01DvmfT5kqqNad8cVYY57iB2"}

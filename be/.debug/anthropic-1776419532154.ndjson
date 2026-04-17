@@ -1,0 +1,45 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01BvNWbL7jRm5gzQzPguWLCC"}
+{"type": "thinking_delta", "thinking": "The user wants", "message_id": "msg_01BvNWbL7jRm5gzQzPguWLCC"}
+{"type": "thinking_delta", "thinking": " me to do a web search for \"best restaurants in paris\". I need to use the Tool", "message_id": "msg_01BvNWbL7jRm5gzQzPguWLCC"}
+{"type": "thinking_delta", "thinking": "Search function first to load the WebSearch tool, then use it to search for this information.", "message_id": "msg_01BvNWbL7jRm5gzQzPguWLCC"}
+{"type": "thinking_delta", "thinking": "", "message_id": "msg_01BvNWbL7jRm5gzQzPguWLCC"}
+{"type": "thinking_stop", "message_id": "msg_01BvNWbL7jRm5gzQzPguWLCC"}
+{"type": "thinking_start", "message_id": "msg_01HEPvXYev16F9KCJkc7W4mK"}
+{"type": "thinking_delta", "thinking": "Now", "message_id": "msg_01HEPvXYev16F9KCJkc7W4mK"}
+{"type": "thinking_delta", "thinking": " I have access to the WebSearch tool. I'll search for \"best restaurants in Paris\" to get current information about top-rated restaurants in the", "message_id": "msg_01HEPvXYev16F9KCJkc7W4mK"}
+{"type": "thinking_delta", "thinking": " city.", "message_id": "msg_01HEPvXYev16F9KCJkc7W4mK"}
+{"type": "thinking_stop", "message_id": "msg_01HEPvXYev16F9KCJkc7W4mK"}
+{"type": "thinking_start", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "thinking_delta", "thinking": " need to format a comprehensive response about the best restaurants in Paris based on the search results I received. I", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "thinking_delta", "thinking": " must remember to include the sources section at the end with markdown hyperlinks as required.\n\nLet me organize the", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "thinking_delta", "thinking": " information into a helpful response about the best restaurants in Paris for 2026.", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "thinking_stop", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_start", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "# Best Restaurants in Paris 2026", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "\n\nBased on the latest dining guides and reviews, here are the top restaurants to visit in Paris this year:\n\n## ", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "\ud83c\udf1f New & Notable Restaurants for 2026\n\n**L'Envol** - Located at the Peninsula in the 16th arrondissement,", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " this represents the new summit of fine dining.\n\n**Osteria Brutto** - A generous Italian restaurant in the 5th arrondissement offering", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " authentic canaille cuisine.\n\n**Vif** - An electric and sourced neo-bistro in the trendy 11th arrondissement.\n\n**Sienne** -", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " Chic gastronomy located at the prestigious Petit Palais in the 8th arrondissement.\n\n## \ud83c\udf74 Michelin-Starred Excellence", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "\n\n**Le Cinq** - Awarded 3 Michelin stars since 2016, representing the pinnacle of French haute cuisine.\n\n**Le Servan** - Created by Filipino-French sisters, offering", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " modern French fare with East-Asian influences.\n\n## \ud83c\udfdb\ufe0f Trending Neighborhoods\n\n- **Le Marais, Saint-Germain-des-", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "Pr\u00e9s, and Montmartre** - Classic foodie destinations that continue to attract visitors\n- **11th and 10", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "th arrondissements** - Emerging as reliable neighborhoods for excellent dining experiences\n\n## \ud83c\udf31", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " Current Dining Trends\n\nThe Parisian restaurant scene in 2026 emphasizes:\n- **Seasonal produce and short supply chains**\n- **Small", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": ", intimate dining spaces** over large brasseries\n- **Creative fusion** between tradition and modern", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " culinary innovation\n- **Affordable fine dining options** gaining popularity\n\n## \ud83d\udcb0 Budget-Friendly Options\n\nParis", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " also offers excellent affordable restaurants that maintain high quality while", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " being accessible to more diners.\n\nThe city's dining landscape continues to evolve, bal", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "ancing respect for traditional French cuisine with exciting international influences and modern techniques.\n\n##", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " Sources:\n- [Seven new restaurants in Paris to discover and treat yourself to an exceptional meal](https://www.parisselectbook.com/en/2026/03/", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "19/seven-new-restaurants-in-paris-to-discover-and-treat-yourself-to-an-exceptional-meal/)\n- [Ultimate Guide to the Best Restaurants in Paris 2026 - Paris Eater](https://www.pariseater.com/restaurants/", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "best-restaurants-in-paris/)\n- [THE 10 BEST Restaurants in Paris (Updated April 2026) - Tripadvisor](https://www.tripadvisor.in/Restaurants-g187147-Paris_Ile_de_France.html)", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "\n- [The 10 Best Restaurants in Paris 2026 | TheFork](https://www.thefork.com/restaurants/paris-c415144)\n- [The best restaurants in Paris | (Updated 2026)](https://www.opentable", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": ".com/metro/fr/paris-restaurants)\n- [The best Restaurants, Bars and Hotels in Paris, France 2026](https://www.theworlds50best.com/discovery/sitemap/france/paris)\n- [The Best 9 New Affordable", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": " Restaurants in Paris for 2026](https://guide.michelin.com/us/en/best-of/affordable-restaurants-paris)\n- [18 Of The Best Restaurants In Paris For Your 2026 Euro Trip](https://www.theurbanlist.com/", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "a-list/best-restaurants-paris)\n- [March 2026 Restaurant Buzz: Where to Eat in Paris | Bonjour Paris](https://bonjourparis.com/food-restaurant-news/march-2026-restaurant-buzz-where-to-eat", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_delta", "text": "-in-paris/)", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "text_end", "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}
+{"type": "cost", "total_cost_usd": 0.07524345, "message_id": "msg_01JoaZ1CUhizuJJWS22xQBQv"}

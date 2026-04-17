@@ -1,0 +1,26 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "thinking_delta", "thinking": "The user is asking me to do a", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "thinking_delta", "thinking": " web search, but they haven't specified what they want me to search for. I need to use the ToolSearch", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "thinking_delta", "thinking": " tool first to load the WebSearch tool schema,", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "thinking_delta", "thinking": " and then I should ask the user what they'd like me to search for.", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "thinking_stop", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "text_start", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "text_delta", "text": "I'd be happy to help you with a", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "text_delta", "text": " web search! Let me first load the web search tool.", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "text_end", "message_id": "msg_01MFCfExEjCwW3Lfkk4wEuyR"}
+{"type": "thinking_start", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "thinking_delta", "thinking": "Great", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "thinking_delta", "thinking": ", now I have the WebSearch tool loaded. The user just asked me to \"do websearch for me\" but they", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "thinking_delta", "thinking": " didn't specify what they want me to search for. I should ask them what specific topic or query they'd like me to search for.", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "thinking_stop", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_start", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": "Perfect! I now", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": " have access to web search. What would you like me to search for? Please let me know:\n\n-", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": " The specific topic or question you'd like me to research\n- Any particular type of information you're looking for (news, tutorials, documentation", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": ", etc.)\n- If you want me to focus on or avoid any specific websites", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": "\n\nFor example, you could ask me to search for:\n- \"Latest news about artificial intelligence\"\n- \"Best restaurants in Paris ", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": "2026\"\n- \"How to learn Python programming\"\n- Or anything else you're curious about!\n\nWhat would you like", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_delta", "text": " me to look up?", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "text_end", "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
+{"type": "cost", "total_cost_usd": 0.022220399999999998, "message_id": "msg_01R2smznhERDjsPJ9tg5begL"}
