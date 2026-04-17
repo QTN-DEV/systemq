@@ -12,7 +12,7 @@ export interface TrackerIssue {
   created_at: string
   updated_at: string
   closed_at: string | null
-  archived_at: string | null
+  deleted_at: string | null
 }
 
 export interface CreateIssuePayload {
@@ -37,7 +37,7 @@ export interface UpdateIssuePayload {
   assignee_id?: string | null
   reporter_id?: string | null
   triage_owner_id?: string | null
-  archived_at?: string | null
+  deleted_at?: string | null
 }
 
 export const PRIORITY_LABELS: Record<number, string> = {

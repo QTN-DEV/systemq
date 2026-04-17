@@ -51,3 +51,11 @@ export interface IssueEvent {
 export async function listEvents(issueId: string): Promise<IssueEvent[]> {
   return apiClient.get<IssueEvent[]>(`/tracker/issues/${issueId}/events`)
 }
+
+export async function archiveIssue(id: string): Promise<TrackerIssue> {
+  return apiClient.patch<TrackerIssue>(`/tracker/issues/${id}/archive`, {})
+}
+
+export async function unarchiveIssue(id: string): Promise<TrackerIssue> {
+  return apiClient.patch<TrackerIssue>(`/tracker/issues/${id}/unarchive`, {})
+}

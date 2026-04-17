@@ -8,7 +8,7 @@ export interface TrackerProduct {
   target_date: string | null
   created_at: string
   updated_at: string
-  archived_at: string | null
+  deleted_at: string | null
 }
 
 export interface CreateProductPayload {
@@ -27,5 +27,5 @@ export interface UpdateProductPayload {
   status?: string
   owner_id?: string | null
   target_date?: string | null
-  archived_at?: string | null
+  deleted_at?: string | null
 }

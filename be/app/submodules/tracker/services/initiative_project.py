@@ -37,17 +37,17 @@ def _serialize(ip: InitiativeProject) -> dict:
         "owner_id": str(ip.owner_id) if ip.owner_id else None,
         "created_at": ip.created_at,
         "updated_at": ip.updated_at,
-        "archived_at": ip.archived_at,
+        "deleted_at": ip.deleted_at,
     }
 
 
 async def list_initiative_projects(initiative_id: str | None = None) -> list[dict]:
-    query = InitiativeProject.find()
     if initiative_id:
-        query = InitiativeProject.find(
+        items = await InitiativeProject.find(
             InitiativeProject.initiative_id == PydanticObjectId(initiative_id)
-        )
-    items = await query.to_list()
+        ).to_list()
+    else:
+        items = await InitiativeProject.find_all().to_list()
     return [_serialize(ip) for ip in items]
 
 
@@ -103,8 +103,26 @@ async def update_initiative_project(ip_id: str, **kwargs) -> dict:
         ip.status = kwargs["status"]
     if "owner_id" in kwargs:
         ip.owner_id = PydanticObjectId(kwargs["owner_id"]) if kwargs["owner_id"] else None
-    if "archived_at" in kwargs:
-        ip.archived_at = kwargs["archived_at"]
 
     await ip.touch()
+    return _serialize(ip)
+
+
+async def archive_initiative_project(ip_id: str) -> dict:
+    ip = await InitiativeProject.get(PydanticObjectId(ip_id))
+    if ip is None:
+        raise InitiativeProjectNotFoundError(f"InitiativeProject '{ip_id}' not found")
+    await ip.delete()
+    return _serialize(ip)
+
+
+async def restore_initiative_project(ip_id: str) -> dict:
+    results = await InitiativeProject.find_many_in_all(
+        InitiativeProject.id == PydanticObjectId(ip_id)
+    ).to_list()
+    if not results:
+        raise InitiativeProjectNotFoundError(f"InitiativeProject '{ip_id}' not found")
+    ip = results[0]
+    ip.deleted_at = None
+    await ip.save()
     return _serialize(ip)

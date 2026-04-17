@@ -33,7 +33,7 @@ class IssueUpdate(BaseModel):
     assignee_id: str | None = None
     reporter_id: str | None = None
     triage_owner_id: str | None = None
-    archived_at: datetime | None = None
+    deleted_at: datetime | None = None
 
 
 class IssueResponse(IssueBase):
@@ -41,4 +41,4 @@ class IssueResponse(IssueBase):
     created_at: datetime
     updated_at: datetime
     closed_at: datetime | None = None
-    archived_at: datetime | None = None
+    deleted_at: datetime | None = None

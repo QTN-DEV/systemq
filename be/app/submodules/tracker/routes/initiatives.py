@@ -61,3 +61,21 @@ async def update_initiative(initiative_id: str, payload: InitiativeUpdate) -> In
     except InitiativeKeyConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return InitiativeResponse.model_validate(i)
+
+
+@router.patch("/{initiative_id}/archive", response_model=InitiativeResponse)
+async def archive_initiative(initiative_id: str) -> InitiativeResponse:
+    try:
+        i = await initiative_service.archive_initiative(initiative_id)
+    except InitiativeNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return InitiativeResponse.model_validate(i)
+
+
+@router.patch("/{initiative_id}/unarchive", response_model=InitiativeResponse)
+async def unarchive_initiative(initiative_id: str) -> InitiativeResponse:
+    try:
+        i = await initiative_service.restore_initiative(initiative_id)
+    except InitiativeNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return InitiativeResponse.model_validate(i)

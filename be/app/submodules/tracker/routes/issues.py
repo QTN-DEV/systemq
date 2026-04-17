@@ -8,7 +8,12 @@ from app.submodules.tracker.schemas.comment import CommentCreate, CommentRespons
 from app.submodules.tracker.schemas.issue import IssueCreate, IssueResponse, IssueUpdate
 from app.submodules.tracker.services import comment as comment_service
 from app.submodules.tracker.services import issue as issue_service
-from app.submodules.tracker.services.issue import InvalidStatusError, IssueNotFoundError
+from app.submodules.tracker.services.issue import (
+    InvalidStatusError,
+    IssueNotFoundError,
+    archive_issue as svc_archive_issue,
+    restore_issue as svc_restore_issue,
+)
 
 router = APIRouter(prefix="/issues", tags=["Tracker"])
 
@@ -84,3 +89,21 @@ async def create_comment(issue_id: str, payload: CommentCreate) -> CommentRespon
 async def list_events(issue_id: str) -> list[IssueEventResponse]:
     events = await issue_service.list_events(issue_id)
     return [IssueEventResponse.model_validate(e) for e in events]
+
+
+@router.patch("/{issue_id}/archive", response_model=IssueResponse)
+async def archive_issue(issue_id: str) -> IssueResponse:
+    try:
+        issue = await svc_archive_issue(issue_id)
+    except IssueNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return IssueResponse.model_validate(issue)
+
+
+@router.patch("/{issue_id}/unarchive", response_model=IssueResponse)
+async def unarchive_issue(issue_id: str) -> IssueResponse:
+    try:
+        issue = await svc_restore_issue(issue_id)
+    except IssueNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return IssueResponse.model_validate(issue)

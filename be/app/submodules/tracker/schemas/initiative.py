@@ -28,11 +28,11 @@ class InitiativeUpdate(BaseModel):
     status: str | None = None
     owner_id: str | None = None
     target_date: date | None = None
-    archived_at: datetime | None = None
+    deleted_at: datetime | None = None
 
 
 class InitiativeResponse(InitiativeBase):
     id: str
     created_at: datetime
     updated_at: datetime
-    archived_at: datetime | None = None
+    deleted_at: datetime | None = None

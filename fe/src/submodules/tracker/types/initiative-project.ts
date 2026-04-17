@@ -8,7 +8,7 @@ export interface InitiativeProject {
   owner_id: string | null
   created_at: string
   updated_at: string
-  archived_at: string | null
+  deleted_at: string | null
 }
 
 export interface CreateInitiativeProjectPayload {
@@ -26,5 +26,5 @@ export interface UpdateInitiativeProjectPayload {
   description?: string | null
   status?: string
   owner_id?: string | null
-  archived_at?: string | null
+  deleted_at?: string | null
 }

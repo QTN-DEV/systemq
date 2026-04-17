@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type IssueFilters, createIssue, createComment, getIssue, listComments, listEvents, listIssues, updateIssue } from '../api/issues'
+import { type IssueFilters, archiveIssue, createIssue, createComment, getIssue, listComments, listEvents, listIssues, unarchiveIssue, updateIssue } from '../api/issues'
 import type { CreateCommentPayload } from '../types/comment'
 import type { CreateIssuePayload, UpdateIssuePayload } from '../types/issue'
 
@@ -54,5 +54,17 @@ export function useCreateComment(issueId: string) {
   return useMutation({
     mutationFn: (data: CreateCommentPayload) => createComment(issueId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tracker', 'comments', issueId] }),
+  })
+}
+
+export function useArchiveIssue() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, archive }: { id: string; archive: boolean }) =>
+      archive ? archiveIssue(id) : unarchiveIssue(id),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['tracker', 'issues'] })
+      qc.invalidateQueries({ queryKey: ['tracker', 'issues', id] })
+    },
   })
 }

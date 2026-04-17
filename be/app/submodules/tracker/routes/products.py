@@ -58,3 +58,21 @@ async def update_product(product_id: str, payload: ProductUpdate) -> ProductResp
     except ProductKeyConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ProductResponse.model_validate(p)
+
+
+@router.patch("/{product_id}/archive", response_model=ProductResponse)
+async def archive_product(product_id: str) -> ProductResponse:
+    try:
+        p = await product_service.archive_product(product_id)
+    except ProductNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return ProductResponse.model_validate(p)
+
+
+@router.patch("/{product_id}/unarchive", response_model=ProductResponse)
+async def unarchive_product(product_id: str) -> ProductResponse:
+    try:
+        p = await product_service.restore_product(product_id)
+    except ProductNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return ProductResponse.model_validate(p)

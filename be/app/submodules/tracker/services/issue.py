@@ -46,7 +46,7 @@ def _serialize(issue: TrackerIssue) -> dict:
         "created_at": issue.created_at,
         "updated_at": issue.updated_at,
         "closed_at": issue.closed_at,
-        "archived_at": issue.archived_at,
+        "deleted_at": issue.deleted_at,
     }
 
 
@@ -184,11 +184,29 @@ async def update_issue(issue_id: str, actor_id: str | None = None, **kwargs) -> 
     if "triage_owner_id" in kwargs:
         raw = kwargs["triage_owner_id"]
         issue.triage_owner_id = PydanticObjectId(raw) if raw else None
-    if "archived_at" in kwargs:
-        issue.archived_at = kwargs["archived_at"]
 
     await issue.touch()
     for ev in events:
         await ev.insert()
 
+    return _serialize(issue)
+
+
+async def archive_issue(issue_id: str) -> dict:
+    issue = await TrackerIssue.get(PydanticObjectId(issue_id))
+    if issue is None:
+        raise IssueNotFoundError(f"Issue '{issue_id}' not found")
+    await issue.delete()
+    return _serialize(issue)
+
+
+async def restore_issue(issue_id: str) -> dict:
+    results = await TrackerIssue.find_many_in_all(
+        TrackerIssue.id == PydanticObjectId(issue_id)
+    ).to_list()
+    if not results:
+        raise IssueNotFoundError(f"Issue '{issue_id}' not found")
+    issue = results[0]
+    issue.deleted_at = None
+    await issue.save()
     return _serialize(issue)

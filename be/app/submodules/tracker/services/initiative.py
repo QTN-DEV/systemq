@@ -40,15 +40,17 @@ def _serialize(i: TrackerInitiative) -> dict:
         "target_date": i.target_date.isoformat() if i.target_date else None,
         "created_at": i.created_at,
         "updated_at": i.updated_at,
-        "archived_at": i.archived_at,
+        "deleted_at": i.deleted_at,
     }
 
 
 async def list_initiatives(product_id: str | None = None) -> list[dict]:
-    query = TrackerInitiative.find()
     if product_id:
-        query = TrackerInitiative.find(TrackerInitiative.product_id == PydanticObjectId(product_id))
-    initiatives = await query.to_list()
+        initiatives = await TrackerInitiative.find(
+            TrackerInitiative.product_id == PydanticObjectId(product_id)
+        ).to_list()
+    else:
+        initiatives = await TrackerInitiative.find_all().to_list()
     return [_serialize(i) for i in initiatives]
 
 
@@ -109,8 +111,26 @@ async def update_initiative(initiative_id: str, **kwargs) -> dict:
         i.owner_id = PydanticObjectId(kwargs["owner_id"]) if kwargs["owner_id"] else None
     if "target_date" in kwargs:
         i.target_date = kwargs["target_date"]
-    if "archived_at" in kwargs:
-        i.archived_at = kwargs["archived_at"]
 
     await i.touch()
+    return _serialize(i)
+
+
+async def archive_initiative(initiative_id: str) -> dict:
+    i = await TrackerInitiative.get(PydanticObjectId(initiative_id))
+    if i is None:
+        raise InitiativeNotFoundError(f"Initiative '{initiative_id}' not found")
+    await i.delete()
+    return _serialize(i)
+
+
+async def restore_initiative(initiative_id: str) -> dict:
+    results = await TrackerInitiative.find_many_in_all(
+        TrackerInitiative.id == PydanticObjectId(initiative_id)
+    ).to_list()
+    if not results:
+        raise InitiativeNotFoundError(f"Initiative '{initiative_id}' not found")
+    i = results[0]
+    i.deleted_at = None
+    await i.save()
     return _serialize(i)

@@ -39,7 +39,7 @@ def _serialize(p: TrackerProduct) -> dict:
         "target_date": p.target_date.isoformat() if p.target_date else None,
         "created_at": p.created_at,
         "updated_at": p.updated_at,
-        "archived_at": p.archived_at,
+        "deleted_at": p.deleted_at,
     }
 
 
@@ -103,8 +103,26 @@ async def update_product(product_id: str, **kwargs) -> dict:
         p.owner_id = PydanticObjectId(kwargs["owner_id"]) if kwargs["owner_id"] else None
     if "target_date" in kwargs:
         p.target_date = kwargs["target_date"]
-    if "archived_at" in kwargs:
-        p.archived_at = kwargs["archived_at"]
 
     await p.touch()
+    return _serialize(p)
+
+
+async def archive_product(product_id: str) -> dict:
+    p = await TrackerProduct.get(PydanticObjectId(product_id))
+    if p is None:
+        raise ProductNotFoundError(f"Product '{product_id}' not found")
+    await p.delete()
+    return _serialize(p)
+
+
+async def restore_product(product_id: str) -> dict:
+    results = await TrackerProduct.find_many_in_all(
+        TrackerProduct.id == PydanticObjectId(product_id)
+    ).to_list()
+    if not results:
+        raise ProductNotFoundError(f"Product '{product_id}' not found")
+    p = results[0]
+    p.deleted_at = None
+    await p.save()
     return _serialize(p)

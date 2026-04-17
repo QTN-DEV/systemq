@@ -26,6 +26,7 @@ import InitiativeProjectList from "./submodules/tracker/pages/initiative-project
 import InitiativeProjectDetail from "./submodules/tracker/pages/initiative-projects/InitiativeProjectDetail";
 import IssueDetail from "./submodules/tracker/pages/issues/IssueDetail";
 import MyTasks from "./submodules/tracker/pages/my-tasks/MyTasks";
+import TriageInbox from "./submodules/tracker/pages/triage/TriageInbox";
 import TrackerConfigPage from "./submodules/tracker/pages/config/TrackerConfigPage";
 
 function App(): ReactElement {
@@ -329,6 +330,16 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <MyTasks />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracker/triage"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <TriageInbox />
             </DashboardLayout>
           </ProtectedRoute>
         }

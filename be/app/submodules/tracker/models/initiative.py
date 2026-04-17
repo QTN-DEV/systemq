@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from beanie import Document, PydanticObjectId
+from beanie import DocumentWithSoftDelete, PydanticObjectId
 from pydantic import Field
 
 
@@ -12,7 +12,7 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-class TrackerInitiative(Document):
+class TrackerInitiative(DocumentWithSoftDelete):
     product_id: PydanticObjectId
     key: str
     name: str
@@ -22,7 +22,6 @@ class TrackerInitiative(Document):
     target_date: date | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
-    archived_at: datetime | None = None
 
     class Settings:
         name = "tracker_initiatives"

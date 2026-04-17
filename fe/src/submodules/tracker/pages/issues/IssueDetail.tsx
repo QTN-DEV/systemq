@@ -14,7 +14,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 import { PriorityBadge } from '../../components/PriorityBadge'
 import { StatusBadge } from '../../components/StatusBadge'
-import { useComments, useCreateComment, useEvents, useIssue, useUpdateIssue } from '../../hooks/useIssues'
+import { useArchiveIssue, useComments, useCreateComment, useEvents, useIssue, useUpdateIssue } from '../../hooks/useIssues'
 import { useIssueStatuses } from '../../hooks/useTrackerConfig'
 import { PRIORITY_LABELS } from '../../types/issue'
 
@@ -46,6 +46,7 @@ export default function IssueDetail(): ReactElement {
   const { data: events = [] } = useEvents(id!)
   const { data: issueStatusConfig } = useIssueStatuses()
   const updateIssue = useUpdateIssue()
+  const archiveIssue = useArchiveIssue()
   const createComment = useCreateComment(id!)
 
   const [commentBody, setCommentBody] = useState('')
@@ -242,6 +243,24 @@ export default function IssueDetail(): ReactElement {
                   </button>
                 </div>
               )}
+
+              <Separator />
+
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-xs text-muted-foreground"
+                disabled={archiveIssue.isPending}
+                onClick={() => {
+                  const isArchived = !!issue.deleted_at
+                  archiveIssue.mutate(
+                    { id: id!, archive: !isArchived },
+                    { onSuccess: () => toast.success(isArchived ? 'Issue restored' : 'Issue archived') }
+                  )
+                }}
+              >
+                {issue.deleted_at ? 'Restore issue' : 'Archive issue'}
+              </Button>
             </CardContent>
           </Card>
 
