@@ -7,7 +7,13 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.schemas import MessageResponse
-from app.schemas.employee import Employee, EmployeeCreate, EmployeeUpdate
+from app.schemas.employee import (
+    Employee,
+    EmployeeCreate,
+    EmployeeUpdate,
+    SaveChartPayload,
+    SaveChartResult,
+)
 from app.models.enums import ALLOWED_DIVISIONS
 from app.services import employee as employee_service
 from app.services.employee import (
@@ -100,6 +106,29 @@ async def list_employees(
     """Return active employees, optionally filtered by a search string."""
     employees = await employee_service.list_employees(search)
     return [Employee.model_validate(employee) for employee in employees]
+
+
+@router.post(
+    "/chart/save",
+    response_model=SaveChartResult,
+    summary="Save the organizational chart",
+    response_description="Counts of created/updated/deactivated users after reconciliation.",
+)
+async def save_chart(payload: SaveChartPayload) -> SaveChartResult:
+    """Persist the chart view state into the ``users`` collection.
+
+    Treats the submitted ``employees`` list as the full source of truth:
+    missing users are deactivated, new ids become new users, and existing
+    users have their editable fields overwritten with the chart state.
+    """
+    try:
+        employees = [emp.model_dump() for emp in payload.employees]
+        result = await employee_service.save_chart(employees)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return SaveChartResult(**result)
 
 
 @router.get(

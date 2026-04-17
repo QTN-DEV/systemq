@@ -283,3 +283,144 @@ async def update_employee(employee_id: str, payload: dict[str, object]) -> dict[
 
     await user.touch()
     return _serialize(user)
+
+
+def _coerce_position(value: object) -> str | None:
+    """Return the position only if it is one of the allowed literals, else None."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text if text in ALLOWED_POSITIONS else None
+
+
+def _coerce_division(value: object) -> str | None:
+    """Return the division only if it is one of the allowed values, else None."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text if text in ALLOWED_DIVISIONS else None
+
+
+def _placeholder_email(employee_id: str) -> str:
+    """Build a deterministic placeholder email for employees created from the
+    chart view that don't have an email yet. Uses example.com so it passes
+    pydantic's EmailStr validation.
+    """
+    safe = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in employee_id)
+    return f"pending-{safe}@placeholder.example.com"
+
+
+async def save_chart(employees_payload: list[dict[str, object]]) -> dict[str, int]:
+    """Persist a full chart snapshot into the ``users`` collection.
+
+    Reconciliation rules:
+      * If a payload employee matches an existing user by ``employee_id`` →
+        update the editable fields and re-activate if needed.
+      * If the payload introduces a brand new ``employee_id`` → insert a new
+        user with a default password and (if blank) a placeholder email.
+      * If an existing active user is missing from the payload → soft-delete
+        by setting ``is_active = False`` and clearing their ``subordinates``.
+
+    Returns a summary dict with counts.
+    """
+
+    stats = {"created": 0, "updated": 0, "deactivated": 0, "skipped": 0}
+
+    # Snapshot of existing users keyed by employee_id for O(1) lookup.
+    existing_users = await User.find_all().to_list()
+    existing_by_id: dict[str, User] = {
+        str(u.employee_id): u for u in existing_users if u.employee_id
+    }
+
+    payload_ids: set[str] = set()
+
+    for raw in employees_payload:
+        emp_id = str(raw.get("id") or "").strip()
+        if not emp_id:
+            stats["skipped"] += 1
+            continue
+        payload_ids.add(emp_id)
+
+        name = str(raw.get("name") or "").strip() or "New Employee"
+        title = raw.get("title") or None
+        division = _coerce_division(raw.get("division"))
+        position = _coerce_position(raw.get("position"))
+        level = raw.get("level") or None
+        subordinates = [str(s) for s in (raw.get("subordinates") or []) if s]
+        projects = [str(p) for p in (raw.get("projects") or []) if p]
+        avatar = raw.get("avatar") or None
+
+        user = existing_by_id.get(emp_id)
+
+        if user is not None:
+            # --- Update path --------------------------------------------------
+            user.name = name
+            user.title = title if title is not None else user.title
+            user.division = division if division is not None else user.division
+            user.position = position if position is not None else user.position
+            user.level = level if level is not None else user.level
+            user.subordinates = subordinates
+            user.projects = projects
+            if avatar:
+                # Avatar on the User model is HttpUrl | None; only overwrite
+                # when we have a real value so we don't drop existing avatars
+                # that weren't part of the chart payload.
+                user.avatar = avatar  # type: ignore[assignment]
+            if not user.is_active:
+                user.is_active = True
+            await user.touch()
+            stats["updated"] += 1
+            continue
+
+        # --- Create path ------------------------------------------------------
+        email_raw = str(raw.get("email") or "").strip().lower()
+        email = email_raw or _placeholder_email(emp_id)
+
+        # Make sure the email we pick doesn't collide with another user.
+        conflict = await User.find_one(User.email == email)
+        if conflict is not None:
+            email = _placeholder_email(f"{emp_id}-{len(existing_by_id)}")
+
+        new_user = User(
+            employee_id=emp_id,
+            name=name,
+            email=email,
+            title=title,
+            division=division,
+            level=level,
+            position=position,
+            subordinates=subordinates,
+            projects=projects,
+            avatar=avatar if avatar else None,  # type: ignore[arg-type]
+            hashed_password=hash_password(DEFAULT_PASSWORD),
+            is_active=True,
+        )
+        await new_user.insert()
+        stats["created"] += 1
+
+    # Soft-delete users that disappeared from the chart.
+    for emp_id, user in existing_by_id.items():
+        if emp_id in payload_ids:
+            continue
+        if not user.is_active:
+            continue
+
+        # Also prune the vanished id from every other user's subordinates.
+        other_supervisors = await User.find(
+            In(User.subordinates, [emp_id])
+        ).to_list()
+        for sup in other_supervisors:
+            if emp_id in sup.subordinates:
+                sup.subordinates.remove(emp_id)
+                await sup.touch()
+
+        user.subordinates = []
+        user.is_active = False
+        await user.touch()
+        stats["deactivated"] += 1
+
+    return stats

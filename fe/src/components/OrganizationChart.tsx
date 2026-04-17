@@ -25,8 +25,13 @@ import "@xyflow/react/dist/style.css";
 
 import {
   getEmployees,
+  saveChart,
   type EmployeeListItem as BaseEmployeeListItem,
 } from "@/lib/shared/services/EmployeeService";
+import {
+  EmployeeFormSheet,
+  type EmployeeFormValues,
+} from "@/pages/employee-management/_forms/EmployeeFormSheet";
 
 // Extended type to include projects array and division
 interface EmployeeListItem extends BaseEmployeeListItem {
@@ -426,30 +431,22 @@ export default function OrganizationChart({
   // means no active search and all cards render at full opacity.
   const [highlightQuery, setHighlightQuery] = useState<string>("");
   const [hasChanges, setHasChanges] = useState(false);
+  // Controls the "Add Employee" sheet (the same dialog used by the
+  // employee-management page, for consistency).
+  const [addEmployeeSheetOpen, setAddEmployeeSheetOpen] = useState(false);
 
-  // Fetch and Mock Data
+  // Fetch employees from the backend. No mock overrides: divisions and
+  // project assignments are whatever the `users` collection says they are.
   useEffect(() => {
     void (async () => {
       try {
         const data = await getEmployees();
-        const mockDataWithProjects = data.map((emp) => {
-          let division = "Engineering";
-          if (emp.title?.includes("Admin") || emp.title?.includes("Manager"))
-            division = "Operations";
-          if (emp.position === "CEO") division = "Executive";
-
-          let projects: string[] = [];
-          if (emp.name?.includes("Sarah") || emp.name?.includes("Ali"))
-            projects = ["Website Redesign", "Cloud Migration"];
-          else if (emp.name?.includes("John")) projects = ["Website Redesign"];
-          else if (emp.name?.includes("Michael"))
-            projects = ["Apollo", "Cloud Migration"];
-          else if (emp.title?.includes("Lead")) projects = ["Cloud Migration"];
-          else if (emp.title?.includes("Admin")) projects = ["Apollo"];
-
-          return { ...emp, projects, division };
-        });
-        setEmployees(mockDataWithProjects);
+        const normalized: EmployeeListItem[] = data.map((emp) => ({
+          ...emp,
+          division: emp.division ?? undefined,
+          projects: emp.projects ?? [],
+        }));
+        setEmployees(normalized);
         setHasChanges(false);
       } catch {}
     })();
@@ -1027,30 +1024,55 @@ export default function OrganizationChart({
   };
 
   const handleAddEmployee = useCallback(() => {
-    // Generate a unique id for the new employee (view-only id).
-    const newId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `emp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // Open the shared Employee form sheet in "create" mode. The actual
+    // employee record is only materialised once the user submits the form.
+    setAddEmployeeSheetOpen(true);
+  }, []);
 
-    const newEmployee: EmployeeListItem = {
-      id: newId,
-      name: "New Employee",
-      email: "",
-      title: "New Role",
-      division: activeDivisionFilter ?? "Engineering",
-      position: "Team Member",
-      subordinates: [],
-      projects: [],
-      avatar: null,
-      is_active: true,
-    };
+  const handleSubmitNewEmployee = useCallback(
+    async (values: EmployeeFormValues): Promise<boolean> => {
+      const trimmedId = values.id.trim();
+      if (!trimmedId) {
+        alert("Employee ID is required.");
+        return false;
+      }
+      if (employees.some((e) => e.id === trimmedId)) {
+        alert(`Employee ID "${trimmedId}" already exists on the chart.`);
+        return false;
+      }
 
-    setEmployees((prev) => [...prev, newEmployee]);
-    setHasChanges(true);
-    // Immediately open the edit modal so the user can fill in details.
-    setSelectedEmployee(newEmployee);
-  }, [activeDivisionFilter]);
+      const newEmployee: EmployeeListItem = {
+        id: trimmedId,
+        name: values.name.trim() || "New Employee",
+        email: values.email.trim(),
+        title: values.title.trim() || null,
+        division: values.division || undefined,
+        level: values.level || null,
+        position: values.position || null,
+        employment_type: values.employment_type,
+        subordinates: [],
+        projects: [],
+        avatar: null,
+        is_active: true,
+      };
+
+      setEmployees((prev) => [...prev, newEmployee]);
+      setHasChanges(true);
+      return true;
+    },
+    [employees],
+  );
+
+  // Initial values handed to the sheet whenever it opens in "create" mode.
+  // Pre-fills the division from the active chart filter so newly added
+  // employees land inside the division the user is currently viewing.
+  const newEmployeeInitialValues = useMemo<Partial<EmployeeFormValues>>(
+    () => ({
+      division: activeDivisionFilter ?? "",
+      employment_type: "full-time",
+    }),
+    [activeDivisionFilter],
+  );
 
   const handleDeleteEmployee = useCallback((employeeId: string) => {
     setEmployees((prev) => {
@@ -1115,9 +1137,29 @@ export default function OrganizationChart({
     });
   }, [employees]);
 
-  const handleSaveChart = async () => {
-    setHasChanges(false);
-    alert("Chart structure saved successfully!");
+  const handleSaveChart = async (): Promise<void> => {
+    try {
+      const payload = employees.map((e) => ({
+        id: e.id,
+        name: e.name,
+        email: e.email || null,
+        title: e.title ?? null,
+        division: e.division ?? null,
+        level: e.level ?? null,
+        position: e.position ?? null,
+        subordinates: e.subordinates ?? [],
+        projects: e.projects ?? [],
+        avatar: e.avatar ?? null,
+      }));
+      const result = await saveChart(payload);
+      setHasChanges(false);
+      alert(
+        `Chart saved: ${result.created} created, ${result.updated} updated, ${result.deactivated} deactivated.`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Failed to save chart: ${message}`);
+    }
   };
 
   return (
@@ -1484,6 +1526,15 @@ export default function OrganizationChart({
           </div>
         </div>
       )}
+
+      {/* Shared Add-Employee sheet (same dialog as the Employee Management page) */}
+      <EmployeeFormSheet
+        open={addEmployeeSheetOpen}
+        onOpenChange={setAddEmployeeSheetOpen}
+        mode="create"
+        initialValues={newEmployeeInitialValues}
+        onSubmit={handleSubmitNewEmployee}
+      />
     </div>
   );
 }
