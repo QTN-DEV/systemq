@@ -1,0 +1,45 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "thinking_delta", "thinking": "The user wants", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "thinking_delta", "thinking": " to search for an employee with the name \"nathan\". I can see in the deferred tools that there's an `m", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "thinking_delta", "thinking": "cp__employee-service__search_employees` tool available. I need to first load its schema using", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "thinking_delta", "thinking": " ToolSearch before I can call it.", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "thinking_stop", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "text_start", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "text_delta", "text": "I'll search for an employee named Nathan. First", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "text_delta", "text": ", let me load the employee search tool schema and then perform the search.", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "text_end", "message_id": "msg_017DP7xoCwHzNvbmgtzUKE2r"}
+{"type": "thinking_start", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_delta", "thinking": "'ve loaded the employee search tool schema, but I notice that it doesn't have any parameters defined - the", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_delta", "thinking": " parameters object is empty. This is unusual for a search function. Let me try calling it anyway", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_delta", "thinking": " to see what happens, as it might have some default behavior or accept parameters that", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_delta", "thinking": " aren't shown in the schema.", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_stop", "message_id": "msg_01E3FFWWkfKXktursa3tBC7b"}
+{"type": "thinking_start", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "thinking_delta", "thinking": "It", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "thinking_delta", "thinking": " seems the tool is expecting a 'query' parameter but the schema doesn't show it. This might be a schema definition", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "thinking_delta", "thinking": " issue. Let me try to call it with a query parameter for \"nathan\" even though it's not in the schema.", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "thinking_stop", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "text_start", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "text_delta", "text": "Let", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "text_delta", "text": " me try to search for Nathan by passing the name as a query parameter:", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "text_end", "message_id": "msg_01FjNJ9hhcAGJXg61jKLb5LZ"}
+{"type": "thinking_start", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "thinking_delta", "thinking": "The tool is still giving", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "thinking_delta", "thinking": " an error about missing 'query' attribute. It seems like there might be an issue with how this tool is implemented", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "thinking_delta", "thinking": " or how I'm calling it. The schema shows no parameters, but the tool clearly", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "thinking_delta", "thinking": " expects a query parameter.\n\nLet me try a different approach. Maybe I need to pass the search term in a different way, or maybe the tool expects a different parameter", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "thinking_delta", "thinking": " structure.", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "thinking_stop", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_start", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": "It seems there's an issue with the employee search tool - the schema doesn't show", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " the required parameters, but the tool is expecting a query parameter. This appears to be a configuration issue with", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " the employee service tool.\n\nWithout access to the proper parameter", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " schema for the employee search tool, I'm unable to search for Nathan in the employee directory. You might", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " need to:\n\n1. Check the employee service configuration\n2. Verify the tool's parameter schema is properly defined\n3. Contact your", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " system administrator about the employee search functionality\n\nIs there an alternative way you'd like me", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " to help you find information about Nathan, or would you like me to assist", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_delta", "text": " with something else?", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "text_end", "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}
+{"type": "cost", "total_cost_usd": 0.0638841, "message_id": "msg_014XnNv93m67Q1jzjwATtqGK"}

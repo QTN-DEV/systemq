@@ -1,0 +1,33 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "thinking_delta", "thinking": "The user wants", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "thinking_delta", "thinking": " to search for an employee named Nathan. I see there's a deferred tool called \"mcp__employee-service__search_employees\" which appears to be an", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "thinking_delta", "thinking": " employee search function. I need to use ToolSearch to load the schema for this tool before I", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "thinking_delta", "thinking": " can call it.", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "thinking_stop", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "text_start", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "text_delta", "text": "I'll help you search for an employee named Nathan. Let me first load the employee search tool", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "text_delta", "text": " and then perform the search.", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "text_end", "message_id": "msg_01Khz96A15K5B2xN7NurJe26"}
+{"type": "thinking_start", "message_id": "msg_01FTm8Ysr1XXbUoaLAUozJof"}
+{"type": "thinking_delta", "thinking": "Now", "message_id": "msg_01FTm8Ysr1XXbUoaLAUozJof"}
+{"type": "thinking_delta", "thinking": " I have the schema for the employee search tool. I can see it's a function that searches for employees, but it has", "message_id": "msg_01FTm8Ysr1XXbUoaLAUozJof"}
+{"type": "thinking_delta", "thinking": " no parameters - meaning it might return all employees or have some internal logic for searching", "message_id": "msg_01FTm8Ysr1XXbUoaLAUozJof"}
+{"type": "thinking_delta", "thinking": ". Let me call it to search for Nathan.", "message_id": "msg_01FTm8Ysr1XXbUoaLAUozJof"}
+{"type": "thinking_stop", "message_id": "msg_01FTm8Ysr1XXbUoaLAUozJof"}
+{"type": "thinking_start", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "thinking_delta", "thinking": "It", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "thinking_delta", "thinking": " looks like there's an error with the employee search tool - it seems to be encoun", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "thinking_delta", "thinking": "tering a JSON serialization issue with an HttpUrl object. This appears to be a technical issue with the tool itself rather than something", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "thinking_delta", "thinking": " I can fix by changing parameters.\n\nLet me inform the user about this issue and suggest alternatives if possible", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "thinking_delta", "thinking": ".", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "thinking_stop", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_start", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_delta", "text": "I encountered a technical issue with the employee search service - it appears there's a JSON serialization error with the tool. This seems to be an", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_delta", "text": " internal problem with the employee service.\n\nYou might want to try:", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_delta", "text": "\n1. Contacting your IT administrator about the employee directory service\n2. Using an alternative employee", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_delta", "text": " lookup method (like your company's internal directory, Slack, or HR", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_delta", "text": " system)\n3. Checking if there are other ways to search for Nathan in your organization's systems", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_delta", "text": "\n\nIs there another way I can help you find information about Nathan, or would you like me to try a different approach?", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "text_end", "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}
+{"type": "cost", "total_cost_usd": 0.01940105, "message_id": "msg_01JUA5tfFdBJ6JAiQm1J6DLj"}

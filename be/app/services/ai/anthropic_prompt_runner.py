@@ -77,6 +77,8 @@ class AnthropicPromptRunner(BasePromptRunner):
             if self.api_key:
                 os.environ["ANTHROPIC_API_KEY"] = self.api_key
 
+            from .tools.employee import employee_tools_server
+            
             agent_opts = ClaudeAgentOptions(
                 cwd=self.working_directory,
                 model=self.model,
@@ -86,7 +88,8 @@ class AnthropicPromptRunner(BasePromptRunner):
                 allowed_tools=self.tools,
                 disallowed_tools=self.disallowed_tools,
                 setting_sources=["project"],
-                include_partial_messages=True
+                include_partial_messages=True,
+                mcp_servers={"employee-service": employee_tools_server}
             )
 
             stream = query(

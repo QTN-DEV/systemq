@@ -1,0 +1,65 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_delta", "thinking": "The user wants", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_delta", "thinking": " to search for an employee with the name \"nathan\". Looking at the available deferred tools, I can see there's an `mcp__employee-service__search_", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_delta", "thinking": "employees` tool that seems relevant for this task. I'll need to use ToolSearch first to get", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_delta", "thinking": " the schema for this tool before I can use it.\n\nLet me search for the employee service tool", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_delta", "thinking": " schema.", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_stop", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "text_start", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "text_delta", "text": "I'll help you search for an employee named Nathan. Let me first load the employee search tool", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "text_delta", "text": " and then perform the search.", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "text_end", "message_id": "msg_01LnBxHNx6rEHeEnyWd5nLk9"}
+{"type": "thinking_start", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_delta", "thinking": "Now", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_delta", "thinking": " I have the schema for the employee search tool. I can see it doesn't require any parameters, but I notice there's no", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_delta", "thinking": " way to specify the search term \"nathan\" in the schema. Let me try calling the function to see how", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_delta", "thinking": " it works - perhaps it provides a more interactive search interface or", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_delta", "thinking": " returns all employees that I can then filter.", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_stop", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "text_start", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "text_delta", "text": "Now let", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "text_delta", "text": " me search for employees with the name Nathan:", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "text_end", "message_id": "msg_01YD7rhUvcHjMfoPW7Rjk4dN"}
+{"type": "thinking_start", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "thinking_delta", "thinking": "The error", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "thinking_delta", "thinking": " indicates that the schema I received is incomplete - there should", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "thinking_delta", "thinking": " be a \"query\" parameter that's required. Let me try to get the complete schema again with", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "thinking_delta", "thinking": " a different approach.", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "thinking_stop", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "text_start", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "text_delta", "text": "Let me get the complete schema for the employee search tool:", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "text_end", "message_id": "msg_013obLsTPzHGkz1iM65r7do9"}
+{"type": "thinking_start", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": " see the issue - the employee search tool schema is incomplete in", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": " what was returned. I see from the error message that there should be a \"query", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": "\" parameter that's required, but the schema only shows empty properties. Let me try to use the tool by providing the", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": " query parameter even though it's not shown in the schema. The error message shows it expects an \"", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": "EmployeeSearchArgs\" with a \"query\" field.\n\nSince the schema appears incomplete", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": ", I'll try to call the function with the required query parameter based on the error message", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_delta", "thinking": ".", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_stop", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "text_start", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "text_delta", "text": "I can see the employee search tool requires a query parameter. Let me search for employees with the name", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "text_delta", "text": " \"nathan\":", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "text_end", "message_id": "msg_012Wfa4jDpWYLZKU81zcZJF8"}
+{"type": "thinking_start", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_delta", "thinking": "There", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_delta", "thinking": " seems to be an error with the employee service tool - it's having an internal serial", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_delta", "thinking": "ization issue. Let me try a different approach or see if there are alternative ways to search for employee", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_delta", "thinking": " information. The error suggests there's a problem with the MCP service itself.\n\nSince the employee", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_delta", "thinking": " service tool appears to be having technical issues, I should inform the user about this and suggest", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_delta", "thinking": " they check with their system administrator or try again later.", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "thinking_stop", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_start", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": "I encountered an error when", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": " trying to search for employees named Nathan. The employee service appears to be experiencing a technical issue (JSON", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": " serialization error). \n\nThis could be due to:\n1. A temporary issue with the employee service\n2. A configuration", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": " problem with the employee directory system\n\nI recommend:\n- Trying the", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": " search again in a few minutes\n- Checking with your system administrator if the employee service is working properly\n- Using alternative methods to find Nathan", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": "'s contact information (like checking your company directory manually", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": " or contacting HR)\n\nWould you like me to try the search again, or is there another way I can help you", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_delta", "text": " find the employee information you need?", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "text_end", "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}
+{"type": "cost", "total_cost_usd": 0.05386465, "message_id": "msg_018VoNL33bFbKAg5tRY6Govm"}

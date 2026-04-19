@@ -1,0 +1,50 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "thinking_delta", "thinking": "The user is asking to", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "thinking_delta", "thinking": " search for an employee named Nathan. Looking at the available deferred tools, I can see there's a tool called `mcp__employee-service__search_", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "thinking_delta", "thinking": "employees` which seems to be exactly what I need for this task.\n\nI need to use ToolSearch to load the schema for this tool first", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "thinking_delta", "thinking": " before I can call it.", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "thinking_stop", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "text_start", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "text_delta", "text": "I'll help you search for an employee named Nathan. First", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "text_delta", "text": ", let me load the employee search tool.", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "text_end", "message_id": "msg_0185fnz4RYrULHcUP8wMDhU5"}
+{"type": "thinking_start", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_delta", "thinking": " can see that the employee search tool has been loaded, but the schema shows it has", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_delta", "thinking": " no parameters (empty properties object). This is unusual - typically a search function would have parameters like name", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_delta", "thinking": " or query. Let me try calling it to see what happens, or perhaps it will prompt", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_delta", "thinking": " me for the search criteria.", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_stop", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "text_start", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "text_delta", "text": "Now let me search for employees named Nathan using", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "text_delta", "text": " the employee search tool.", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "text_end", "message_id": "msg_01VwwHzv8qw2dXAZXXV1KRd7"}
+{"type": "thinking_start", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_delta", "thinking": " see there was a validation error - it's missing a required \"", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_delta", "thinking": "query\" field. It looks like the tool schema wasn't fully loaded or displayed correctly. The", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_delta", "thinking": " error indicates there should be a \"query\" parameter. Let me try calling it with a query", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_delta", "thinking": " parameter for \"Nathan\".", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_stop", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "text_start", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "text_delta", "text": "I see the tool", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "text_delta", "text": " requires a query parameter. Let me search for Nathan with the correct parameter:", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "text_end", "message_id": "msg_01MpwRQWXpPcp9qGMhpkD7PF"}
+{"type": "thinking_start", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_delta", "thinking": "Perfect", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_delta", "thinking": "! The search was successful and returned one employee named \"Nathanael\" (which matches \"", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_delta", "thinking": "Nathan\"). Let me format this information nicely for the user.\n\nThe search returned:\n- ID: QTN-1202\n- Name:", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_delta", "thinking": " Nathanael  \n- Email: nathan@quantumteknologi.com\n- Title: Software Engineer\n- Division: Developer\n- Level: Lead\n- Position: Div Lead\n- Subordinates: 5 people (", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_delta", "thinking": "QTN-1281, QTN-1234, QTN-1206, QTN-1270, Mr. John)\n- Projects: Website Redesignx, Refactor Kenangan\n- Avatar: URL provided", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_delta", "thinking": "\n- Employment type: full-time", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "thinking_stop", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_start", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_delta", "text": "I found an employee matching \"Nathan\" in the company directory:\n\n##", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_delta", "text": " Employee Details\n\n**Name:** Nathanael  \n**Employee ID:** QTN-1202  \n**Email:** nathan@quantumteknologi.com  \n**Title:** Software Engineer  \n**Division:** Developer  \n**Level:**", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_delta", "text": " Lead  \n**Position:** Div Lead  \n**Employment Type:** Full-time  \n\n**Subordinates:** 5 team members\n- QTN-1281\n-", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_delta", "text": " QTN-1234  \n- QTN-1206\n- QTN-1270\n- Mr. John\n\n**Current Projects:**\n- Website Redesignx\n- Refactor Kenangan\n\nThe", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_delta", "text": " search found one employee named \"Nathanael\" who appears to be a Division Lead in the Developer", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_delta", "text": " division, managing a team of 5 people and working on website redesign and refactoring projects.", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "text_end", "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}
+{"type": "cost", "total_cost_usd": 0.034592599999999994, "message_id": "msg_01Nw3hUA3onzNHL25LAT9eyd"}

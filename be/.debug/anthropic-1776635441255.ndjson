@@ -1,0 +1,47 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_delta", "thinking": "The user is asking to", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_delta", "thinking": " search for an employee with the name \"nathan\". I can see in the available tools that there's a deferred tool called `m", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_delta", "thinking": "cp__employee-service__search_employees` which looks like it would be relevant for this request.\n\nSince this tool is deferred, I need to first", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_delta", "thinking": " use ToolSearch to load its schema before I can use it. Let me search for this", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_delta", "thinking": " tool to get its complete definition.", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_stop", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "text_start", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "text_delta", "text": "I'll help you search for an employee named Nathan.", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "text_delta", "text": " Let me first load the employee search tool and then perform the search.", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "text_end", "message_id": "msg_01MSwCmx4DtQpNAxVdYfCnCf"}
+{"type": "thinking_start", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_delta", "thinking": "'ve successfully loaded the employee search tool. However, I notice that the tool's parameters schema shows an", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_delta", "thinking": " empty object with no properties. This seems unusual for a search function that should typically accept", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_delta", "thinking": " search parameters like \"name\" or \"query\". Let me try calling the", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_delta", "thinking": " tool to see what happens or if it has any default behavior.", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_stop", "message_id": "msg_01Tfr5UKAcCRUDJXDuwjYxvy"}
+{"type": "thinking_start", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_delta", "thinking": "The error", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_delta", "thinking": " shows that there's a required field called \"query\" that I need to provide. It", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_delta", "thinking": " seems like the tool schema wasn't properly loaded or displayed - it should have shown that", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_delta", "thinking": " \"query\" is a required parameter. Let me try the search again with a query parameter for \"", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_delta", "thinking": "nathan\".", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_stop", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "text_start", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "text_delta", "text": "Let me search for employees with the name Nathan by providing a query parameter:", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "text_end", "message_id": "msg_01SypLWyuBPvJqHBT3Uixaqy"}
+{"type": "thinking_start", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "thinking_delta", "thinking": "There", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "thinking_delta", "thinking": " seems to be an issue with the employee search service - it's encountering a serialization error with", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "thinking_delta", "thinking": " an HttpUrl object. This appears to be a technical issue with the service itself rather than my usage", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "thinking_delta", "thinking": " of it.\n\nLet me inform the user about this issue and suggest alternative approaches they could take.", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "thinking_stop", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_start", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": "I encountered a", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " technical issue with the employee search service - it appears to be having trouble with URL serialization. This seems to be a problem", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " with the service itself rather than the search request.\n\nHere are a few things you could try:\n\n1. **Contact", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " IT or HR directly** - They may have access to the employee directory through", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " other means\n2. **Check your company's internal directory** - Most organizations have an employee lookup", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " tool on their intranet\n3. **Use your company's communication platform** - Tools like Slack, Teams, or similar", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " often have employee search functionality\n4. **Try again later** - The service might be temporarily unavailable\n\nIf you have", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " access to other employee lookup systems or if there's a different way you'd like me", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_delta", "text": " to help you find Nathan's information, please let me know!", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "text_end", "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}
+{"type": "cost", "total_cost_usd": 0.03201695, "message_id": "msg_01KY9TpUWkrQZzcCaeLRW7yx"}

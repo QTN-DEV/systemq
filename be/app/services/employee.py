@@ -79,6 +79,7 @@ async def list_employees(search: str | None = None) -> list[dict[str, object]]:
 
 async def search_employees(query: str) -> list[dict[str, object]]:
     """Search active employees by name, email, division, or employee ID."""
+    
     users = [user for user in await User.find_all().to_list() if user.is_active]
     
     if not query or not query.strip():

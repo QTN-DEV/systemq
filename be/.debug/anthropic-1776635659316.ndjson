@@ -1,0 +1,38 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_delta", "thinking": "The user wants", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_delta", "thinking": " to search for an employee with the name \"nathan\". I can see from the system reminder that there is a deferred tool available called", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_delta", "thinking": " `mcp__employee-service__search_employees` which sounds perfect for this task. However", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_delta", "thinking": ", I need to use ToolSearch to load the schema for this tool before I can call it.\n\nLet me search", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_delta", "thinking": " for this specific tool to get its schema.", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_stop", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "text_start", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "text_delta", "text": "I'll help you search for an", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "text_delta", "text": " employee with the name \"nathan\". First, let me load the employee search tool.", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "text_end", "message_id": "msg_01Rw9h7oqiKL5eSK12yYxzMZ"}
+{"type": "thinking_start", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "thinking_delta", "thinking": "Great", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "thinking_delta", "thinking": "! Now I have the schema for the employee search tool. I can see it takes a \"query\" parameter which can", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "thinking_delta", "thinking": " search by name, email, division, or employee ID. The user wants to search for an employee with the", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "thinking_delta", "thinking": " name \"nathan\", so I'll use \"nathan\" as the query parameter.", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "thinking_stop", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "text_start", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "text_delta", "text": "Now I'll search for employees with the name \"nathan\".", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "text_end", "message_id": "msg_012dL5ucymxaX522FitVVkKp"}
+{"type": "thinking_start", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_delta", "thinking": "Perfect", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_delta", "thinking": "! I found an employee named \"Nathanael\" in the search results. Let me format", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_delta", "thinking": " this information in a clear and readable way for the user.\n\nThe search", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_delta", "thinking": " returned:\n- Employee ID: QTN-1202\n- Name: Nathanael\n- Email: nathan@quantumteknologi.com\n- Title: Software Engineer\n- Division: Developer\n- Level: Lead\n- Position: Div Lead\n- Subordinates", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_delta", "thinking": ": Several people including QTN-1281, QTN-1234, QTN-1206, QTN-1270, and Mr. John\n- Projects: Website Redesignx, Refactor", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_delta", "thinking": " Kenangan\n- Avatar URL provided\n- Employment type: full-time\n\nI should present this information in a clear, organized way.", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "thinking_stop", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_start", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_delta", "text": "I found an employee matching \"nathan\" in the company directory:\n\n**Nathanael** (Employee", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_delta", "text": " ID: QTN-1202)\n- **Email:** nathan@quantumteknologi.com\n- **Title:** Software Engineer\n- **Division:** Developer\n- **Level:** Lead\n- **Position:** Div Lead\n- **Employment", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_delta", "text": " Type:** Full-time\n\n**Team & Projects:**\n- **Subordinates:** 5 team members (", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_delta", "text": "QTN-1281, QTN-1234, QTN-1206, QTN-1270, Mr. John)\n- **Current Projects:** \n  - Website Redesignx\n  - Refactor Kenangan", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_delta", "text": "\n\nThis appears to be a team lead in the Developer division who manages several subordinates and is working", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_delta", "text": " on website and refactoring projects.", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "text_end", "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}
+{"type": "cost", "total_cost_usd": 0.02402945, "message_id": "msg_01UYQKuvFQe8vSuzG34BkcXK"}

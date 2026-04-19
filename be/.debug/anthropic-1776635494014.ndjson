@@ -1,0 +1,52 @@
+{"type": "init", "model": "claude-sonnet-4-20250514"}
+{"type": "thinking_start", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_delta", "thinking": "The user wants", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_delta", "thinking": " to search for an employee named Nathan. I can see from the system reminder that there's a deferred tool called `m", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_delta", "thinking": "cp__employee-service__search_employees` which seems to be exactly what I need for this task.", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_delta", "thinking": " I need to use ToolSearch to load the schema for this tool first before I can call", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_delta", "thinking": " it.", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_stop", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "text_start", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "text_delta", "text": "I'll help you search for an employee named Nathan. Let me first load the employee search tool to see what parameters it needs", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "text_delta", "text": ".", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "text_end", "message_id": "msg_01WBrgRRen5siCUwPqCribWT"}
+{"type": "thinking_start", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_delta", "thinking": "Now", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_delta", "thinking": " I have the schema for the employee search tool. However, looking at the schema", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_delta", "thinking": ", it shows no parameters defined - just an empty object.", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_delta", "thinking": " This seems unusual for a search function that should take a name", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_delta", "thinking": " parameter. Let me try calling it to see what happens or if it provides more information about", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_delta", "thinking": " how to search.", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_stop", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "text_start", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "text_delta", "text": "Now I'll search for employees named Nathan using the employee", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "text_delta", "text": " service:", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "text_end", "message_id": "msg_01Xd52VxWi4popdE2L971B1Y"}
+{"type": "thinking_start", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "thinking_delta", "thinking": "I", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "thinking_delta", "thinking": " see the error indicates that a \"query\" field is required, but it wasn't shown in the schema. Let me try calling the employee", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "thinking_delta", "thinking": " search function again with a query parameter for \"nathan\".", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "thinking_stop", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "text_start", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "text_delta", "text": "I see", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "text_delta", "text": " the function requires a query parameter. Let me search for Nathan:", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "text_end", "message_id": "msg_01AUm2gLqJo8dcxpaThB5emm"}
+{"type": "thinking_start", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_delta", "thinking": "It", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_delta", "thinking": " seems there's an issue with the employee service tool - there appears to be a", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_delta", "thinking": " serialization error with an HttpUrl object. This suggests there might be a bug in the employee service or it", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_delta", "thinking": "'s not properly configured. \n\nLet me try a different approach or see if I can get more information about what's available.", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_delta", "thinking": " Since this tool seems to be having technical issues, I should inform the user about the", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_delta", "thinking": " problem and suggest alternatives.", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "thinking_stop", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_start", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": "I apologize, but I'm encountering a technical issue with the employee search service. There appears to be a serialization error when", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " trying to search for employees.\n\nThis looks like a configuration or implementation", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " issue with the employee service tool. Here are a few things we could try:\n\n1. **Check if there", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " are other ways to search for employees** - Perhaps there are employee", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " directories, contact lists, or other systems available\n2. **Contact IT support** - The employee", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " service may need to be fixed or reconfigured\n3. **Manual search** - If you have access to employee databases, HR systems, or internal", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " directories\n\nWould you like me to help you explore alternative ways to find information", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_delta", "text": " about Nathan, or would you prefer to report this technical issue to your IT team first?", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "text_end", "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
+{"type": "cost", "total_cost_usd": 0.027189950000000004, "message_id": "msg_01DijGUDHvbSVQMUugbPsd8L"}
