@@ -1,6 +1,6 @@
 export interface InitiativeProject {
   id: string
-  initiative_id: string
+  product_id: string
   key: string
   name: string
   description: string | null
@@ -12,7 +12,7 @@ export interface InitiativeProject {
 }
 
 export interface CreateInitiativeProjectPayload {
-  initiative_id: string
+  product_id: string
   key: string
   name: string
   description?: string | null

@@ -12,37 +12,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PageLayout } from '../../components/PageLayout'
 import { StatusIcon } from '../../components/IssueIcons'
 import { useCreateInitiativeProject, useInitiativeProjects } from '../../hooks/useInitiativeProjects'
-import { useInitiatives } from '../../hooks/useInitiatives'
+import { useProducts } from '../../hooks/useProducts'
 
 export default function InitiativeProjectList(): ReactElement {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const filterInitiativeId = searchParams.get('initiative_id') ?? undefined
+  const filterProductId = searchParams.get('product_id') ?? undefined
 
-  const { data: projects = [], isLoading } = useInitiativeProjects(filterInitiativeId)
-  const { data: initiatives = [] } = useInitiatives()
+  const { data: projects = [], isLoading } = useInitiativeProjects(filterProductId)
+  const { data: products = [] } = useProducts()
   const createProject = useCreateInitiativeProject()
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ initiative_id: filterInitiativeId ?? '', key: '', name: '', description: '' })
+  const [form, setForm] = useState({ product_id: filterProductId ?? '', key: '', name: '', description: '' })
 
-  const initiativeMap = Object.fromEntries(initiatives.map((i) => [i.id, i.name]))
+  const productMap = Object.fromEntries(products.map((p) => [p.id, p.name]))
 
   const handleCreate = async () => {
-    if (!form.initiative_id || !form.key.trim() || !form.name.trim()) {
-      toast.error('Initiative, key, and name are required')
+    if (!form.product_id || !form.key.trim() || !form.name.trim()) {
+      toast.error('Product, key, and name are required')
       return
     }
     try {
       await createProject.mutateAsync({
-        initiative_id: form.initiative_id,
+        product_id: form.product_id,
         key: form.key.trim(),
         name: form.name.trim(),
         description: form.description.trim() || null,
       })
       toast.success('Project created')
       setOpen(false)
-      setForm({ initiative_id: filterInitiativeId ?? '', key: '', name: '', description: '' })
+      setForm({ product_id: filterProductId ?? '', key: '', name: '', description: '' })
     } catch {
       toast.error('Failed to create project')
     }
@@ -50,11 +50,11 @@ export default function InitiativeProjectList(): ReactElement {
 
   const breadcrumbs = [
     { label: 'Tracker', href: '/tracker/products' },
-    { label: 'Initiative Projects' }
+    { label: 'Projects' }
   ]
 
-  if (filterInitiativeId && initiativeMap[filterInitiativeId]) {
-    breadcrumbs.push({ label: initiativeMap[filterInitiativeId] })
+  if (filterProductId && productMap[filterProductId]) {
+    breadcrumbs.push({ label: productMap[filterProductId] })
   }
 
   const actions = (
@@ -63,9 +63,9 @@ export default function InitiativeProjectList(): ReactElement {
         <Filter className="w-3.5 h-3.5" />
         <span>Filter</span>
       </Button>
-      <Button 
-        size="sm" 
-        onClick={() => setOpen(true)} 
+      <Button
+        size="sm"
+        onClick={() => setOpen(true)}
         className="h-8 gap-1.5 px-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
@@ -80,9 +80,8 @@ export default function InitiativeProjectList(): ReactElement {
         <div className="px-4 py-2 border-b bg-muted/30 flex items-center gap-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div className="w-16">Key</div>
           <div className="flex-1">Name</div>
-          <div className="w-48">Initiative</div>
+          <div className="w-48">Product</div>
           <div className="w-32">Status</div>
-          <div className="w-32">Target Date</div>
         </div>
 
         {isLoading ? (
@@ -96,7 +95,7 @@ export default function InitiativeProjectList(): ReactElement {
              </div>
              <h3 className="text-base font-medium">No projects found</h3>
              <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
-               Create your first initiative project to start tracking detailed work.
+               Create your first project to start tracking detailed work.
              </p>
              <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="mt-6 h-8">
                Create Project
@@ -117,14 +116,11 @@ export default function InitiativeProjectList(): ReactElement {
                   {p.name}
                 </div>
                 <div className="w-48 text-xs text-muted-foreground truncate pr-4">
-                  {initiativeMap[p.initiative_id] ?? p.initiative_id}
+                  {productMap[p.product_id] ?? p.product_id}
                 </div>
                 <div className="w-32 flex items-center gap-2">
                   <StatusIcon status={p.status} />
                   <span className="text-xs text-muted-foreground capitalize">{p.status.replace(/_/g, ' ')}</span>
-                </div>
-                <div className="w-32 text-xs text-muted-foreground">
-                  {p.target_date ?? 'No target date'}
                 </div>
               </div>
             ))}
@@ -139,39 +135,39 @@ export default function InitiativeProjectList(): ReactElement {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Initiative</Label>
-              <Select value={form.initiative_id} onValueChange={(v) => setForm({ ...form, initiative_id: v })}>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product</Label>
+              <Select value={form.product_id} onValueChange={(v) => setForm({ ...form, product_id: v })}>
                 <SelectTrigger className="h-9 border-muted-foreground/20">
-                  <SelectValue placeholder="Select initiative" />
+                  <SelectValue placeholder="Select product" />
                 </SelectTrigger>
                 <SelectContent>
-                  {initiatives.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
+                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Key</Label>
-              <Input 
-                placeholder="e.g. PROJ-01" 
-                value={form.key} 
+              <Input
+                placeholder="e.g. PROJ-01"
+                value={form.key}
                 onChange={(e) => setForm({ ...form, key: e.target.value })}
                 className="h-9 focus-visible:ring-1 focus-visible:ring-ring border-muted-foreground/20"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</Label>
-              <Input 
-                placeholder="Project name" 
-                value={form.name} 
+              <Input
+                placeholder="Project name"
+                value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="h-9 focus-visible:ring-1 focus-visible:ring-ring border-muted-foreground/20"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</Label>
-              <Input 
-                placeholder="Optional description" 
-                value={form.description} 
+              <Input
+                placeholder="Optional description"
+                value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="h-9 focus-visible:ring-1 focus-visible:ring-ring border-muted-foreground/20"
               />

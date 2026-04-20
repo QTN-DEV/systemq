@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { PageLayout } from '../../components/PageLayout'
 import { StatusIcon, PriorityIcon } from '../../components/IssueIcons'
-import { useInitiative } from '../../hooks/useInitiatives'
+import { useProduct } from '../../hooks/useProducts'
 import { useInitiativeProject, useUpdateInitiativeProject } from '../../hooks/useInitiativeProjects'
 import { useCreateIssue, useIssues } from '../../hooks/useIssues'
 import { useIssueStatuses } from '../../hooks/useTrackerConfig'
@@ -21,7 +21,7 @@ export default function InitiativeProjectDetail(): ReactElement {
   const navigate = useNavigate()
 
   const { data: project, isLoading } = useInitiativeProject(id!)
-  const { data: initiative } = useInitiative(project?.initiative_id ?? '')
+  const { data: product } = useProduct(project?.product_id ?? '')
   const { data: issues = [] } = useIssues({ initiative_project_id: id })
   const { data: issueStatusConfig } = useIssueStatuses()
   const updateProject = useUpdateInitiativeProject()
@@ -66,7 +66,7 @@ export default function InitiativeProjectDetail(): ReactElement {
       Loading project details…
     </div>
   )
-  
+
   if (!project) return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center">
       <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4 text-destructive">
@@ -82,8 +82,8 @@ export default function InitiativeProjectDetail(): ReactElement {
 
   const breadcrumbs = [
     { label: 'Tracker', href: '/tracker/products' },
-    { label: 'Initiatives', href: '/tracker/initiatives' },
-    { label: initiative?.name ?? 'Initiative', href: `/tracker/initiatives/${project.initiative_id}` },
+    { label: 'Products', href: '/tracker/products' },
+    { label: product?.name ?? 'Product', href: `/tracker/products/${project.product_id}` },
     { label: project.key }
   ]
 
@@ -95,8 +95,8 @@ export default function InitiativeProjectDetail(): ReactElement {
       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
         <MoreHorizontal className="w-4 h-4" />
       </Button>
-      <Button 
-        size="sm" 
+      <Button
+        size="sm"
         className="h-8 gap-1.5 px-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         onClick={() => setNewIssueOpen(true)}
       >
@@ -134,15 +134,15 @@ export default function InitiativeProjectDetail(): ReactElement {
                 {project.description}
               </p>
             )}
-            
+
             <div className="flex items-center gap-6 mt-8 text-xs font-medium text-muted-foreground uppercase tracking-widest">
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-muted-foreground/60">Status</span>
                 <span className="text-foreground capitalize">{project.status.replace(/_/g, ' ')}</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-muted-foreground/60">Initiative</span>
-                <span className="text-foreground">{initiative?.name ?? project.initiative_id}</span>
+                <span className="text-[10px] text-muted-foreground/60">Product</span>
+                <span className="text-foreground">{product?.name ?? project.product_id}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-muted-foreground/60">Issues</span>
@@ -206,7 +206,6 @@ export default function InitiativeProjectDetail(): ReactElement {
                     <span className="text-xs text-muted-foreground capitalize">{issue.status.replace(/_/g, ' ')}</span>
                   </div>
                   <div className="w-24 flex items-center justify-end">
-                     {/* Assignee placeholder */}
                      <div className="w-5 h-5 rounded-full bg-muted border border-background" title="Unassigned" />
                   </div>
                 </div>

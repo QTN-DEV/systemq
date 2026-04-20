@@ -20,9 +20,9 @@ router = APIRouter(prefix="/initiative-projects", tags=["Tracker"])
 
 @router.get("/", response_model=list[InitiativeProjectResponse])
 async def list_initiative_projects(
-    initiative_id: str | None = Query(default=None),
+    product_id: str | None = Query(default=None),
 ) -> list[InitiativeProjectResponse]:
-    items = await ip_service.list_initiative_projects(initiative_id=initiative_id)
+    items = await ip_service.list_initiative_projects(product_id=product_id)
     return [InitiativeProjectResponse.model_validate(i) for i in items]
 
 
@@ -30,7 +30,7 @@ async def list_initiative_projects(
 async def create_initiative_project(payload: InitiativeProjectCreate) -> InitiativeProjectResponse:
     try:
         ip = await ip_service.create_initiative_project(
-            payload.initiative_id,
+            payload.product_id,
             payload.key,
             payload.name,
             description=payload.description,
