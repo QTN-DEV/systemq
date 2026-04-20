@@ -10,7 +10,7 @@ pipeline {
     REGISTRY_CRED   = 'registry-docker'
     REGISTRY_URL    = 'https://index.docker.io/v1/'
 
-    // SLACK_BOT_WEBHOOK_URL = credentials('slack-infra-meepo')
+    SLACK_BOT_WEBHOOK_URL = credentials('slack-webhoookurl-internalops')
 
     KUBECONFIG_CRED = 'matrix-rancher'
     DEPLOY_NS       = 'utility'
