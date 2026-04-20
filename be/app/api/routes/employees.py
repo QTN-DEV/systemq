@@ -232,7 +232,7 @@ async def update_employee(employee_id: str, payload: EmployeeUpdate) -> Employee
     try:
         employee = await employee_service.update_employee(
             employee_id,
-            payload.model_dump(exclude_unset=True),
+            payload,
         )
     except EmployeeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

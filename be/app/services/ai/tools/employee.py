@@ -3,6 +3,8 @@ from claude_agent_sdk import tool, create_sdk_mcp_server
 from pydantic import BaseModel, Field, ValidationError
 from typing import Optional, Dict, Any
 
+from app.schemas.employee import EmployeeCreate, EmployeeUpdate
+
 from app.services.employee import (
     search_employees,
     list_employees,
@@ -10,6 +12,10 @@ from app.services.employee import (
     update_employee,
     deactivate_employee
 )
+from app.models.enums import ALLOWED_DIVISIONS, ALLOWED_POSITIONS, ALLOWED_EMPLOYMENT_TYPES
+
+class EmptyArgs(BaseModel):
+    pass
 
 class EmployeeSearchArgs(BaseModel):
     query: str = Field(description="Search active employees by name, email, division, or employee ID. Pass an empty string to get all active employees.")
@@ -18,11 +24,11 @@ class ListEmployeesArgs(BaseModel):
     search: Optional[str] = Field(default=None, description="Optional search term to filter employees by name, email, title, or ID")
 
 class CreateEmployeeArgs(BaseModel):
-    payload: Dict[str, Any] = Field(description="Dictionary containing employee details (e.g. name, email, division, position, level, title)")
+    payload: EmployeeCreate = Field(description="Employee details (e.g. name, email, division, position, level, title)")
 
 class UpdateEmployeeArgs(BaseModel):
     employee_id: str = Field(description="The ID of the employee to update")
-    payload: Dict[str, Any] = Field(description="Dictionary containing fields to update")
+    payload: EmployeeUpdate = Field(description="Fields to update")
 
 class DeactivateEmployeeArgs(BaseModel):
     employee_id: str = Field(description="The ID of the employee to deactivate")
@@ -72,7 +78,8 @@ async def list_employees_tool(args: dict) -> dict:
 async def create_employee_tool(args: dict) -> dict:
     try:
         validated = CreateEmployeeArgs(**args)
-        result = await create_employee(validated.payload)
+        # Assuming create_employee expects a dict for now, or we can use model_dump()
+        result = await create_employee(validated.payload.model_dump())
         return format_success(result)
     except Exception as e:
         return format_error(e)
@@ -103,6 +110,39 @@ async def deactivate_employee_tool(args: dict) -> dict:
     except Exception as e:
         return format_error(e)
 
+@tool(
+    name="get_all_divisions",
+    description="Get all available divisions for employees",
+    input_schema=EmptyArgs.model_json_schema()
+)
+async def get_all_divisions_tool(args: dict) -> dict:
+    try:
+        return format_success(list(ALLOWED_DIVISIONS))
+    except Exception as e:
+        return format_error(e)
+
+@tool(
+    name="get_all_positions",
+    description="Get all available positions for employees",
+    input_schema=EmptyArgs.model_json_schema()
+)
+async def get_all_positions_tool(args: dict) -> dict:
+    try:
+        return format_success(list(ALLOWED_POSITIONS))
+    except Exception as e:
+        return format_error(e)
+
+@tool(
+    name="get_all_employment_types",
+    description="Get all available employment types for employees",
+    input_schema=EmptyArgs.model_json_schema()
+)
+async def get_all_employment_types_tool(args: dict) -> dict:
+    try:
+        return format_success(list(ALLOWED_EMPLOYMENT_TYPES))
+    except Exception as e:
+        return format_error(e)
+
 employee_tools_server = create_sdk_mcp_server(
     name="employee-service",
     tools=[
@@ -110,6 +150,9 @@ employee_tools_server = create_sdk_mcp_server(
         list_employees_tool,
         create_employee_tool,
         update_employee_tool,
-        deactivate_employee_tool
+        deactivate_employee_tool,
+        get_all_divisions_tool,
+        get_all_positions_tool,
+        get_all_employment_types_tool
     ]
 )

@@ -79,18 +79,22 @@ class AnthropicPromptRunner(BasePromptRunner):
 
             from .tools.employee import employee_tools_server
             
-            agent_opts = ClaudeAgentOptions(
-                cwd=self.working_directory,
-                model=self.model,
-                max_budget_usd=self.max_budget_usd,
-                permission_mode="bypassPermissions",
-                max_turns=self.max_turns,
-                allowed_tools=self.tools,
-                disallowed_tools=self.disallowed_tools,
-                setting_sources=["project"],
-                include_partial_messages=True,
-                mcp_servers={"employee-service": employee_tools_server}
-            )
+            agent_opts_dict = {
+                "cwd": self.working_directory,
+                "model": self.model,
+                "max_budget_usd": self.max_budget_usd,
+                "permission_mode": "bypassPermissions",
+                "max_turns": self.max_turns,
+                "allowed_tools": self.tools,
+                "disallowed_tools": self.disallowed_tools,
+                "setting_sources": ["project"],
+                "include_partial_messages": True,
+                "mcp_servers": {"employee-service": employee_tools_server}
+            }
+            if self.system_prompt:
+                agent_opts_dict["system_prompt"] = self.system_prompt
+                
+            agent_opts = ClaudeAgentOptions(**agent_opts_dict)
 
             stream = query(
                 prompt=prompt,

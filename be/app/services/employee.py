@@ -7,6 +7,7 @@ from beanie.operators import In, Or
 from app.core.security import hash_password
 from app.models.enums import ALLOWED_DIVISIONS, ALLOWED_EMPLOYMENT_TYPES, ALLOWED_POSITIONS
 from app.models.user import User
+from app.schemas.employee import EmployeeUpdate
 from app.services.email import EmailConfigurationError, send_email
 from constants import APP_NAME, DEFAULT_PASSWORD
 
@@ -251,12 +252,12 @@ async def activate_employee(employee_id: str) -> dict[str, object]:
     return _serialize(user)
 
 
-async def update_employee(employee_id: str, payload: dict[str, object]) -> dict[str, object]:
+async def update_employee(employee_id: str, payload: EmployeeUpdate) -> dict[str, object]:
     user = await User.find_one(User.employee_id == employee_id)
     if user is None:
         raise EmployeeNotFoundError(f"Employee '{employee_id}' not found")
 
-    data = dict(payload)
+    data = payload.model_dump(exclude_unset=True)
 
     # Email: normalize and enforce uniqueness
     if "email" in data and data["email"]:

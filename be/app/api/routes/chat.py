@@ -26,6 +26,7 @@ async def chat_stream(request: Request):
         prompt_template="{prompt}",
         data={"prompt": prompt},
         working_directory=".",
+        system_prompt="Before updating or creating an employee, you must search all available positions, divisions, and employment types from the provided tools first to ensure the provided values are allowed."
     )
     runner = AnthropicPromptRunner(options)
 
