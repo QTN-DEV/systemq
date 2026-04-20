@@ -196,12 +196,12 @@ pipeline {
 
   post {
     success {
-      node {
+      node('') {
         sendSlack('SUCCESS', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
       }
     }
     failure {
-      node {
+      node('') {
         script {
           if (currentBuild.result != 'NOT_BUILT') {
             sendSlack('FAILURE', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
@@ -210,7 +210,7 @@ pipeline {
       }
     }
     always {
-      node {
+      node('') {
         sh '''
           echo "Cleaning up..."
           docker image prune -f || true
