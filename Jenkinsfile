@@ -197,14 +197,14 @@ pipeline {
   post {
     success {
       node('') {
-        sendSlack('SUCCESS', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
+        sendSlack('SUCCESS', env.PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
       }
     }
     failure {
       node('') {
         script {
           if (currentBuild.result != 'NOT_BUILT') {
-            sendSlack('FAILURE', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
+            sendSlack('FAILURE', env.PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
           }
         }
       }
