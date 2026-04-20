@@ -196,20 +196,26 @@ pipeline {
 
   post {
     success {
-      sendSlack('SUCCESS', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
+      node {
+        sendSlack('SUCCESS', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
+      }
     }
     failure {
-      script {
-        if (currentBuild.result != 'NOT_BUILT') {
-          sendSlack('FAILURE', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
+      node {
+        script {
+          if (currentBuild.result != 'NOT_BUILT') {
+            sendSlack('FAILURE', PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
+          }
         }
       }
     }
     always {
-      sh '''
-        echo "Cleaning up..."
-        docker image prune -f || true
-      '''
+      node {
+        sh '''
+          echo "Cleaning up..."
+          docker image prune -f || true
+        '''
+      }
     }
   }
 }
