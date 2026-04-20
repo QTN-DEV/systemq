@@ -181,3 +181,5 @@ When the backend is running, interactive API documentation is available at:
 - Document operations maintain parent-child relationships and update counts automatically
 - Employee deactivation soft-deletes (sets `is_active=false`) rather than hard deletion
 - Static files (uploads) are served from `be/static/` directory, auto-created if missing
+
+ 
