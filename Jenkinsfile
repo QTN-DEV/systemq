@@ -286,7 +286,7 @@ def sendSlack(String status, String project, String branch, String version, Stri
   writeFile file: 'slack-payload.json', text: payload
 
   sh """
-    curl -s -X POST ${SLACK_BOT_WEBHOOK_URL} \\
+    curl -s -X POST ${env.SLACK_BOT_WEBHOOK_URL} \\
       -H 'Content-Type: application/json' \\
       -d @slack-payload.json
   """
