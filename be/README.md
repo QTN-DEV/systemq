@@ -155,4 +155,4 @@ python -m smtpd -c DebuggingServer -n localhost:1025
 - Add additional document models to `app/models` and register them in `app/db/beanie.py`.
 - Keep sensitive configuration in `.env` and out of version control.
 - Run `ruff` before committing to ensure code quality.
-   
+    
