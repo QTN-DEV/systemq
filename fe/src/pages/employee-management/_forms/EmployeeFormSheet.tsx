@@ -61,6 +61,10 @@ export interface EmployeeFormValues {
   position: string;
   level: string;
   employment_type: "full-time" | "part-time" | "intern";
+  // Optional: only populated/shown when the consuming view opts into the
+  // Projects field (via `showProjects`). Stored as an array internally even
+  // though the input uses comma-separated text.
+  projects?: string[];
 }
 
 interface EmployeeFormSheetProps {
@@ -69,6 +73,13 @@ interface EmployeeFormSheetProps {
   mode: "create" | "edit";
   initialValues?: Partial<EmployeeFormValues>;
   onSubmit: (values: EmployeeFormValues) => Promise<boolean>;
+  // Optional: when provided (edit mode), renders a destructive Delete
+  // button in the sheet footer. The consumer is responsible for confirming
+  // destructive intent before committing.
+  onDelete?: () => void;
+  deleteLabel?: string;
+  // Optional: when true, exposes a comma-separated "Projects" input.
+  showProjects?: boolean;
 }
 
 const DEFAULT_VALUES: EmployeeFormValues = {
@@ -80,6 +91,7 @@ const DEFAULT_VALUES: EmployeeFormValues = {
   position: "",
   level: "",
   employment_type: "full-time",
+  projects: [],
 };
 
 export function EmployeeFormSheet({
@@ -88,6 +100,9 @@ export function EmployeeFormSheet({
   mode,
   initialValues,
   onSubmit,
+  onDelete,
+  deleteLabel = "Delete",
+  showProjects = false,
 }: EmployeeFormSheetProps): React.ReactElement {
   const [formValues, setFormValues] = useState<EmployeeFormValues>(DEFAULT_VALUES);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -280,9 +295,44 @@ export function EmployeeFormSheet({
                 </SelectContent>
               </Select>
             </div>
+
+            {showProjects && (
+              <div className="grid gap-2">
+                <Label htmlFor="employee-projects">
+                  Projects (comma separated)
+                </Label>
+                <Input
+                  id="employee-projects"
+                  value={(formValues.projects ?? []).join(", ")}
+                  onChange={(event) => {
+                    const projectList = event.target.value
+                      .split(",")
+                      .map((p) => p.trim())
+                      .filter(Boolean);
+                    setFormValues((prev) => ({
+                      ...prev,
+                      projects: projectList,
+                    }));
+                  }}
+                  placeholder="Apollo, Cloud Migration"
+                />
+              </div>
+            )}
           </div>
 
-          <SheetFooter className="px-0">
+          <SheetFooter className="flex-row items-center justify-between px-0">
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={onDelete}
+                disabled={isSubmitting}
+              >
+                {deleteLabel}
+              </Button>
+            ) : (
+              <span />
+            )}
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving..."
