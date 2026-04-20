@@ -26,7 +26,6 @@ from app.submodules.tracker.models import (
     IssueEvent,
     InitiativeProject,
     TrackerConfig,
-    TrackerInitiative,
     TrackerIssue,
     TrackerProduct,
 )
@@ -56,7 +55,6 @@ async def init_database() -> None:
             ProjectMapping,
             SlackMessage,
             TrackerProduct,
-            TrackerInitiative,
             InitiativeProject,
             TrackerIssue,
             IssueComment,

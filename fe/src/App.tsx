@@ -20,8 +20,6 @@ import StructureOrganization from "./pages/structure-organization/structure-orga
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
 import ProductList from "./submodules/tracker/pages/products/ProductList";
 import ProductDetail from "./submodules/tracker/pages/products/ProductDetail";
-import InitiativeList from "./submodules/tracker/pages/initiatives/InitiativeList";
-import InitiativeDetail from "./submodules/tracker/pages/initiatives/InitiativeDetail";
 import InitiativeProjectList from "./submodules/tracker/pages/initiative-projects/InitiativeProjectList";
 import InitiativeProjectDetail from "./submodules/tracker/pages/initiative-projects/InitiativeProjectDetail";
 import IssueDetail from "./submodules/tracker/pages/issues/IssueDetail";
@@ -253,16 +251,6 @@ function App(): ReactElement {
         }
       />
       <Route
-        path="/tracker/initiatives"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <InitiativeList />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/tracker/initiative-projects"
         element={
           <ProtectedRoute>
@@ -278,16 +266,6 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <ProductDetail />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/initiatives/:id"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <InitiativeDetail />
             </DashboardLayout>
           </ProtectedRoute>
         }

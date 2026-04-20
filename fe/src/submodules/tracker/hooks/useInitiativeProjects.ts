@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createInitiativeProject, getInitiativeProject, listInitiativeProjects, updateInitiativeProject } from '../api/initiative-projects'
 import type { CreateInitiativeProjectPayload, UpdateInitiativeProjectPayload } from '../types/initiative-project'
 
-export function useInitiativeProjects(initiativeId?: string) {
+export function useInitiativeProjects(productId?: string) {
   return useQuery({
-    queryKey: ['tracker', 'initiative-projects', initiativeId ?? 'all'],
-    queryFn: () => listInitiativeProjects(initiativeId),
+    queryKey: ['tracker', 'initiative-projects', productId ?? 'all'],
+    queryFn: () => listInitiativeProjects(productId),
   })
 }
 

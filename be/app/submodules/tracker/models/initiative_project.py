@@ -13,7 +13,7 @@ def _utcnow() -> datetime:
 
 
 class InitiativeProject(DocumentWithSoftDelete):
-    initiative_id: PydanticObjectId
+    product_id: PydanticObjectId
     key: str
     name: str
     description: str | None = None
@@ -24,7 +24,7 @@ class InitiativeProject(DocumentWithSoftDelete):
 
     class Settings:
         name = "tracker_initiative_projects"
-        indexes = ["initiative_id", "key", "status", "owner_id"]
+        indexes = ["product_id", "key", "status", "owner_id"]
 
     async def touch(self) -> None:
         self.updated_at = _utcnow()

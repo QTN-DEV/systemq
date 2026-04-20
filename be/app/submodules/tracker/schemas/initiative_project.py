@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class InitiativeProjectBase(BaseModel):
-    initiative_id: str
+    product_id: str
     key: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str | None = None

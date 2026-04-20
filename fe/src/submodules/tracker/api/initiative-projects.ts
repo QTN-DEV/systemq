@@ -1,8 +1,8 @@
 import apiClient from '@/lib/shared/api/client'
 import type { CreateInitiativeProjectPayload, InitiativeProject, UpdateInitiativeProjectPayload } from '../types/initiative-project'
 
-export async function listInitiativeProjects(initiativeId?: string): Promise<InitiativeProject[]> {
-  const params = initiativeId ? `?initiative_id=${initiativeId}` : ''
+export async function listInitiativeProjects(productId?: string): Promise<InitiativeProject[]> {
+  const params = productId ? `?product_id=${productId}` : ''
   return apiClient.get<InitiativeProject[]>(`/tracker/initiative-projects/${params}`)
 }
 

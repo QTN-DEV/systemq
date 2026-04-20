@@ -29,7 +29,7 @@ class InitiativeProjectKeyConflictError(ValueError):
 def _serialize(ip: InitiativeProject) -> dict:
     return {
         "id": str(ip.id),
-        "initiative_id": str(ip.initiative_id),
+        "product_id": str(ip.product_id),
         "key": ip.key,
         "name": ip.name,
         "description": ip.description,
@@ -41,10 +41,10 @@ def _serialize(ip: InitiativeProject) -> dict:
     }
 
 
-async def list_initiative_projects(initiative_id: str | None = None) -> list[dict]:
-    if initiative_id:
+async def list_initiative_projects(product_id: str | None = None) -> list[dict]:
+    if product_id:
         items = await InitiativeProject.find(
-            InitiativeProject.initiative_id == PydanticObjectId(initiative_id)
+            InitiativeProject.product_id == PydanticObjectId(product_id)
         ).to_list()
     else:
         items = await InitiativeProject.find_all().to_list()
@@ -59,7 +59,7 @@ async def get_initiative_project_by_id(ip_id: str) -> dict:
 
 
 async def create_initiative_project(
-    initiative_id: str,
+    product_id: str,
     key: str,
     name: str,
     *,
@@ -73,7 +73,7 @@ async def create_initiative_project(
         raise InitiativeProjectKeyConflictError(f"InitiativeProject key '{key}' already exists")
 
     ip = InitiativeProject(
-        initiative_id=PydanticObjectId(initiative_id),
+        product_id=PydanticObjectId(product_id),
         key=key,
         name=name,
         description=description,
