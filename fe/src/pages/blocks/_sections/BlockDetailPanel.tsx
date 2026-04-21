@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Calendar, Plus, Send, X } from "lucide-react";
+import { Plus, Send, Trash2, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -24,7 +24,6 @@ import type { Block, BlockStatus, BlockUpdatePayload } from "@/types/block-type"
 import { BlockStatusBadge } from "../_components/BlockStatusBadge";
 import { BLOCK_STATUS_OPTIONS } from "../_components/blockUi";
 import { useBlockDetail } from "../_hooks/useBlockDetail";
-import { shouldDisplayLevelLabel } from "../_hooks/useBlockLevelConfig";
 
 const FIELD_LABELS: Record<string, string> = {
   status: "status",
@@ -58,20 +57,20 @@ type TimelineEntry =
 
 interface Props {
   block: Block;
-  currentLevelLabel: string;
   nextLevelLabel: string;
   onClose: () => void;
   onAddChild: (block: Block) => void;
   onUpdate: (blockId: string, payload: BlockUpdatePayload) => Promise<void>;
+  onDeleteRequest: () => void;
 }
 
 export function BlockDetailPanel({
   block,
-  currentLevelLabel,
   nextLevelLabel,
   onClose,
   onAddChild,
   onUpdate,
+  onDeleteRequest,
 }: Props): ReactElement {
   const { comments, history, loadingComments, loadingHistory, postComment } = useBlockDetail(block.id);
   const titleRef = useRef<HTMLDivElement | null>(null);
@@ -83,7 +82,7 @@ export function BlockDetailPanel({
   const [deadlineDraft, setDeadlineDraft] = useState(toDateInputValue(block.deadline));
   const [commentText, setCommentText] = useState("");
   const [sending, setSending] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "dirty" | "saving">("idle");
+  const [, setSaveState] = useState<"idle" | "dirty" | "saving">("idle");
 
   const handleSendComment = async (): Promise<void> => {
     if (!commentText.trim()) return;
@@ -230,7 +229,6 @@ export function BlockDetailPanel({
     return [...historyEntries, ...commentEntries].sort((left, right) => left.sortTime - right.sortTime);
   }, [comments, history]);
 
-  const levelLabel = currentLevelLabel.trim();
   const loadingTimeline = loadingComments || loadingHistory;
 
   useEffect(() => {
@@ -294,6 +292,15 @@ export function BlockDetailPanel({
           >
             <Plus className="h-3.5 w-3.5" />
             {nextLevelLabel}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={onDeleteRequest}
+            aria-label="Delete block"
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose}>
             <X className="h-4 w-4" />

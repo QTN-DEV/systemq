@@ -1,6 +1,17 @@
 import { Plus, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState, type JSX } from "react";
+import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { Block, BlockCreatePayload, BlockStatus, BlockUpdatePayload } from "@/types/block-type";
 
@@ -13,7 +24,7 @@ import { BlockOutlineSection } from "./_sections/BlockOutlineSection";
 import { GanttSection } from "./_sections/GanttSection";
 
 export default function BlocksPage(): JSX.Element {
-  const { tree, loading, create, update } = useBlockTree();
+  const { tree, loading, create, update, remove } = useBlockTree();
   const { levelNames, replaceLevelNames, resetLevelNames, getLevelLabel } = useBlockLevelConfig();
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -21,6 +32,8 @@ export default function BlocksPage(): JSX.Element {
   const [editingBlock, setEditingBlock] = useState<Block | null>(null);
   const [newParentId, setNewParentId] = useState<string | null>(null);
   const [configurationOpen, setConfigurationOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const outlineScrollHostRef = useRef<HTMLDivElement | null>(null);
   const ganttScrollHostRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,6 +85,26 @@ export default function BlocksPage(): JSX.Element {
     }
   };
 
+  const handleDeleteRequest = (): void => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!selectedBlock) return;
+
+    setDeleteLoading(true);
+    try {
+      await remove(selectedBlock.id);
+      setSelectedBlockId(null);
+      setDeleteDialogOpen(false);
+      toast.success("Block deleted successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete block");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   useEffect(() => {
     const outlineViewport = outlineScrollHostRef.current?.querySelector(
       '[data-slot="scroll-area-viewport"]'
@@ -108,12 +141,12 @@ export default function BlocksPage(): JSX.Element {
     };
   }, [tree, selectedBlockId]);
 
-  const selectedLevelLabel = getLevelLabel(selectedDepth) || `Level ${selectedDepth + 1}`;
   const nextLevelLabel = getLevelLabel(selectedDepth + 1) || `Level ${selectedDepth + 2}`;
   const formLevelLabel = getLevelLabel(formDepth) || `Level ${formDepth + 1}`;
   const parentLevelLabel = parentMeta
     ? getLevelLabel(parentMeta.depth) || `Level ${parentMeta.depth + 1}`
     : null;
+  const selectedHasChildren = (selectedBlock?.children?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -166,11 +199,11 @@ export default function BlocksPage(): JSX.Element {
         {selectedBlock && (
           <BlockDetailPanel
             block={selectedBlock}
-            currentLevelLabel={selectedLevelLabel}
             nextLevelLabel={`Add ${nextLevelLabel}`}
             onClose={() => setSelectedBlockId(null)}
             onAddChild={handleNewChild}
             onUpdate={handleUpdateBlock}
+            onDeleteRequest={handleDeleteRequest}
           />
         )}
       </div>
@@ -192,6 +225,41 @@ export default function BlocksPage(): JSX.Element {
         onSave={replaceLevelNames}
         onReset={resetLevelNames}
       />
+
+      <AlertDialog
+        open={deleteDialogOpen && Boolean(selectedBlock)}
+        onOpenChange={(open) => {
+          if (deleteLoading) return;
+          setDeleteDialogOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Block</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedBlock ? (
+                <>
+                  Are you sure you want to delete &quot;{selectedBlock.title}&quot;?
+                  {selectedHasChildren ? " Children will also be deleted recursively." : ""} This
+                  action cannot be undone.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void handleDeleteConfirm();
+              }}
+              disabled={deleteLoading}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
