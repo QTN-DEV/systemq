@@ -43,20 +43,21 @@ export default function BlocksPage(): JSX.Element {
     setFormOpen(true);
   };
 
-  const handleEdit = (block: Block): void => {
-    setEditingBlock(block);
-    setNewParentId(block.parent_id);
-    setFormOpen(true);
-  };
-
   const handleSelect = (block: Block): void => {
     setSelectedBlockId((prev) => (prev === block.id ? null : block.id));
   };
 
+  const handleUpdateBlock = async (
+    blockId: string,
+    payload: BlockUpdatePayload
+  ): Promise<void> => {
+    const updated = await update(blockId, payload);
+    setSelectedBlockId(updated.id);
+  };
+
   const handleStatusChange = async (block: Block, status: BlockStatus): Promise<void> => {
     if (block.status === status) return;
-    const updated = await update(block.id, { status });
-    setSelectedBlockId(updated.id);
+    await handleUpdateBlock(block.id, { status });
   };
 
   const handleFormSubmit = async (
@@ -168,8 +169,8 @@ export default function BlocksPage(): JSX.Element {
             currentLevelLabel={selectedLevelLabel}
             nextLevelLabel={`Add ${nextLevelLabel}`}
             onClose={() => setSelectedBlockId(null)}
-            onEdit={handleEdit}
             onAddChild={handleNewChild}
+            onUpdate={handleUpdateBlock}
           />
         )}
       </div>
