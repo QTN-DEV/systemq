@@ -18,14 +18,6 @@ import ProjectMappingPage from "./pages/project-mapping/page";
 import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
-import ProductList from "./submodules/tracker/pages/products/ProductList";
-import ProductDetail from "./submodules/tracker/pages/products/ProductDetail";
-import InitiativeProjectList from "./submodules/tracker/pages/initiative-projects/InitiativeProjectList";
-import InitiativeProjectDetail from "./submodules/tracker/pages/initiative-projects/InitiativeProjectDetail";
-import IssueDetail from "./submodules/tracker/pages/issues/IssueDetail";
-import MyTasks from "./submodules/tracker/pages/my-tasks/MyTasks";
-import TriageInbox from "./submodules/tracker/pages/triage/TriageInbox";
-import TrackerConfigPage from "./submodules/tracker/pages/config/TrackerConfigPage";
 
 function App(): ReactElement {
   return (
@@ -236,88 +228,6 @@ function App(): ReactElement {
               <h1 className="text-2xl font-bold">Daily Startup Tracker</h1>
             </div>
           </DashboardLayout>
-        }
-      />
-
-      {/* Tracker */}
-      <Route
-        path="/tracker/products"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <ProductList />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/initiative-projects"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <InitiativeProjectList />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/products/:id"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <ProductDetail />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/initiative-projects/:id"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <InitiativeProjectDetail />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/issues/:id"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <IssueDetail />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/my-tasks"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <MyTasks />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/triage"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <TriageInbox />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tracker/config"
-        element={
-          <RoleProtectedRoute allowed={["admin", "ceo", "internalops"]}>
-            <DashboardLayout>
-              <TrackerConfigPage />
-            </DashboardLayout>
-          </RoleProtectedRoute>
         }
       />
 
