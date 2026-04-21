@@ -62,17 +62,21 @@ pipeline {
           env.APP_ENV = (env.BRANCH_NAME == 'main') ? 'prod' : 'staging'
 
           if (env.BRANCH_NAME == 'main') {
-            env.DEPLOY_NS      = 'internal-ops'
-            env.BE_IMAGE_NAME  = 'systemq-prod-be'
-            env.FE_IMAGE_NAME  = 'systemq-prod-fe'
-            env.BE_DEPLOY_NAME = 'systemq-be'
-            env.FE_DEPLOY_NAME = 'systemq-fe'
+            env.DEPLOY_NS         = 'internal-ops'
+            env.BE_IMAGE_NAME     = 'systemq-prod-be'
+            env.FE_IMAGE_NAME     = 'systemq-prod-fe'
+            env.BE_DEPLOY_NAME    = 'systemq-be'
+            env.FE_DEPLOY_NAME    = 'systemq-fe'
+            env.BE_CONTAINER_NAME = 'container-0'   // Rancher-named container
+            env.FE_CONTAINER_NAME = 'container-0'
           } else {
-            env.DEPLOY_NS      = 'systemq-stg'
-            env.BE_IMAGE_NAME  = 'systemq-staging-be'
-            env.FE_IMAGE_NAME  = 'systemq-staging-fe'
-            env.BE_DEPLOY_NAME = 'systemq-staging-be'
-            env.FE_DEPLOY_NAME = 'systemq-staging-fe'
+            env.DEPLOY_NS         = 'systemq-stg'
+            env.BE_IMAGE_NAME     = 'systemq-staging-be'
+            env.FE_IMAGE_NAME     = 'systemq-staging-fe'
+            env.BE_DEPLOY_NAME    = 'systemq-staging-be'
+            env.FE_DEPLOY_NAME    = 'systemq-staging-fe'
+            env.BE_CONTAINER_NAME = 'systemq-staging-be'
+            env.FE_CONTAINER_NAME = 'systemq-staging-fe'
           }
 
           // Determine changed files
@@ -175,9 +179,9 @@ pipeline {
         script { FAILED_STAGE = 'Deploy to Kubernetes BE' }
         withCredentials([file(credentialsId: KUBECONFIG_CRED, variable: 'KUBECONFIG')]) {
           sh """
-            export KUBECONFIG=${KUBECONFIG}
+            export KUBECONFIG=\${KUBECONFIG}
             kubectl --insecure-skip-tls-verify=true set image deployment/${env.BE_DEPLOY_NAME} \
-              ${env.BE_DEPLOY_NAME}=${REGISTRY}/${env.BE_IMAGE_NAME}:${env.IMAGE_VERSION} \
+              ${env.BE_CONTAINER_NAME}=${REGISTRY}/${env.BE_IMAGE_NAME}:${env.IMAGE_VERSION} \
               -n ${env.DEPLOY_NS}
           """
         }
@@ -195,9 +199,9 @@ pipeline {
         script { FAILED_STAGE = 'Deploy to Kubernetes FE' }
         withCredentials([file(credentialsId: KUBECONFIG_CRED, variable: 'KUBECONFIG')]) {
           sh """
-            export KUBECONFIG=${KUBECONFIG}
+            export KUBECONFIG=\${KUBECONFIG}
             kubectl --insecure-skip-tls-verify=true set image deployment/${env.FE_DEPLOY_NAME} \
-              ${env.FE_DEPLOY_NAME}=${REGISTRY}/${env.FE_IMAGE_NAME}:${env.IMAGE_VERSION} \
+              ${env.FE_CONTAINER_NAME}=${REGISTRY}/${env.FE_IMAGE_NAME}:${env.IMAGE_VERSION} \
               -n ${env.DEPLOY_NS}
           """
         }
