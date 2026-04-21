@@ -18,6 +18,7 @@ import ProjectMappingPage from "./pages/project-mapping/page";
 import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
+import BlocksPage from "./pages/blocks/page";
 
 function App(): ReactElement {
   return (
@@ -228,6 +229,18 @@ function App(): ReactElement {
               <h1 className="text-2xl font-bold">Daily Startup Tracker</h1>
             </div>
           </DashboardLayout>
+        }
+      />
+
+      {/* Block Manager */}
+      <Route
+        path="/blocks"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <BlocksPage />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 

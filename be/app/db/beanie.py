@@ -21,6 +21,7 @@ from app.models import (
     SystemStatus,
     User,
 )
+from app.submodules.blocks.models import Block, BlockHistory, Comment as BlockComment
 
 from constants import MONGODB_DATABASE, MONGODB_URI
 
@@ -47,6 +48,9 @@ async def init_database() -> None:
             EditHistoryEvent,
             ProjectMapping,
             SlackMessage,
+            Block,
+            BlockComment,
+            BlockHistory,
         ],
     )
 
