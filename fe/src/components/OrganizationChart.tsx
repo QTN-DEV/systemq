@@ -547,6 +547,12 @@ export default function OrganizationChart({
   // the sheet state so the sheet can stay open behind the confirm dialog.
   const [pendingDeleteEmployee, setPendingDeleteEmployee] =
     useState<EmployeeListItem | null>(null);
+  // Edge queued for deletion via the AlertDialog confirm.
+  const [pendingDeleteEdge, setPendingDeleteEdge] = useState<{
+    id: string;
+    source: string;
+    target: string;
+  } | null>(null);
 
   // Fetch employees from the backend. No mock overrides: divisions and
   // project assignments are whatever the `users` collection says they are.
@@ -1097,6 +1103,10 @@ export default function OrganizationChart({
     [nodes, initialNodes, setNodes, handleRemoveFromProject, employees],
   );
 
+  const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge): void => {
+    setPendingDeleteEdge({ id: edge.id, source: edge.source, target: edge.target });
+  }, []);
+
   const handleNodeClick = useCallback((_: any, node: Node): void => {
     // A bottom-handle click sets this flag just before ReactFlow fires
     // onNodeClick — bail out so the edit sheet doesn't open on top of the
@@ -1364,6 +1374,7 @@ export default function OrganizationChart({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
         onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
@@ -1601,6 +1612,53 @@ export default function OrganizationChart({
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete edge (reporting line) confirmation */}
+      <AlertDialog
+        open={Boolean(pendingDeleteEdge)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteEdge(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove reporting line</AlertDialogTitle>
+            <AlertDialogDescription>
+              Disconnect{" "}
+              <span className="font-medium text-foreground">
+                {employees.find((e) => e.id === pendingDeleteEdge?.target)?.name ?? pendingDeleteEdge?.target}
+              </span>{" "}
+              from{" "}
+              <span className="font-medium text-foreground">
+                {employees.find((e) => e.id === pendingDeleteEdge?.source)?.name ?? pendingDeleteEdge?.source}
+              </span>
+              ? This will remove the subordinate relationship.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDeleteEdge) {
+                  const { source, target } = pendingDeleteEdge;
+                  setEmployees((prev) =>
+                    prev.map((emp) =>
+                      emp.id === source
+                        ? { ...emp, subordinates: emp.subordinates.filter((id) => id !== target) }
+                        : emp,
+                    ),
+                  );
+                  setHasChanges(true);
+                }
+                setPendingDeleteEdge(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Remove
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
