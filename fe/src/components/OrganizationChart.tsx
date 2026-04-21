@@ -18,6 +18,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -56,6 +57,7 @@ interface CustomNodeData {
   projectName?: string;
   onRemoveProject?: (empId: string, projectName: string) => void;
   onDivisionClick?: (division: string) => void; // NEW: Callback for clicking the division badge
+  onBottomHandleClick?: (employeeId: string) => void; // NEW: Callback for clicking the bottom connection handle
   // Search/highlight flags driven by the top-right name search box.
   isHighlighted?: boolean;
   isDimmed?: boolean;
@@ -69,10 +71,16 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
     projectName,
     onRemoveProject,
     onDivisionClick,
+    onBottomHandleClick,
     isHighlighted,
     isDimmed,
   } = data;
   const hasSupervisor = data.hasSupervisor;
+
+  // Track whether the mouse moved after pressing down on the bottom handle.
+  // If it hasn't moved (i.e. it's a click, not a drag-to-connect), we open
+  // the Add Employee drawer instead of starting a connection line.
+  const bottomHandleMouseDownPos = useRef<{ x: number; y: number } | null>(null);
 
   const getInitials = (name: string): string => {
     return name
@@ -160,21 +168,48 @@ function EmployeeNode({ data }: { data: CustomNodeData }): ReactElement {
         (
           [
             { id: "top", position: Position.Top },
-            { id: "right", position: Position.Right },
             { id: "bottom", position: Position.Bottom },
-            { id: "left", position: Position.Left },
           ] as const
         ).map(({ id, position }) => {
+          const isBottom = id === "bottom";
           const baseStyle = {
             background: "#3b82f6",
             width: 12,
             height: 12,
             border: "none",
-            opacity:
-              id === "top" && !hasSupervisor ? 0.5 : 1,
+            opacity: id === "top" && !hasSupervisor ? 0.5 : 1,
+            cursor: isBottom ? "pointer" : "crosshair",
           } as const;
           return (
-            <div key={id}>
+            <div
+              key={id}
+              // Bottom handle: intercept mousedown/mouseup to distinguish
+              // a plain click (open drawer) from a drag (draw connection).
+              onMouseDown={
+                isBottom
+                  ? (e) => {
+                    bottomHandleMouseDownPos.current = { x: e.clientX, y: e.clientY };
+                  }
+                  : undefined
+              }
+              onMouseUp={
+                isBottom
+                  ? (e) => {
+                    const down = bottomHandleMouseDownPos.current;
+                    if (down) {
+                      const dx = Math.abs(e.clientX - down.x);
+                      const dy = Math.abs(e.clientY - down.y);
+                      // Less than 4px movement → treat as click, not drag.
+                      if (dx < 4 && dy < 4) {
+                        e.stopPropagation();
+                        onBottomHandleClick?.(employee.id);
+                      }
+                      bottomHandleMouseDownPos.current = null;
+                    }
+                  }
+                  : undefined
+              }
+            >
               <Handle
                 id={`${id}-target`}
                 type="target"
@@ -502,6 +537,12 @@ export default function OrganizationChart({
   // Controls the "Add Employee" sheet (the same dialog used by the
   // employee-management page, for consistency).
   const [addEmployeeSheetOpen, setAddEmployeeSheetOpen] = useState(false);
+  // When the user clicks the bottom handle of a node, we store that node's
+  // employee ID here so the new employee can be auto-wired as a subordinate.
+  const [pendingParentId, setPendingParentId] = useState<string | null>(null);
+  // Prevents handleNodeClick from opening the edit sheet right after a bottom
+  // handle click (which fires before ReactFlow's onNodeClick bubbles up).
+  const blockNextNodeClick = useRef(false);
   // Employee queued for deletion via the AlertDialog confirm. Separate from
   // the sheet state so the sheet can stay open behind the confirm dialog.
   const [pendingDeleteEmployee, setPendingDeleteEmployee] =
@@ -520,7 +561,7 @@ export default function OrganizationChart({
         }));
         setEmployees(normalized);
         setHasChanges(false);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -692,6 +733,11 @@ export default function OrganizationChart({
           employee: emp,
           hasSupervisor: !(emp as any).isRoot,
           onDivisionClick: setActiveDivisionFilter, // Pass the setter so clicks trigger a filter
+          onBottomHandleClick: (employeeId: string) => {
+            blockNextNodeClick.current = true;
+            setPendingParentId(employeeId);
+            setAddEmployeeSheetOpen(true);
+          },
           isHighlighted: highlighted,
           isDimmed: q.length > 0 && !highlighted,
         },
@@ -1052,6 +1098,13 @@ export default function OrganizationChart({
   );
 
   const handleNodeClick = useCallback((_: any, node: Node): void => {
+    // A bottom-handle click sets this flag just before ReactFlow fires
+    // onNodeClick — bail out so the edit sheet doesn't open on top of the
+    // add-employee drawer.
+    if (blockNextNodeClick.current) {
+      blockNextNodeClick.current = false;
+      return;
+    }
     if (node.type === "employee") {
       const data = node.data as Partial<CustomNodeData>;
       if (data && (data as any).employee)
@@ -1071,16 +1124,16 @@ export default function OrganizationChart({
         prev.map((emp) =>
           emp.id === targetId
             ? ({
-                ...emp,
-                name: values.name.trim() || emp.name,
-                email: values.email.trim(),
-                title: values.title.trim() || null,
-                division: values.division || undefined,
-                level: values.level || null,
-                position: values.position || null,
-                employment_type: values.employment_type,
-                projects: values.projects ?? emp.projects ?? [],
-              } as EmployeeListItem)
+              ...emp,
+              name: values.name.trim() || emp.name,
+              email: values.email.trim(),
+              title: values.title.trim() || null,
+              division: values.division || undefined,
+              level: values.level || null,
+              position: values.position || null,
+              employment_type: values.employment_type,
+              projects: values.projects ?? emp.projects ?? [],
+            } as EmployeeListItem)
             : emp,
         ),
       );
@@ -1178,23 +1231,39 @@ export default function OrganizationChart({
         is_active: true,
       };
 
-      setEmployees((prev) => [...prev, newEmployee]);
+      setEmployees((prev) => {
+        // If opened via a bottom handle click, wire the new employee as a
+        // subordinate of the parent node that triggered the drawer.
+        if (pendingParentId) {
+          return prev
+            .map((emp) =>
+              emp.id === pendingParentId
+                ? { ...emp, subordinates: [...emp.subordinates, trimmedId] }
+                : emp,
+            )
+            .concat(newEmployee);
+        }
+        return [...prev, newEmployee];
+      });
+      setPendingParentId(null);
       setHasChanges(true);
       return true;
     },
-    [employees],
+    [employees, pendingParentId],
   );
 
   // Initial values handed to the sheet whenever it opens in "create" mode.
-  // Pre-fills the division from the active chart filter so newly added
-  // employees land inside the division the user is currently viewing.
-  const newEmployeeInitialValues = useMemo<Partial<EmployeeFormValues>>(
-    () => ({
-      division: activeDivisionFilter ?? "",
+  // Pre-fills the division from the active chart filter (or parent node's
+  // division when opened via a bottom handle click).
+  const newEmployeeInitialValues = useMemo<Partial<EmployeeFormValues>>(() => {
+    const parentDivision = pendingParentId
+      ? employees.find((e) => e.id === pendingParentId)?.division
+      : undefined;
+    return {
+      division: parentDivision ?? activeDivisionFilter ?? "",
       employment_type: "full-time",
-    }),
-    [activeDivisionFilter],
-  );
+    };
+  }, [activeDivisionFilter, pendingParentId, employees]);
 
   const handleDeleteEmployee = useCallback((employeeId: string) => {
     setEmployees((prev) => {
@@ -1622,7 +1691,10 @@ export default function OrganizationChart({
       {/* Shared Add-Employee sheet (same dialog as the Employee Management page) */}
       <EmployeeFormSheet
         open={addEmployeeSheetOpen}
-        onOpenChange={setAddEmployeeSheetOpen}
+        onOpenChange={(open) => {
+          setAddEmployeeSheetOpen(open);
+          if (!open) setPendingParentId(null);
+        }}
         mode="create"
         initialValues={newEmployeeInitialValues}
         onSubmit={handleSubmitNewEmployee}
