@@ -8,6 +8,27 @@ import {
 } from "@/lib/shared/services/BlockService";
 import type { Block, BlockCreatePayload, BlockUpdatePayload } from "@/types/block-type";
 
+function mergeUpdatedBlockIntoTree(tree: Block[], updatedBlock: Block): Block[] {
+  return tree.map((block) => {
+    if (block.id === updatedBlock.id) {
+      return {
+        ...block,
+        ...updatedBlock,
+        children: block.children,
+      };
+    }
+
+    if (!block.children?.length) {
+      return block;
+    }
+
+    return {
+      ...block,
+      children: mergeUpdatedBlockIntoTree(block.children, updatedBlock),
+    };
+  });
+}
+
 export function useBlockTree(): {
   tree: Block[];
   loading: boolean;
@@ -50,10 +71,10 @@ export function useBlockTree(): {
   const update = useCallback(
     async (id: string, payload: BlockUpdatePayload): Promise<Block> => {
       const block = await updateBlock(id, payload);
-      await load();
+      setTree((current) => mergeUpdatedBlockIntoTree(current, block));
       return block;
     },
-    [load]
+    []
   );
 
   const remove = useCallback(
