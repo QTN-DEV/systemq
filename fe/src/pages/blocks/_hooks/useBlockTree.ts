@@ -8,7 +8,15 @@ import {
 } from "@/lib/shared/services/BlockService";
 import type { Block, BlockCreatePayload, BlockUpdatePayload } from "@/types/block-type";
 
-export function useBlockTree() {
+export function useBlockTree(): {
+  tree: Block[];
+  loading: boolean;
+  error: string | null;
+  reload: () => Promise<void>;
+  create: (payload: BlockCreatePayload) => Promise<Block>;
+  update: (id: string, payload: BlockUpdatePayload) => Promise<Block>;
+  remove: (id: string) => Promise<void>;
+} {
   const [tree, setTree] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +69,7 @@ export function useBlockTree() {
 
 export function flattenTree(tree: Block[]): Block[] {
   const result: Block[] = [];
-  const walk = (blocks: Block[], depth: number) => {
+  const walk = (blocks: Block[], depth: number): void => {
     for (const block of blocks) {
       result.push({ ...block, _depth: depth } as Block & { _depth: number });
       if (block.children?.length) {
@@ -71,4 +79,25 @@ export function flattenTree(tree: Block[]): Block[] {
   };
   walk(tree, 0);
   return result;
+}
+
+export function findBlockMeta(
+  tree: Block[],
+  blockId: string,
+  depth = 0
+): { block: Block; depth: number } | null {
+  for (const block of tree) {
+    if (block.id === blockId) {
+      return { block, depth };
+    }
+
+    if (block.children?.length) {
+      const nested = findBlockMeta(block.children, blockId, depth + 1);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  return null;
 }

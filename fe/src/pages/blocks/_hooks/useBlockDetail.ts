@@ -3,7 +3,18 @@ import { useCallback, useEffect, useState } from "react";
 import { addComment, getComments, getHistory } from "@/lib/shared/services/BlockService";
 import type { BlockComment, BlockHistory } from "@/types/block-type";
 
-export function useBlockDetail(blockId: string | null) {
+export function useBlockDetail(
+  blockId: string | null,
+  refreshKey?: string | null
+): {
+  comments: BlockComment[];
+  history: BlockHistory[];
+  loadingComments: boolean;
+  loadingHistory: boolean;
+  postComment: (content: string) => Promise<void>;
+  refreshComments: () => Promise<void>;
+  refreshHistory: () => Promise<void>;
+} {
   const [comments, setComments] = useState<BlockComment[]>([]);
   const [history, setHistory] = useState<BlockHistory[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -36,7 +47,7 @@ export function useBlockDetail(blockId: string | null) {
     setHistory([]);
     void loadComments();
     void loadHistory();
-  }, [loadComments, loadHistory]);
+  }, [loadComments, loadHistory, refreshKey]);
 
   const postComment = useCallback(
     async (content: string) => {

@@ -1,8 +1,9 @@
 import { Plus } from "lucide-react";
+import type { ReactElement, RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Block } from "@/types/block-type";
+import type { Block, BlockStatus } from "@/types/block-type";
 
 import { BlockTreeNode } from "../_components/BlockTreeNode";
 
@@ -12,22 +13,34 @@ interface Props {
   selectedId: string | null;
   onSelect: (block: Block) => void;
   onNew: () => void;
+  getLevelLabel: (depth: number) => string;
+  onStatusChange: (block: Block, status: BlockStatus) => Promise<void>;
+  scrollHostRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function BlockOutlineSection({ tree, loading, selectedId, onSelect, onNew }: Props) {
+export function BlockOutlineSection({
+  tree,
+  loading,
+  selectedId,
+  onSelect,
+  onNew,
+  getLevelLabel,
+  onStatusChange,
+  scrollHostRef,
+}: Props): ReactElement {
   return (
-    <div className="flex flex-col h-full border-r bg-background">
-      <div className="flex items-center justify-between px-3 py-2.5 border-b">
+    <div ref={scrollHostRef} className="flex flex-col h-full border-r bg-background">
+      <div className="flex h-10 items-center justify-between border-b px-3">
         <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Blocks
+          Products
         </span>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onNew}>
+        <Button size="icon-sm" variant="ghost" onClick={onNew}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="py-1 px-1">
+        <div>
           {loading ? (
             <div className="px-3 py-4 text-sm text-muted-foreground">Loading...</div>
           ) : tree.length === 0 ? (
@@ -45,6 +58,8 @@ export function BlockOutlineSection({ tree, loading, selectedId, onSelect, onNew
                 depth={0}
                 selectedId={selectedId}
                 onSelect={onSelect}
+                getLevelLabel={getLevelLabel}
+                onStatusChange={onStatusChange}
               />
             ))
           )}

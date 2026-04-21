@@ -7,14 +7,17 @@ import {
   parseISO,
   startOfDay,
 } from "date-fns";
+import type { KeyboardEvent, ReactElement, RefObject } from "react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Block } from "@/types/block-type";
 
+import { BLOCK_ROW_HEIGHT } from "../_components/blockUi";
+
 // Flatten the tree into ordered rows preserving depth/order
 function flattenTree(tree: Block[]): Block[] {
   const result: Block[] = [];
-  const walk = (blocks: Block[]) => {
+  const walk = (blocks: Block[]): void => {
     for (const b of blocks) {
       result.push(b);
       if (b.children?.length) walk(b.children);
@@ -53,9 +56,15 @@ interface Props {
   tree: Block[];
   selectedId: string | null;
   onSelect: (block: Block) => void;
+  scrollHostRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function GanttSection({ tree, selectedId, onSelect }: Props) {
+export function GanttSection({
+  tree,
+  selectedId,
+  onSelect,
+  scrollHostRef,
+}: Props): ReactElement {
   const flat = flattenTree(tree);
 
   if (flat.length === 0) {
@@ -71,17 +80,17 @@ export function GanttSection({ tree, selectedId, onSelect }: Props) {
 
   const weeks = eachWeekOfInterval({ start: rangeStart, end: rangeEnd });
 
-  const dayToCol = (date: Date) => differenceInDays(startOfDay(date), startOfDay(rangeStart)) + 1;
+  const dayToCol = (date: Date): number => differenceInDays(startOfDay(date), startOfDay(rangeStart)) + 1;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-background">
+    <div ref={scrollHostRef} className="flex-1 flex flex-col overflow-hidden bg-background">
       {/* Header: week labels */}
       <div
-        className="flex-shrink-0 border-b flex bg-muted/30"
+        className="flex h-10 flex-shrink-0 border-b bg-muted/30"
         style={{ paddingLeft: 0 }}
       >
         <div
-          className="relative h-8 flex-shrink-0"
+          className="relative h-10 flex-shrink-0"
           style={{ width: `${totalDays * COL_WIDTH}px` }}
         >
           {weeks.map((weekStart) => {
@@ -90,7 +99,7 @@ export function GanttSection({ tree, selectedId, onSelect }: Props) {
             return (
               <div
                 key={weekStart.toISOString()}
-                className="absolute top-0 bottom-0 flex items-center pl-1 text-xs text-muted-foreground border-l"
+                className="absolute top-0 bottom-0 flex items-center border-l pl-2 text-xs font-medium text-muted-foreground"
                 style={{ left: `${(col - 1) * COL_WIDTH}px` }}
               >
                 {format(weekStart, "MMM d")}
@@ -101,7 +110,7 @@ export function GanttSection({ tree, selectedId, onSelect }: Props) {
       </div>
 
       {/* Rows */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" classNameViewport="overflow-x-auto overflow-y-auto">
         <div
           className="relative"
           style={{ width: `${totalDays * COL_WIDTH}px`, minWidth: "100%" }}
@@ -121,12 +130,17 @@ export function GanttSection({ tree, selectedId, onSelect }: Props) {
 
           {/* Block rows */}
           {flat.map((block, i) => {
-            const hasStart = block.start_date && isValid(parseISO(block.start_date));
-            const hasEnd = block.deadline && isValid(parseISO(block.deadline));
-
-            const startCol = hasStart ? dayToCol(parseISO(block.start_date!)) : null;
-            const endCol = hasEnd ? dayToCol(parseISO(block.deadline!)) : null;
+            const parsedStart = block.start_date ? parseISO(block.start_date) : null;
+            const parsedEnd = block.deadline ? parseISO(block.deadline) : null;
+            const startCol = parsedStart && isValid(parsedStart) ? dayToCol(parsedStart) : null;
+            const endCol = parsedEnd && isValid(parsedEnd) ? dayToCol(parsedEnd) : null;
             const isSelected = selectedId === block.id;
+            const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect(block);
+              }
+            };
 
             return (
               <div
@@ -134,8 +148,11 @@ export function GanttSection({ tree, selectedId, onSelect }: Props) {
                 className={`relative flex items-center border-b border-border/20 cursor-pointer transition-colors ${
                   isSelected ? "bg-accent/50" : i % 2 === 0 ? "bg-background" : "bg-muted/10"
                 }`}
-                style={{ height: "36px" }}
+                style={{ height: `${BLOCK_ROW_HEIGHT}px` }}
                 onClick={() => onSelect(block)}
+                onKeyDown={handleRowKeyDown}
+                role="button"
+                tabIndex={0}
               >
                 {startCol !== null && endCol !== null && (
                   <div

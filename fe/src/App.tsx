@@ -5,6 +5,7 @@ import DashboardLayout from "./components/layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import About from "./pages/about/about-page";
+import BlocksPage from "./pages/blocks/page";
 import ChangePassword from "./pages/change-password/change-password-page";
 import Contact from "./pages/contact/contact-page";
 import Dashboard from "./pages/dashboard/dashboard-page";
@@ -15,10 +16,10 @@ import ForgotPassword from "./pages/forgot-password/forgot-password-page";
 import Home from "./pages/home/home-page";
 import LoginPage from "./pages/login/login-page";
 import ProjectMappingPage from "./pages/project-mapping/page";
+import ProjectConfigurationPage from "./pages/project-configuration/page";
 import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
-import BlocksPage from "./pages/blocks/page";
 
 function App(): ReactElement {
   return (
@@ -239,6 +240,16 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <BlocksPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project-configuration"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProjectConfigurationPage />
             </DashboardLayout>
           </ProtectedRoute>
         }
