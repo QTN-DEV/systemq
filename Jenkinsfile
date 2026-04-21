@@ -13,7 +13,6 @@ pipeline {
     SLACK_BOT_WEBHOOK_URL = credentials('slack-webhookurl-internalops')
 
     KUBECONFIG_CRED = 'matrix-rancher'
-    DEPLOY_NS       = 'utility'
   }
 
   triggers {
@@ -61,8 +60,16 @@ pipeline {
           echo "Image tag: ${env.IMAGE_VERSION}"
 
           env.APP_ENV = (env.BRANCH_NAME == 'main') ? 'prod' : 'staging'
-          env.BE_IMAGE_NAME = "systemq-${env.APP_ENV}-be"
-          env.FE_IMAGE_NAME = "systemq-${env.APP_ENV}-fe"
+
+          if (env.BRANCH_NAME == 'main') {
+            env.DEPLOY_NS      = 'internal-ops'
+            env.BE_IMAGE_NAME  = 'systemq-be'
+            env.FE_IMAGE_NAME  = 'systemq-fe'
+          } else {
+            env.DEPLOY_NS      = 'systemq-stg'
+            env.BE_IMAGE_NAME  = 'systemq-staging-be'
+            env.FE_IMAGE_NAME  = 'systemq-staging-fe'
+          }
 
           // Determine changed files
           def changedFiles = ""
