@@ -87,10 +87,10 @@
       ]
     },
     {
-      "id": "block-manager",
-      "title": "Block Manager",
+      "id": "project-management",
+      "title": "Project Management",
       "path": "/blocks",
-      "icon": "SquareChartGantt",
+      "icon": "FileText",
       "type": "item",
       "roles": [
         "admin",
