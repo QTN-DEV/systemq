@@ -87,68 +87,19 @@
       ]
     },
     {
-      "id": "project-management-group",
-      "title": "Project Management",
-      "icon": "Folder",
-      "type": "collapsible",
+      "id": "block-manager",
+      "title": "Block Manager",
+      "path": "/blocks",
+      "icon": "SquareChartGantt",
+      "type": "item",
       "roles": [
         "admin",
         "ceo",
+        "employee",
+        "hr",
         "internalops",
         "pm",
-        "employee",
-        "hr"
-      ],
-      "children": [
-        {
-          "id": "tracker",
-          "title": "Tracker",
-          "path": "/tracker/products",
-          "roles": [
-            "admin",
-            "ceo",
-            "employee",
-            "hr",
-            "internalops",
-            "pm"
-          ]
-        },
-        {
-          "id": "triage",
-          "title": "Triage Inbox",
-          "path": "/tracker/triage",
-          "roles": [
-            "admin",
-            "ceo",
-            "employee",
-            "hr",
-            "internalops",
-            "pm"
-          ]
-        },
-        {
-          "id": "my-tasks",
-          "title": "My Tasks",
-          "path": "/tracker/my-tasks",
-          "roles": [
-            "admin",
-            "ceo",
-            "employee",
-            "hr",
-            "internalops",
-            "pm"
-          ]
-        },
-        {
-          "id": "tracker-config",
-          "title": "Tracker Config",
-          "path": "/tracker/config",
-          "roles": [
-            "admin",
-            "ceo",
-            "internalops"
-          ]
-        }
+        "superadmin"
       ]
     }
   ],

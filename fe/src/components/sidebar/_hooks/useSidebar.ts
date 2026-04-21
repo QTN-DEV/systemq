@@ -31,13 +31,6 @@ export function useSidebar(): {
       }
     }
 
-    if (location.pathname.startsWith("/tracker/")) {
-      if (!newOpenMenus["project-management-group"]) {
-        newOpenMenus["project-management-group"] = true;
-        changed = true;
-      }
-    }
-
     if (changed) {
       setOpenMenus(newOpenMenus);
     }
