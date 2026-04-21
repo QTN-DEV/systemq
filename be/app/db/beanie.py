@@ -21,14 +21,7 @@ from app.models import (
     SystemStatus,
     User,
 )
-from app.submodules.tracker.models import (
-    IssueComment,
-    IssueEvent,
-    InitiativeProject,
-    TrackerConfig,
-    TrackerIssue,
-    TrackerProduct,
-)
+
 from constants import MONGODB_DATABASE, MONGODB_URI
 
 _motor_client: AsyncIOMotorClient | None = None
@@ -54,22 +47,14 @@ async def init_database() -> None:
             EditHistoryEvent,
             ProjectMapping,
             SlackMessage,
-            TrackerProduct,
-            InitiativeProject,
-            TrackerIssue,
-            IssueComment,
-            IssueEvent,
-            TrackerConfig,
         ],
     )
 
 
 async def ensure_default_data() -> None:
     from app.services.auth import ensure_default_admin
-    from app.submodules.tracker.services.config import ensure_default_config
 
     await ensure_default_admin()
-    await ensure_default_config()
 
 
 def get_motor_client() -> AsyncIOMotorClient | None:
