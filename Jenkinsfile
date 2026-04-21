@@ -63,8 +63,8 @@ pipeline {
 
           if (env.BRANCH_NAME == 'main') {
             env.DEPLOY_NS      = 'internal-ops'
-            env.BE_IMAGE_NAME  = 'systemq-be'
-            env.FE_IMAGE_NAME  = 'systemq-fe'
+            env.BE_IMAGE_NAME  = 'systemq-prod-be'
+            env.FE_IMAGE_NAME  = 'systemq-prod-fe'
           } else {
             env.DEPLOY_NS      = 'systemq-stg'
             env.BE_IMAGE_NAME  = 'systemq-staging-be'
