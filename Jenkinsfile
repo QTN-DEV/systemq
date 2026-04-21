@@ -211,26 +211,27 @@ pipeline {
 
   post {
     success {
-      node('') {
-        sendSlack('SUCCESS', env.PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
-      }
+      sendSlack('SUCCESS', env.PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: '')
     }
     failure {
-      node('') {
-        script {
-          if (currentBuild.result != 'NOT_BUILT') {
+      script {
+        if (currentBuild.result != 'NOT_BUILT') {
+          try {
             sendSlack('FAILURE', env.PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
+          } catch (Exception e) {
+            node('') {
+               sendSlack('FAILURE', env.PROJECT_NAME, env.BRANCH_NAME ?: '', env.IMAGE_VERSION ?: 'N/A', FAILED_STAGE)
+            }
           }
         }
       }
     }
     always {
-      node('') {
-        sh '''
-          echo "Cleaning up..."
-          docker image prune -f || true
-        '''
-      }
+      sh """
+        echo "Cleaning up specific images..."
+        docker rmi ${REGISTRY}/${env.BE_IMAGE_NAME}:${env.IMAGE_VERSION} || true
+        docker rmi ${REGISTRY}/${env.FE_IMAGE_NAME}:${env.IMAGE_VERSION} || true
+      """
     }
   }
 }
@@ -283,7 +284,7 @@ def sendSlack(String status, String project, String branch, String version, Stri
           { "title": "Failed Stage", "value": "${failedStage ?: 'None'}", "short": true },
           { "title": "Commit",       "value": "${commitMsg}",             "short": false }
         ],
-        "footer": "Jenkins CI — infra-docs",
+        "footer": "Jenkins",
         "ts": ${System.currentTimeMillis() / 1000},
         "actions": [
           {
@@ -300,9 +301,11 @@ def sendSlack(String status, String project, String branch, String version, Stri
 
   writeFile file: 'slack-payload.json', text: payload
 
-  sh """
-    curl -s -X POST ${env.SLACK_BOT_WEBHOOK_URL} \\
-      -H 'Content-Type: application/json' \\
-      -d @slack-payload.json
-  """
+  withCredentials([string(credentialsId: 'slack-webhookurl-internalops', variable: 'SLACK_WEBHOOK')]) {
+    sh """
+      curl -s -X POST \${SLACK_WEBHOOK} \\
+        -H 'Content-Type: application/json' \\
+        -d @slack-payload.json
+    """
+  }
 }
