@@ -10,10 +10,9 @@ class UpdateDashboardArgs(BaseModel):
     input_schema=UpdateDashboardArgs.model_json_schema(),
 )
 async def update_dashboard_tool(args: dict) -> dict:
-    # Note: This tool is intercepted by the frontend, but the AI still needs to call it.
-    # We return a simple success message to the AI.
+    content = args.get("content", "")
     return {
-        "content": [{"type": "text", "text": "Dashboard update signal sent to frontend."}]
+        "content": [{"type": "text", "text": content}]
     }
 
 dashboard_tools_server = create_sdk_mcp_server(

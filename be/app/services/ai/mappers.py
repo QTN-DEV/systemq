@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, Dict, Optional
 from .message_chunk import (
     TextStartChunk, TextDeltaChunk, TextEndChunk,
@@ -6,6 +7,7 @@ from .message_chunk import (
     ToolCallChunk, ToolResultChunk, CostChunk, FileSavedChunk
 )
 
+logger = logging.getLogger(__name__)
 class AIResponseMapper(ABC):
     @abstractmethod
     def map(self, chunk: Any) -> Optional[Dict[str, Any]]:
@@ -18,16 +20,29 @@ class AnthropicMapper(AIResponseMapper):
         # Track block types by index to know what is ending on content_block_stop
         self.block_types: Dict[int, str] = {} 
 
+    def _flatten_content(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content.replace("\n", "")
+        if isinstance(content, list):
+            texts = []
+            for item in content:
+                if isinstance(item, dict):
+                    if item.get("type") == "text":
+                        texts.append(item.get("text", "").replace("\n", ""))
+                    elif item.get("type") == "tool_reference":
+                        texts.append(f"Tool Reference: {item.get('tool_name')}")
+                else:
+                    texts.append(str(item).replace("\n", ""))
+            return "".join(texts)
+        return str(content).replace("\n", "")
     def map(self, chunk: Any) -> Optional[Dict[str, Any]]:
-        # Convert chunk to dict
         if hasattr(chunk, "model_dump"):
-            chunk_dict = chunk.model_dump()
+            chunk_dict = chunk.model_dump(mode="json")
         elif hasattr(chunk, "dict"):
             chunk_dict = chunk.dict()
         else:
             chunk_dict = chunk if isinstance(chunk, dict) else getattr(chunk, "__dict__", {})
         
-        # Identify the chunk by its class name instead of a root "type" key
         class_name = type(chunk).__name__
         event = chunk_dict.get("event", {})
         message = chunk_dict.get("message", {})
@@ -59,46 +74,96 @@ class AnthropicMapper(AIResponseMapper):
                     return TextStartChunk(self.last_message_id).to_json()
                 elif cb_type == "thinking":
                     return ThinkingStartChunk(self.last_message_id).to_json()
+                elif cb_type == "tool_use":
+                    tool_name = cb.get("name", "")
+                    self.last_tool_name = tool_name
+                    return ToolCallChunk(
+                        tool_name=tool_name,
+                        tool_id=cb.get("id", ""),
+                        input_data={},
+                        message_id=self.last_message_id
+                    ).to_json()
 
             elif event_type == "content_block_delta":
                 delta = event.get("delta", {})
                 delta_type = delta.get("type")
 
                 if delta_type == "thinking_delta":
-                    return ThinkingDeltaChunk(delta.get("thinking", ""), self.last_message_id).to_json()
+                    thinking = delta.get("thinking", "").replace("\n", "")
+                    return ThinkingDeltaChunk(thinking, self.last_message_id).to_json()
                 elif delta_type == "text_delta":
-                    return TextDeltaChunk(delta.get("text", ""), self.last_message_id).to_json()
+                    text = delta.get("text", "").replace("\n", "")
+                    return TextDeltaChunk(text, self.last_message_id).to_json()
                 elif delta_type == "signature_delta":
                     return ThinkingStopChunk(self.last_message_id).to_json()
 
             elif event_type == "content_block_stop":
-                # Look up what kind of block is stopping
                 cb_type = self.block_types.get(index)
                 if cb_type == "text":
                     return TextEndChunk(self.last_message_id).to_json()
 
-        # --- 3. Process Assistant Messages (Tool Calls) ---
-        elif class_name == "AssistantMessage":
+        elif class_name == "AssistantMessage" or class_name == "Message":
             content = chunk_dict.get("content", [])
             if content and isinstance(content, list):
                 # We look through the blocks to find tool_use
                 for block in content:
                     if isinstance(block, dict) and block.get("type") == "tool_use":
-                        self.last_tool_name = block.get("name")
+                        input_data = block.get("input")
+                        if isinstance(input_data, dict) and "content" in input_data:
+                            input_data["content"] = input_data["content"].replace("\n", "")
+                        
                         return ToolCallChunk(
                             tool_name=block.get("name"),
                             tool_id=block.get("id"),
-                            input_data=block.get("input"),
+                            input_data=input_data,
                             message_id=self.last_message_id
                         ).to_json()
 
         # --- 4. Process Results (Costs & Files) ---
-        elif class_name == "ResultMessage":
+        elif class_name in ("ResultMessage", "ToolResultMessage", "UserMessage"):
             if chunk_dict.get("total_cost_usd"):
                 return CostChunk(chunk_dict.get("total_cost_usd"), self.last_message_id).to_json()
             
+            # 4a. Handle standard tool results (ToolResultMessage)
+            if class_name == "ToolResultMessage" or "tool_use_id" in chunk_dict:
+                tool_name = chunk_dict.get("tool_name") or self.last_tool_name
+                logger.info(f"Detected tool result for {tool_name}")
+                return ToolResultChunk(
+                    content=self._flatten_content(chunk_dict.get("content")),
+                    tool_use_id=chunk_dict.get("tool_use_id"),
+                    tool_name=tool_name,
+                    message_id=self.last_message_id
+                ).to_json()
+
+            # 4b. Handle tool results hidden in UserMessage (from raw logs)
+            if class_name == "UserMessage" and chunk_dict.get("tool_use_result"):
+                content_str = str(chunk_dict.get("content", [""]))
+                import re
+                
+                # Extract tool_use_id
+                id_match = re.search(r"tool_use_id='([^']+)'", content_str)
+                tool_use_id = id_match.group(1) if id_match else "unknown"
+
+                # Extract tool_name if possible
+                name_match = re.search(r"tool_name='([^']+)'", content_str)
+                tool_name = name_match.group(1) if name_match else self.last_tool_name
+                
+                # Extract actual content text if possible
+                # e.g. content=[{'type': 'text', 'text': '...'}]
+                content_match = re.search(r"'text':\s*'([^']+)'", content_str)
+                extracted_content = content_match.group(1) if content_match else "Success"
+                
+                return ToolResultChunk(
+                    content=extracted_content,
+                    tool_use_id=tool_use_id,
+                    tool_name=tool_name,
+                    message_id=self.last_message_id
+                ).to_json()
+
+            # Handle file saved logic
             file_path = chunk_dict.get("output_file_path") or chunk_dict.get("path")
             if file_path:
                 return FileSavedChunk(file_path, self.last_message_id).to_json()
 
-        return None
+        # Debug: return the raw info if it's something we don't recognize yet
+        return {"type": "unknown", "class": class_name, "data": str(chunk_dict)}

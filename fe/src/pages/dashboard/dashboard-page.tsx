@@ -17,8 +17,8 @@ function Dashboard(): ReactElement {
         <div className="flex flex-col h-screen flex-1 flex-shrink-0">
           <DynamicDashboard.MenuBar />
           <div className="flex-1 flex-shrink-0 flex min-h-0 overflow-auto">
-            <DynamicDashboard.Canvas className="h-screen flex-2 flex-shrink-0" />
-            <DynamicDashboard.Chat className="h-screen flex-1 flex-shrink-0" />
+            <DynamicDashboard.Canvas className="h-full flex-2 flex-shrink-0" />
+            <DynamicDashboard.Chat className="h-full flex-1 flex-shrink-0" />
           </div>
         </div>
       </div>

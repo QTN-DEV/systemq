@@ -53,19 +53,37 @@ export function useDashboardChatAdapter() {
           },
         );
 
+        let lastProcessedContent = "";
         for await (const update of mapAssistantStream(parseSSE(response))) {
           // Intercept update_dashboard tool calls and write into the store
           const toolCall = update.content.find(
-            (part: { type: string; toolName?: string; args?: { content?: string } }) =>
+            (part: {
+              type: string;
+              toolName?: string;
+              args?: { content?: string };
+              result?: string;
+            }) =>
               part.type === "tool-call" &&
-              part.toolName === "update_dashboard",
-          ) as { type: string; toolName: string; args: { content: string }; toolCallId: string } | undefined;
+              (part.toolName === "update_dashboard" ||
+                part.toolName?.endsWith("__update_dashboard")),
+          ) as
+            | {
+                type: string;
+                toolName: string;
+                args: { content: string };
+                result?: string;
+                toolCallId: string;
+              }
+            | undefined;
 
-          if (toolCall?.args?.content !== undefined) {
+          // Prefer result content if available (final source), otherwise use streaming args
+          const newContent = toolCall?.result || toolCall?.args?.content;
+
+          if (newContent !== undefined && newContent !== lastProcessedContent) {
+            lastProcessedContent = newContent;
             storeApi.setState((state) => ({
               ...state,
-              content: toolCall.args.content,
-              // keep version intact — user can Save explicitly
+              content: newContent,
             }));
           }
 

@@ -45,10 +45,11 @@ class ToolCallChunk(ChunkBase):
         self.message_id = message_id
 
 class ToolResultChunk(ChunkBase):
-    def __init__(self, content: Any, tool_use_id: str, message_id: Optional[str] = None):
+    def __init__(self, content: Any, tool_use_id: str, tool_name: Optional[str] = None, message_id: Optional[str] = None):
         self.type = "tool_result"
         self.content = content
         self.tool_use_id = tool_use_id
+        self.tool_name = tool_name
         self.message_id = message_id
 
 class CostChunk(ChunkBase):
