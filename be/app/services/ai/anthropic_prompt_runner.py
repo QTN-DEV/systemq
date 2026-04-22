@@ -56,8 +56,13 @@ class AnthropicPromptRunner(BasePromptRunner):
         return str(file_path)
 
     async def _log_chunk(self, path: str, chunk: Any):
+        def json_default(obj):
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump(mode="json")
+            return str(obj)
+
         with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(chunk) + "\n")
+            f.write(json.dumps(chunk, default=json_default) + "\n")
 
     async def run(self) -> PromptRunnerRunResult:
         prompt_template = self.options.prompt_template
@@ -71,6 +76,7 @@ class AnthropicPromptRunner(BasePromptRunner):
         # Optional: InstagramMCP config check if needed here
 
         debug_path = await self._initialize_debug_log()
+        raw_debug_path = debug_path.replace("anthropic-", "raw-anthropic-")
 
         try:
             # We set ANTHROPIC_API_KEY env var if it's explicitly passed so the SDK picks it up
@@ -79,6 +85,7 @@ class AnthropicPromptRunner(BasePromptRunner):
 
             from .tools.daily_standup import daily_standup_tools_server
             from .tools.employee import employee_tools_server
+            from .tools.dashboard import dashboard_tools_server
             
             agent_opts_dict = {
                 "cwd": self.working_directory,
@@ -93,6 +100,7 @@ class AnthropicPromptRunner(BasePromptRunner):
                 "mcp_servers": {
                     "employee-service": employee_tools_server,
                     "daily-standup-service": daily_standup_tools_server,
+                    "dashboard-service": dashboard_tools_server,
                 }
             }
             if self.system_prompt:
@@ -107,6 +115,27 @@ class AnthropicPromptRunner(BasePromptRunner):
 
             # Iterating through async generator stream
             async for stream_chunk in stream:
+                # Log raw chunk
+                raw_data = {}
+                try:
+                    if hasattr(stream_chunk, "model_dump"):
+                        # mode="json" ensures nested pydantic models are serialized to JSON-safe types
+                        raw_data = stream_chunk.model_dump(mode="json")
+                    elif hasattr(stream_chunk, "dict"):
+                        raw_data = stream_chunk.dict()
+                    else:
+                        raw_data = stream_chunk if isinstance(stream_chunk, dict) else getattr(stream_chunk, "__dict__", {})
+                    
+                    raw_data["_class"] = type(stream_chunk).__name__
+                    await self._log_chunk(raw_debug_path, raw_data)
+                except Exception as log_err:
+                    # Fallback if basic dump fails
+                    try:
+                        fallback_data = {"_class": type(stream_chunk).__name__, "error": str(log_err), "raw_str": str(stream_chunk)}
+                        await self._log_chunk(raw_debug_path, fallback_data)
+                    except:
+                        pass
+
                 chunk = self.mapper.map(stream_chunk)
                 if chunk:
                     await self._log_chunk(debug_path, chunk)

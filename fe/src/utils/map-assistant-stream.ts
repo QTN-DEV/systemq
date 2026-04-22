@@ -30,6 +30,8 @@ export async function* mapAssistantStream(stream: AsyncIterable<any>) {
   for await (const chunk of stream) {
     const { type } = chunk
 
+    console.log(JSON.stringify(chunk, null, 2))
+
     switch (type) {
       case "text_delta": {
         const content = chunk.text
@@ -68,9 +70,38 @@ export async function* mapAssistantStream(stream: AsyncIterable<any>) {
           type: "tool-call",
           toolCallId: chunk.tool_id,
           toolName: chunk.tool_name,
-          args: chunk.input,
-          argsText: JSON.stringify(chunk.input),
+          args: chunk.input || {},
+          argsText: JSON.stringify(chunk.input || {}),
         })
+        break
+      }
+
+      case "tool_call_delta": {
+        const lastIndex = currentParts.length - 1
+        const lastPart = currentParts[lastIndex]
+        if (lastPart?.type === "tool-call" && lastPart.toolCallId === chunk.message_id) {
+          // Note: In some SDKs message_id is used for the current active tool call
+          // but our mapper currently sends message_id. 
+          // We should probably use a more specific ID if available.
+        }
+
+        // For now, let's find the last tool-call part and append to its argsText
+        const toolPart = [...currentParts].reverse().find(p => p.type === "tool-call");
+        if (toolPart) {
+          toolPart.argsText = (toolPart.argsText || "") + (chunk.input_delta || "");
+          try {
+            // Try to parse the accumulated JSON string
+            // We strip any trailing comma or incomplete parts if possible, 
+            // or just catch the error if it's not valid JSON yet.
+            toolPart.args = JSON.parse(toolPart.argsText);
+          } catch (e) {
+            // If it's partial, we might be able to extract fields with regex
+            const contentMatch = toolPart.argsText.match(/"content"\s*:\s*"([^"]*)"/);
+            if (contentMatch) {
+              toolPart.args = { ...toolPart.args, content: contentMatch[1].replace(/\\n/g, '').replace(/\\"/g, '"') };
+            }
+          }
+        }
         break
       }
 
@@ -82,6 +113,7 @@ export async function* mapAssistantStream(stream: AsyncIterable<any>) {
           ) {
             return {
               ...part,
+              toolName: chunk.tool_name || part.toolName,
               result: chunk.content,
             }
           }

@@ -1,6 +1,7 @@
-import { AssistantRuntimeProvider } from "@assistant-ui/react"
-import { Thread } from "../assistant-ui/thread"
-import { type ReactElement } from "react"
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { type ReactElement } from "react";
+
+import { Thread } from "../assistant-ui/thread";
 
 type WorkspaceAssistantThreadProps = {
   runtime: React.ComponentProps<typeof AssistantRuntimeProvider>["runtime"]
@@ -9,12 +10,12 @@ type WorkspaceAssistantThreadProps = {
 
 export function WorkspaceAssistantThread({
   runtime,
-  workspaceId,
+  workspaceId: _workspaceId,
 }: WorkspaceAssistantThreadProps): ReactElement {
   // Omitted getWorkspacesFileRecommendationsOptions since we don't have it yet
-  
+
   return (
-    <div className="flex h-full flex-col bg-red-200">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <AssistantRuntimeProvider runtime={runtime}>
         <div className="min-h-0 flex-1 overflow-hidden">
           <Thread />

@@ -16,6 +16,22 @@
       ]
     },
     {
+      "id": "chat",
+      "title": "Chat",
+      "path": "/chat",
+      "icon": "MessageSquare",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm",
+        "superadmin"
+      ]
+    },
+    {
       "id": "structure-organization",
       "title": "Organizational Structure",
       "path": "/structure-organization",
