@@ -16,6 +16,7 @@ from .uploads import router as uploads_router
 from .workloads import router as workloads_router
 from .chat import router as chat_router
 from app.submodules.blocks import router as blocks_router
+from app.submodules.dashboard import router as dashboard_router
 
 router = APIRouter()
 router.include_router(auth_router)
@@ -27,6 +28,7 @@ router.include_router(root_router)
 router.include_router(uploads_router)
 router.include_router(chat_router)
 router.include_router(blocks_router)
+router.include_router(dashboard_router)
 
 if os.environ.get("APP_ENV") == "production":
     router.include_router(background_tasks_router)
