@@ -77,6 +77,7 @@ class AnthropicPromptRunner(BasePromptRunner):
             if self.api_key:
                 os.environ["ANTHROPIC_API_KEY"] = self.api_key
 
+            from .tools.daily_standup import daily_standup_tools_server
             from .tools.employee import employee_tools_server
             
             agent_opts_dict = {
@@ -89,7 +90,10 @@ class AnthropicPromptRunner(BasePromptRunner):
                 "disallowed_tools": self.disallowed_tools,
                 "setting_sources": ["project"],
                 "include_partial_messages": True,
-                "mcp_servers": {"employee-service": employee_tools_server}
+                "mcp_servers": {
+                    "employee-service": employee_tools_server,
+                    "daily-standup-service": daily_standup_tools_server,
+                }
             }
             if self.system_prompt:
                 agent_opts_dict["system_prompt"] = self.system_prompt
