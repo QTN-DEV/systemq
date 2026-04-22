@@ -21,7 +21,7 @@ function Dashboard(): ReactElement {
               <div style={{ width: "10000px", height: "100%" }}>dd</div>
             </div> */}
             <DynamicDashboard.Canvas className="h-full flex-1 min-w-0 overflow-auto" />
-            <DynamicDashboard.Chat className="h-full w-80 flex-shrink-0" />
+            <DynamicDashboard.Chat className="h-full w-96 flex-shrink-0" />
           </div>
         </div>
       </div>

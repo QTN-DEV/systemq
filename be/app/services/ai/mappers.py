@@ -89,10 +89,10 @@ class AnthropicMapper(AIResponseMapper):
                 delta_type = delta.get("type")
 
                 if delta_type == "thinking_delta":
-                    thinking = delta.get("thinking", "").replace("\n", "")
+                    thinking = delta.get("thinking", "")
                     return ThinkingDeltaChunk(thinking, self.last_message_id).to_json()
                 elif delta_type == "text_delta":
-                    text = delta.get("text", "").replace("\n", "")
+                    text = delta.get("text", "")
                     return TextDeltaChunk(text, self.last_message_id).to_json()
                 elif delta_type == "signature_delta":
                     return ThinkingStopChunk(self.last_message_id).to_json()
