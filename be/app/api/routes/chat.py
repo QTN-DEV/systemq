@@ -26,8 +26,18 @@ async def chat_stream(request: Request):
         prompt_template="{prompt}",
         data={"prompt": prompt},
         working_directory=".",
-        system_prompt="Before updating or creating an employee, you must search all available positions, divisions, and employment types from the provided tools first to ensure the provided values are allowed."
+        system_prompt=(
+            "1. **Validation:** Before updating or creating an employee, search all positions, "
+            "divisions, and employment types using the tools to ensure values are allowed.\n"
+            "2. **Summarization Strategy (Map-Reduce):** When asked to summarize large ranges "
+            "of standup data (e.g., a month), DO NOT fetch all data at once. Instead:\n"
+            "   - Call the tool to fetch data in smaller, logical increments (e.g., 5-day windows).\n"
+            "   - Synthesize the findings of each window internally.\n"
+            "   - Only after processing all windows, provide a final, high-level consolidated summary.\n"
+            "   - Focus on persistent blockers, major milestones, and team trajectory."
+        )
     )
+    
     runner = AnthropicPromptRunner(options)
 
     async def generate():

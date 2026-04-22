@@ -23,6 +23,7 @@ from app.models import (
 )
 from app.submodules.blocks.models import Block, BlockHistory, Comment as BlockComment
 
+from app.submodules.daily_standup.models import StandupEntry
 from constants import MONGODB_DATABASE, MONGODB_URI
 
 _motor_client: AsyncIOMotorClient | None = None
@@ -51,6 +52,7 @@ async def init_database() -> None:
             Block,
             BlockComment,
             BlockHistory,
+            StandupEntry,
         ],
     )
 
