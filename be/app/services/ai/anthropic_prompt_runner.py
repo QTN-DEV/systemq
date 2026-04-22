@@ -79,6 +79,7 @@ class AnthropicPromptRunner(BasePromptRunner):
 
             from .tools.daily_standup import daily_standup_tools_server
             from .tools.employee import employee_tools_server
+            from .tools.dashboard import dashboard_tools_server
             
             agent_opts_dict = {
                 "cwd": self.working_directory,
@@ -93,6 +94,7 @@ class AnthropicPromptRunner(BasePromptRunner):
                 "mcp_servers": {
                     "employee-service": employee_tools_server,
                     "daily-standup-service": daily_standup_tools_server,
+                    "dashboard-service": dashboard_tools_server,
                 }
             }
             if self.system_prompt:

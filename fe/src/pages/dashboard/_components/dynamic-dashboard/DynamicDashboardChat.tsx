@@ -1,27 +1,19 @@
-import {
-  AssistantRuntimeProvider,
-  type ChatModelAdapter,
-  useLocalRuntime,
-} from "@assistant-ui/react";
-import { useMemo, type ComponentProps, type ReactElement } from "react";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { type ComponentProps, type ReactElement } from "react";
 
 import { Thread } from "@/components/assistant-ui/thread";
-import { config } from "@/lib/config";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/authStore";
-import { mapAssistantStream, parseSSE } from "@/utils/map-assistant-stream";
 
-import { useStore, useStoreApi } from "./hooks/use-store";
+import { useDashboardChatAdapter } from "./hooks/use-dashboard-chat-adapter";
+import { useStore } from "./hooks/use-store";
 
 export type DynamicDashboardChatProps = ComponentProps<"div">;
 
 export function DynamicDashboardChat({
   ...props
 }: DynamicDashboardChatProps): ReactElement {
-  const store = useStoreApi();
-  const userId = useStore((state) => state.userId);
-
   const isChatOpen = useStore((state) => state.isChatOpen);
+  const runtime = useDashboardChatAdapter();
 
   return (
     <div
@@ -33,20 +25,11 @@ export function DynamicDashboardChat({
         !isChatOpen && "translate-x-full hidden",
       )}
     >
-      {/* <AssistantRuntimeProvider runtime={runtime}>
+      <AssistantRuntimeProvider runtime={runtime}>
         <div className="min-h-0 h-full">
           <Thread />
         </div>
-      </AssistantRuntimeProvider> */}
+      </AssistantRuntimeProvider>
     </div>
   );
 }
-
-// function buildHeaders(): HeadersInit {
-//   const session = useAuthStore.getState().getCurrentSession();
-
-//   return {
-//     "Content-Type": "application/json",
-//     ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}),
-//   };
-// }

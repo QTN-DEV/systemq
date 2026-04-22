@@ -29,6 +29,7 @@ export async function* mapAssistantStream(stream: AsyncIterable<any>) {
 
   for await (const chunk of stream) {
     const { type } = chunk
+    console.log(JSON.stringify(chunk, null, 2));
 
     switch (type) {
       case "text_delta": {
