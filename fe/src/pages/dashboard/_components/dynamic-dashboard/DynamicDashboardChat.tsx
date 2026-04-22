@@ -17,12 +17,11 @@ export function DynamicDashboardChat({
 
   return (
     <div
-      id="dynamic-dashboard-chat"
       {...props}
       className={cn(
         "h-full w-full overflow-hidden border-l border-gray-200 transition-transform duration-300",
         props.className,
-        !isChatOpen && "translate-x-full hidden",
+        !isChatOpen && "hidden",
       )}
     >
       <AssistantRuntimeProvider runtime={runtime}>
