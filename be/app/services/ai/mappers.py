@@ -103,18 +103,33 @@ class AnthropicMapper(AIResponseMapper):
                     return TextEndChunk(self.last_message_id).to_json()
 
         elif class_name == "AssistantMessage" or class_name == "Message":
-            content = chunk_dict.get("content", [])
-            if content and isinstance(content, list):
-                # We look through the blocks to find tool_use
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "tool_use":
-                        input_data = block.get("input")
+            # chunk_dict["content"] may contain dicts OR Python repr strings like
+            # "ToolUseBlock(id='...', ...)" when model_dump serialises nested SDK objects
+            # as their __repr__. Fall back to the original chunk's .content attribute so
+            # each block can be serialised individually via its own model_dump.
+            raw_blocks = getattr(chunk, "content", None) or chunk_dict.get("content", [])
+            if raw_blocks and isinstance(raw_blocks, list):
+                for block in raw_blocks:
+                    # Normalise block to a plain dict
+                    if isinstance(block, dict):
+                        block_dict = block
+                    elif hasattr(block, "model_dump"):
+                        block_dict = block.model_dump(mode="json")
+                    elif hasattr(block, "dict"):
+                        block_dict = block.dict()
+                    elif hasattr(block, "__dict__"):
+                        block_dict = block.__dict__
+                    else:
+                        continue
+
+                    if block_dict.get("type") == "tool_use":
+                        input_data = block_dict.get("input")
                         if isinstance(input_data, dict) and "content" in input_data:
                             input_data["content"] = input_data["content"].replace("\n", "")
-                        
+
                         return ToolCallChunk(
-                            tool_name=block.get("name"),
-                            tool_id=block.get("id"),
+                            tool_name=block_dict.get("name"),
+                            tool_id=block_dict.get("id"),
                             input_data=input_data,
                             message_id=self.last_message_id
                         ).to_json()
@@ -148,10 +163,9 @@ class AnthropicMapper(AIResponseMapper):
                 name_match = re.search(r"tool_name='([^']+)'", content_str)
                 tool_name = name_match.group(1) if name_match else self.last_tool_name
                 
-                # Extract actual content text if possible
-                # e.g. content=[{'type': 'text', 'text': '...'}]
-                content_match = re.search(r"'text':\s*'([^']+)'", content_str)
-                extracted_content = content_match.group(1) if content_match else "Success"
+                # Use tool_use_result directly — it's already structured [{type, text}],
+                # so avoid the fragile string-repr regex that breaks on escaped quotes.
+                extracted_content = self._flatten_content(chunk_dict.get("tool_use_result"))
                 
                 return ToolResultChunk(
                     content=extracted_content,

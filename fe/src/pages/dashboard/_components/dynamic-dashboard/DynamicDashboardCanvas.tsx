@@ -1,13 +1,14 @@
-import {
+import React, {
   useMemo,
   type ComponentProps,
   type ReactElement,
   type ReactNode,
 } from "react";
-import React from "react"; // Required for scope if using React fragments
 import { LiveError, LivePreview, LiveProvider } from "react-live";
 import * as Recharts from "recharts";
 
+import { Button } from "@/components/ui/button";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import {
   Card,
   CardHeader,
@@ -25,9 +26,72 @@ import {
   ChartContainer,
   ChartStyle,
 } from "@/components/ui/chart";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCaption,
+  TableFooter,
+} from "@/components/ui/table";
+import apiClient from "@/lib/shared/api/client";
 import { cn } from "@/lib/utils";
 
 import { useStore } from "./hooks/use-store";
+
+const _tailwindSafelist = [
+  'grid-cols-1',
+  'grid-cols-2',
+  'grid-cols-3',
+  'grid-cols-4',
+  'grid-cols-5',
+  'grid-cols-6',
+  'col-span-1',
+  'col-span-2',
+  'col-span-3'
+];
 
 export type DynamicDashboardCanvasProps = {
   children?: ReactNode;
@@ -61,6 +125,48 @@ export function DynamicDashboardCanvas({
       ChartLegendContent,
       ChartContainer,
       ChartStyle,
+      Table,
+      TableBody,
+      TableCell,
+      TableHead,
+      TableHeader,
+      TableRow,
+      TableCaption,
+      TableFooter,
+      Calendar,
+      CalendarDayButton,
+      Button,
+      DropdownMenu,
+      DropdownMenuContent,
+      DropdownMenuItem,
+      DropdownMenuLabel,
+      DropdownMenuSeparator,
+      DropdownMenuTrigger,
+      Popover,
+      PopoverContent,
+      PopoverTrigger,
+      Dialog,
+      DialogClose,
+      DialogContent,
+      DialogDescription,
+      DialogFooter,
+      DialogHeader,
+      DialogTitle,
+      DialogTrigger,
+      apiClient,
+      Pagination,
+      PaginationContent,
+      PaginationEllipsis,
+      PaginationItem,
+      PaginationLink,
+      PaginationNext,
+      PaginationPrevious,
+      Select,
+      SelectContent,
+      SelectGroup,
+      SelectItem,
+      SelectTrigger,
+      SelectValue,
       ...Recharts,
       cn,
     }),
@@ -108,7 +214,10 @@ function normalizeLiveCode(source: string): string {
       /^export\s+default\s+function\s+([A-Za-z0-9_]+)\s*\(/m,
       "function $1(",
     )
-    .replace(/^export\s+default\s+/m, "");
+    .replace(/^export\s+default\s+/m, "")
+    // Collapse whitespace-only gaps between JSX tags so they don't become
+    // stray text nodes that break components using React.Children.only (e.g. asChild).
+    .replace(/>\s+</g, "><");
 
   // If the code defines an App component but doesn't call render, add it.
   if (

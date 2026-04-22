@@ -15,11 +15,13 @@ from .root import router as root_router
 from .uploads import router as uploads_router
 from .workloads import router as workloads_router
 from .chat import router as chat_router
+from .daily_standup import router as daily_standup_router
 from app.submodules.blocks import router as blocks_router
 from app.submodules.dashboard import router as dashboard_router
 
 router = APIRouter()
 router.include_router(auth_router)
+router.include_router(daily_standup_router)
 router.include_router(documents_router)
 router.include_router(document_permissions_router)
 router.include_router(employees_router)

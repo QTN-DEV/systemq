@@ -13,12 +13,15 @@ function Dashboard(): ReactElement {
 
   return (
     <DynamicDashboard.Root userId={userId}>
-      <div className="flex h-screen">
-        <div className="flex flex-col h-screen flex-1 flex-shrink-0">
+      <div className="flex h-screen w-full overflow-hidden">
+        <div className="flex flex-col h-full flex-1 min-w-0">
           <DynamicDashboard.MenuBar />
-          <div className="flex-1 flex-shrink-0 flex min-h-0 overflow-auto">
-            <DynamicDashboard.Canvas className="h-full flex-2 flex-shrink-0" />
-            <DynamicDashboard.Chat className="h-full flex-1 flex-shrink-0" />
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            {/* <div className="flex-1 min-w-0 overflow-auto bg-red-300">
+              <div style={{ width: "10000px", height: "100%" }}>dd</div>
+            </div> */}
+            <DynamicDashboard.Canvas className="h-full flex-1 min-w-0 overflow-auto" />
+            <DynamicDashboard.Chat className="h-full w-80 flex-shrink-0" />
           </div>
         </div>
       </div>

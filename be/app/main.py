@@ -54,6 +54,10 @@ TAGS_METADATA = [
         "name": "Uploads",
         "description": "File and image upload endpoints for document content."
     },
+    {
+        "name": "Daily Standups",
+        "description": "Search and browse daily standup entries ingested from Slack.",
+    },
 ]
 
 app = FastAPI(
