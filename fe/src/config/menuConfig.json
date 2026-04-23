@@ -59,6 +59,22 @@
       ]
     },
     {
+      "id": "workspaces",
+      "title": "Workspaces",
+      "path": "/workspaces",
+      "icon": "FolderOpen",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm",
+        "superadmin"
+      ]
+    },
+    {
       "id": "documents",
       "title": "Documents",
       "path": "/documents",

@@ -13,6 +13,7 @@ import {
   Inbox,
   CheckSquare,
   MessageSquare,
+  FolderOpen,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
@@ -38,6 +39,7 @@ const iconMap = {
   Inbox,
   CheckSquare,
   MessageSquare,
+  FolderOpen,
 };
 
 interface SidebarMenuProps {

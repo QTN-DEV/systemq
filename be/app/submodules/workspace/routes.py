@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import StreamingResponse
+
+from app.services.ai import AnthropicPromptRunner, AnthropicPromptRunnerOptions
 
 from .deps import auth_owner_id, get_owned_workspace
 from .models import WorkspaceMetadata
@@ -22,6 +25,21 @@ from .service import (
 )
 
 router = APIRouter(prefix="/workspaces", tags=["Workspaces"])
+
+_WORKSPACE_CHAT_SYSTEM_PROMPT = (
+    "You are assisting inside a **user workspace**. The Claude agent's process working directory (cwd) is "
+    "this workspace's root folder on disk (its name is the workspace id). The standard layout is: "
+    "**data/** (primary user storage), **outputs/**, **workflows/**, and **.claude/skills/** (markdown skills). "
+    "Prefer creating and reading files under **data/** unless the user asks otherwise.\n\n"
+    "1. **Validation:** Before updating or creating an employee, search all positions, "
+    "divisions, and employment types using the tools to ensure values are allowed.\n"
+    "2. **Summarization Strategy (Map-Reduce):** When asked to summarize large ranges "
+    "of standup data (e.g., a month), DO NOT fetch all data at once. Instead:\n"
+    "   - Call the tool to fetch data in smaller, logical increments (e.g., 5-day windows).\n"
+    "   - Synthesize the findings of each window internally.\n"
+    "   - Only after processing all windows, provide a final, high-level consolidated summary.\n"
+    "   - Focus on persistent blockers, major milestones, and team trajectory."
+)
 
 
 def _to_response(ws: WorkspaceMetadata) -> WorkspaceResponse:
@@ -147,6 +165,52 @@ async def upload_workspace_file(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     rel = dest.relative_to(service.workspace_root(workspace_id))
     return WorkspaceUploadResponse(path=str(rel).replace("\\", "/"))
+
+
+@router.post(
+    "/{workspace_id}/chat/stream",
+    summary="Stream Claude agent with cwd set to this workspace root",
+)
+async def workspace_chat_stream(
+    workspace_id: str,
+    request: Request,
+    owner_id: str = Depends(auth_owner_id),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> StreamingResponse:
+    await get_owned_workspace(workspace_id, owner_id)
+    cwd = service.workspace_root(workspace_id)
+    if not cwd.is_dir():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace folder not found on disk",
+        )
+
+    body = await request.json()
+    messages = body.get("messages", [])
+
+    prompt = ""
+    for m in messages:
+        role = m.get("role", "user")
+        content = m.get("content", "")
+        if isinstance(content, list):
+            text_parts = [c.get("text", "") for c in content if c.get("type") == "text"]
+            content = "".join(text_parts)
+        prompt += f"{role.capitalize()}: {content}\n"
+    prompt += "Assistant: "
+
+    options = AnthropicPromptRunnerOptions(
+        prompt_template="{prompt}",
+        data={"prompt": prompt},
+        working_directory=str(cwd.resolve()),
+        system_prompt=_WORKSPACE_CHAT_SYSTEM_PROMPT,
+    )
+    runner = AnthropicPromptRunner(options)
+
+    async def generate():
+        async for chunk in runner.run():
+            yield f"data: {chunk['data']}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 @router.delete(

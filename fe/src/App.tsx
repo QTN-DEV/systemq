@@ -20,6 +20,8 @@ import StructureOrganization from "./pages/structure-organization/structure-orga
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
 import BlocksPage from "./pages/blocks/page";
 import ChatPage from "./pages/chat/page";
+import WorkspacesPage from "./pages/workspaces/page";
+import WorkspaceDetailPage from "./pages/workspaces/workspace-detail-page";
 
 function App(): ReactElement {
   return (
@@ -48,6 +50,26 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <ChatPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspacesPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces/:workspaceId"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceDetailPage />
             </DashboardLayout>
           </ProtectedRoute>
         }
