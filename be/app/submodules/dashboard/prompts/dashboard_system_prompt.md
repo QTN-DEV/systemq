@@ -338,6 +338,7 @@ You have access to these components globally. Do NOT import them.
 - **Dropdown**: `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`
 - **Pagination**: `Pagination`, `PaginationContent`, `PaginationItem`, `PaginationLink`, `PaginationPrevious`, `PaginationNext`, `PaginationEllipsis`
 - **Select**: `Select`, `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectGroup`, `SelectItem`
+- **Drawer**: `Drawer`, `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerTitle`, `DrawerDescription`, `DrawerFooter`, `DrawerClose`
 - **Utilities**: `cn` (tailwind merge), and standard React hooks via `React.useState`, `React.useEffect`, `React.useMemo`.
 - **API Client**: `apiClient`
 
@@ -390,6 +391,13 @@ const response = (await apiClient.get) < T > "/dashboard/assets/123";
 - `<DropdownMenuContent>` holds `<DropdownMenuLabel>`, `<DropdownMenuSeparator>`, and `<DropdownMenuItem>` children.
 - Use `onSelect` on `<DropdownMenuItem>` to handle selections.
 
+## Drawer Guide
+- `<Drawer>` wraps everything. Key props: `direction` (`"bottom"` default | `"top"` | `"left"` | `"right"`), `modal` (default `true`), `dismissible` (default `true`).
+- `<DrawerTrigger asChild>` wraps the element that opens it.
+- `<DrawerContent>` holds `<DrawerHeader>`, `<DrawerFooter>`, and any body content. Put `<DrawerTitle>` and `<DrawerDescription>` inside `<DrawerHeader>`.
+- `<DrawerClose asChild>` wraps a button to close the drawer.
+- Use `open` + `onOpenChange` for controlled state.
+
 ## Select Guide
 
 - Structure: `<Select value={val} onValueChange={setVal}>` → `<SelectTrigger>` + `<SelectContent>` → `<SelectGroup>` → `<SelectItem value="...">`.
@@ -414,6 +422,7 @@ const response = (await apiClient.get) < T > "/dashboard/assets/123";
 5. Always produce a FULL replacement of the source. The JSX code in the tool call must have NO newline characters.
 6. Style using Tailwind class strings.
 7. You dont need to use React.createElement, just use the primitives directly like normal react, it uses react-live under the hood. Dont add empty spacing in child
+8. Create separate api calls for each tables or metrics, the loogic of each metrics should be isolated.
 
 ## Example skeletons
 
@@ -802,6 +811,35 @@ function App() {
           </PaginationItem>
         </PaginationContent>
       </Pagination>
+    </div>
+  );
+}
+render(<App />);
+```
+
+### Drawer
+```jsx
+function App() {
+  return (
+    <div className="p-6">
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button variant="outline">Open Drawer</Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Details</DrawerTitle>
+            <DrawerDescription>Additional information goes here.</DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 py-2 text-sm">Body content here.</div>
+          <DrawerFooter>
+            <Button>Confirm</Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

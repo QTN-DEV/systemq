@@ -19,6 +19,7 @@ import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
 import BlocksPage from "./pages/blocks/page";
+import ChatPage from "./pages/chat/page";
 
 function App(): ReactElement {
   return (
@@ -37,6 +38,16 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <Dashboard />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ChatPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

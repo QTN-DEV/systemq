@@ -7,6 +7,16 @@ import React, {
 import { LiveError, LivePreview, LiveProvider } from "react-live";
 import * as Recharts from "recharts";
 
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import {
@@ -167,6 +177,14 @@ export function DynamicDashboardCanvas({
       SelectItem,
       SelectTrigger,
       SelectValue,
+      Drawer,
+      DrawerClose,
+      DrawerContent,
+      DrawerDescription,
+      DrawerFooter,
+      DrawerHeader,
+      DrawerTitle,
+      DrawerTrigger,
       ...Recharts,
       cn,
     }),

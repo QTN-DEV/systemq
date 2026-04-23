@@ -24,7 +24,7 @@ async def search_daily_standups(
     start_date: Optional[date] = Query(None, description="Include entries on or after this date"),
     end_date: Optional[date] = Query(None, description="Include entries on or before this date"),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Number of results per page"),
+    page_size: int = Query(20, ge=1, le=99999, description="Number of results per page"),
 ) -> PaginatedStandUpEntries:
     service = DailyStandupService(repository=get_daily_standup_repo())
     options = SearchStandUpEntryOptions(

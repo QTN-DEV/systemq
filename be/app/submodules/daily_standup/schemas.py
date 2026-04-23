@@ -13,7 +13,7 @@ class SearchStandUpEntryOptions(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     page: int = Field(default=1, ge=1)
-    page_size: int = Field(default=20, ge=1, le=100)
+    page_size: int = Field(default=20, ge=1, le=99999)
 
 
 class PaginatedStandUpEntries(BaseModel):

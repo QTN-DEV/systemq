@@ -12,6 +12,7 @@ import {
   CircleHelp,
   Inbox,
   CheckSquare,
+  MessageSquare,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
@@ -36,6 +37,7 @@ const iconMap = {
   Settings2,
   Inbox,
   CheckSquare,
+  MessageSquare,
 };
 
 interface SidebarMenuProps {
