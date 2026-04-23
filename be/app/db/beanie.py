@@ -21,6 +21,7 @@ from app.models import (
     SystemStatus,
     User,
 )
+from app.submodules.workspace.models import WorkspaceMetadata
 from app.submodules.blocks.models import Block, BlockHistory, Comment as BlockComment
 
 from app.submodules.daily_standup.models import StandupEntry
@@ -55,6 +56,7 @@ async def init_database() -> None:
             BlockHistory,
             StandupEntry,
             DynamicDashboard,
+            WorkspaceMetadata,
         ],
     )
 

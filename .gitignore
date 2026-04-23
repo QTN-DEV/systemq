@@ -32,6 +32,8 @@ pnpm-lock.yaml
 .vscode
 
 
+be/workspace_data/
+
 __pycache__/
 *.py[cod]
 *.so
