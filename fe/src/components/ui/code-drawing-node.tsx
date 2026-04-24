@@ -1,13 +1,9 @@
 'use client';
 
-import * as React from 'react';
-
-import type {
-  CodeDrawingType,
-  TCodeDrawingElement,
-  ViewMode,
-} from '@platejs/code-drawing';
 import {
+  type CodeDrawingType,
+  type TCodeDrawingElement,
+  type ViewMode,
   VIEW_MODE,
   DEFAULT_MIN_HEIGHT,
   CODE_DRAWING_TYPE_ARRAY,
@@ -17,8 +13,10 @@ import {
   downloadImage,
   DOWNLOAD_FILENAME,
 } from '@platejs/code-drawing';
-import type { PlateElementProps } from 'platejs/react';
+import debounce from 'lodash/debounce.js';
+import { Trash2, DownloadIcon } from 'lucide-react';
 import {
+  type PlateElementProps,
   PlateElement,
   useEditorRef,
   useEditorSelector,
@@ -27,11 +25,9 @@ import {
   useReadOnly,
   useSelected,
 } from 'platejs/react';
-import debounce from 'lodash/debounce.js';
-import { Trash2, DownloadIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Popover,
   PopoverAnchor,
@@ -44,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function useCodeDrawingElement({ element }: { element: TCodeDrawingElement }) {
   const editor = useEditorRef();
@@ -494,9 +491,7 @@ function CodeDrawingTextarea({
 
       <div className="relative flex-1 rounded-md">
         <pre
-          className={
-            'm-0 overflow-x-auto p-8 pr-4 font-mono text-sm leading-[normal] [tab-size:2] print:break-inside-avoid'
-          }
+          className="m-0 overflow-x-auto p-8 pr-4 font-mono text-sm leading-[normal] [tab-size:2] print:break-inside-avoid"
           style={{ minHeight: `${DEFAULT_MIN_HEIGHT}px`, height: '100%' }}
         >
           <code className="block h-full w-full">
@@ -558,9 +553,7 @@ function CodeDrawingPreviewArea({
 
       {showImage ? (
         <div
-          className={
-            'flex flex-1 items-center justify-center rounded-md bg-muted/30 p-4'
-          }
+          className="flex flex-1 items-center justify-center rounded-md bg-muted/30 p-4"
         >
           {loading && <div className="text-muted-foreground">Loading...</div>}
           {!loading && image && (

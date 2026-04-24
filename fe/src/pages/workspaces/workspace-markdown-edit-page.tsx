@@ -1,24 +1,29 @@
-import { PlateEditor } from "@/components/editor/plate-editor";
+import { ArrowLeft } from "lucide-react";
+import { type ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+
+import {
+  PlateEditor,
+  type PlateEditorHandle,
+} from "@/components/editor/plate-editor";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   getWorkspaceMarkdownFile,
   updateWorkspaceMarkdownFile,
 } from "@/lib/shared/services/WorkspaceService";
-import { ArrowLeft } from "lucide-react";
-import { type ReactElement, useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 
 export default function WorkspaceMarkdownEditPage(): ReactElement {
   const { workspaceId, "*": splatPath } = useParams<{ workspaceId: string; "*": string | undefined }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewOnly = searchParams.get("mode") === "view";
   const filePath = (splatPath ?? "").replace(/^\/+/, "");
 
-  const [content, setContent] = useState("");
+  const [markdown, setMarkdown] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const plateRef = useRef<PlateEditorHandle>(null);
 
   const wsId = workspaceId ?? "";
   const isMd = filePath.toLowerCase().endsWith(".md");
@@ -31,10 +36,10 @@ export default function WorkspaceMarkdownEditPage(): ReactElement {
     setLoading(true);
     try {
       const data = await getWorkspaceMarkdownFile(wsId, filePath);
-      setContent(data.content);
+      setMarkdown(data.content);
     } catch {
       toast.error("Could not load file");
-      setContent("");
+      setMarkdown("");
     } finally {
       setLoading(false);
     }
@@ -48,9 +53,10 @@ export default function WorkspaceMarkdownEditPage(): ReactElement {
     if (!wsId || !filePath) {
       return;
     }
+    const md = plateRef.current?.getMarkdown() ?? markdown;
     setSaving(true);
     try {
-      await updateWorkspaceMarkdownFile(wsId, filePath, content);
+      await updateWorkspaceMarkdownFile(wsId, filePath, md);
       toast.success("File saved");
       navigate(`/workspaces/${wsId}`);
     } catch {
@@ -104,29 +110,35 @@ export default function WorkspaceMarkdownEditPage(): ReactElement {
             Workspace
           </Link>
         </Button>
-        <h1 className="text-base font-semibold">Edit Markdown</h1>
+        <h1 className="text-base font-semibold">{viewOnly ? "View Markdown" : "Edit Markdown"}</h1>
         <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-[11px]" title={filePath}>
           {filePath}
         </span>
-        <Button size="sm" className="h-8" disabled={loading || saving} onClick={() => void save()}>
-          {saving ? "Saving…" : "Save"}
-        </Button>
+        {viewOnly ? null : (
+          <Button
+            size="sm"
+            className="h-8"
+            disabled={loading || saving}
+            onClick={() => {
+              void save();
+            }}
+          >
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading…</p>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <PlateEditor />
-            {/* <Textarea
-              id="workspace-md-editor"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[320px] flex-1 resize-y font-mono text-xs"
-              spellCheck={false}
-            /> */}
-          </div>
+          <PlateEditor
+            key={filePath}
+            ref={plateRef}
+            className="min-h-0 flex-1"
+            initialMarkdown={markdown}
+            readOnly={viewOnly}
+          />
         )}
       </div>
     </div>
