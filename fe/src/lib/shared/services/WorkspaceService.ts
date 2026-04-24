@@ -1,7 +1,13 @@
 import { config } from "@/lib/config";
 import apiClient from "@/lib/shared/api/client";
 import { useAuthStore } from "@/stores/authStore";
-import type { SkillPayload, Workspace, WorkspaceFilesResponse, WorkspaceUploadResponse } from "@/types/workspace";
+import type {
+  SkillPayload,
+  Workspace,
+  WorkspaceFileContentPayload,
+  WorkspaceFilesResponse,
+  WorkspaceUploadResponse,
+} from "@/types/workspace";
 
 const ensureAuth = (): void => {
   const session = useAuthStore.getState().getCurrentSession();
@@ -49,6 +55,36 @@ export async function createWorkspacePath(
     { path, is_folder: isFolder },
     { params: { workspace_id: workspaceId } },
   );
+}
+
+export async function getWorkspaceMarkdownFile(
+  workspaceId: string,
+  path: string,
+): Promise<WorkspaceFileContentPayload> {
+  ensureAuth();
+  return apiClient.get<WorkspaceFileContentPayload>("/workspaces/files/content", {
+    params: { workspace_id: workspaceId, path },
+  });
+}
+
+export async function updateWorkspaceMarkdownFile(
+  workspaceId: string,
+  path: string,
+  content: string,
+): Promise<WorkspaceUploadResponse> {
+  ensureAuth();
+  return apiClient.put<WorkspaceUploadResponse>(
+    "/workspaces/files/content",
+    { path, content },
+    { params: { workspace_id: workspaceId } },
+  );
+}
+
+export async function deleteWorkspacePath(workspaceId: string, path: string): Promise<void> {
+  ensureAuth();
+  await apiClient.delete("/workspaces/files", {
+    params: { workspace_id: workspaceId, path },
+  });
 }
 
 export async function uploadWorkspaceFile(

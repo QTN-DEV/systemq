@@ -11,6 +11,8 @@ from .deps import auth_owner_id, get_owned_workspace
 from .models import WorkspaceMetadata
 from .schemas import (
     WorkspaceCreate,
+    WorkspaceFileContentResponse,
+    WorkspaceFileContentUpdate,
     WorkspaceFileCreate,
     WorkspaceFilesResponse,
     WorkspaceFileEntry,
@@ -141,6 +143,73 @@ async def create_workspace_path(
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     rel = path.relative_to(service.workspace_root(workspace_id))
     return WorkspaceUploadResponse(path=str(rel).replace("\\", "/"))
+
+
+@router.get(
+    "/files/content",
+    response_model=WorkspaceFileContentResponse,
+    summary="Read a Markdown file as UTF-8 text",
+)
+async def read_workspace_file_content(
+    workspace_id: str = Query(..., description="Workspace document id"),
+    path: str = Query(..., description="Path relative to workspace root (e.g. data/notes.md)"),
+    owner_id: str = Depends(auth_owner_id),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> WorkspaceFileContentResponse:
+    await get_owned_workspace(workspace_id, owner_id)
+    try:
+        rel, content = service.read_markdown_file(workspace_id, path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IsADirectoryError as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"Not a file: {exc}",
+        ) from exc
+    except WorkspacePathError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return WorkspaceFileContentResponse(path=rel, content=content)
+
+
+@router.put(
+    "/files/content",
+    response_model=WorkspaceUploadResponse,
+    summary="Overwrite a Markdown file (UTF-8)",
+)
+async def update_workspace_file_content(
+    payload: WorkspaceFileContentUpdate,
+    workspace_id: str = Query(..., description="Workspace document id"),
+    owner_id: str = Depends(auth_owner_id),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> WorkspaceUploadResponse:
+    await get_owned_workspace(workspace_id, owner_id)
+    try:
+        rel = service.write_markdown_file(workspace_id, payload.path, payload.content)
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspacePathError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return WorkspaceUploadResponse(path=rel)
+
+
+@router.delete(
+    "/files",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a file or folder under the workspace",
+)
+async def delete_workspace_file_or_folder(
+    workspace_id: str = Query(..., description="Workspace document id"),
+    path: str = Query(..., description="Path relative to workspace root"),
+    owner_id: str = Depends(auth_owner_id),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> None:
+    await get_owned_workspace(workspace_id, owner_id)
+    try:
+        service.delete_workspace_entry(workspace_id, path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspacePathError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post(

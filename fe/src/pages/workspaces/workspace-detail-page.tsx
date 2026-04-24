@@ -28,10 +28,13 @@ import {
   createWorkspacePath,
   deleteSkill,
   deleteWorkspace,
+  deleteWorkspacePath,
   getSkill,
+  getWorkspaceMarkdownFile,
   listWorkspaceFiles,
   listWorkspaces,
   updateSkill,
+  updateWorkspaceMarkdownFile,
   uploadWorkspaceFile,
 } from "@/lib/shared/services/WorkspaceService";
 import type { Workspace, WorkspaceFileEntry, WorkspaceFilesResponse } from "@/types/workspace";
@@ -48,6 +51,10 @@ function pathLabel(browseIn: string | null): string {
     return "Workspace root";
   }
   return browseIn;
+}
+
+function isWorkspaceMarkdownFile(entry: WorkspaceFileEntry): boolean {
+  return !entry.isFolder && entry.name.toLowerCase().endsWith(".md");
 }
 
 function WorkspaceChatSection({ workspaceId }: { workspaceId: string }): ReactElement {
@@ -82,6 +89,14 @@ export default function WorkspaceDetailPage(): ReactElement {
   const [skillEditingName, setSkillEditingName] = useState<string | null>(null);
   const [skillNameInput, setSkillNameInput] = useState("");
   const [skillContent, setSkillContent] = useState("");
+
+  const [fileEditOpen, setFileEditOpen] = useState(false);
+  const [fileEditPath, setFileEditPath] = useState<string | null>(null);
+  const [fileEditContent, setFileEditContent] = useState("");
+  const [fileEditLoading, setFileEditLoading] = useState(false);
+
+  const [fileDeleteOpen, setFileDeleteOpen] = useState(false);
+  const [fileDeleteTarget, setFileDeleteTarget] = useState<WorkspaceFileEntry | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -218,6 +233,56 @@ export default function WorkspaceDetailPage(): ReactElement {
       await loadFiles();
     } catch {
       toast.error("Upload failed");
+    }
+  };
+
+  const openFileEditor = async (entry: WorkspaceFileEntry): Promise<void> => {
+    if (!selectedId || !isWorkspaceMarkdownFile(entry)) {
+      return;
+    }
+    setFileEditPath(entry.id);
+    setFileEditContent("");
+    setFileEditOpen(true);
+    setFileEditLoading(true);
+    try {
+      const data = await getWorkspaceMarkdownFile(selectedId, entry.id);
+      setFileEditContent(data.content);
+    } catch {
+      toast.error("Could not load file");
+      setFileEditOpen(false);
+      setFileEditPath(null);
+    } finally {
+      setFileEditLoading(false);
+    }
+  };
+
+  const saveFileEditor = async (): Promise<void> => {
+    if (!selectedId || !fileEditPath) {
+      return;
+    }
+    try {
+      await updateWorkspaceMarkdownFile(selectedId, fileEditPath, fileEditContent);
+      toast.success("File saved");
+      setFileEditOpen(false);
+      setFileEditPath(null);
+      await loadFiles();
+    } catch {
+      toast.error("Could not save file");
+    }
+  };
+
+  const confirmDeleteEntry = async (): Promise<void> => {
+    if (!selectedId || !fileDeleteTarget) {
+      return;
+    }
+    try {
+      await deleteWorkspacePath(selectedId, fileDeleteTarget.id);
+      toast.success(fileDeleteTarget.isFolder ? "Folder deleted" : "File deleted");
+      setFileDeleteOpen(false);
+      setFileDeleteTarget(null);
+      await loadFiles();
+    } catch {
+      toast.error("Could not delete");
     }
   };
 
@@ -380,21 +445,54 @@ export default function WorkspaceDetailPage(): ReactElement {
                 ) : (
                   <ul className="space-y-1">
                     {files.result.map((entry) => (
-                      <li key={entry.id}>
-                        <button
-                          type="button"
-                          disabled={!entry.isFolder}
-                          onClick={() => entry.isFolder && setBrowseIn(entry.id)}
-                          className="hover:bg-muted flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm disabled:cursor-default disabled:opacity-60"
-                        >
-                          {entry.isFolder ? (
+                      <li
+                        key={entry.id}
+                        className="hover:bg-muted flex items-center gap-1 rounded-md px-2 py-1.5 text-sm"
+                      >
+                        {entry.isFolder ? (
+                          <button
+                            type="button"
+                            onClick={() => setBrowseIn(entry.id)}
+                            className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left"
+                          >
                             <FolderIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                          ) : (
+                            <span className="min-w-0 truncate">{entry.name}</span>
+                            <span className="text-muted-foreground ml-auto shrink-0 text-xs">{entry.mimeType}</span>
+                          </button>
+                        ) : (
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
                             <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                          )}
-                          <span className="min-w-0 truncate">{entry.name}</span>
-                          <span className="text-muted-foreground ml-auto shrink-0 text-xs">{entry.mimeType}</span>
-                        </button>
+                            <span className="min-w-0 truncate">{entry.name}</span>
+                            <span className="text-muted-foreground ml-auto shrink-0 text-xs">{entry.mimeType}</span>
+                          </div>
+                        )}
+                        <div className="flex w-8 shrink-0 justify-center">
+                          {isWorkspaceMarkdownFile(entry) ? (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="Edit Markdown"
+                              onClick={() => void openFileEditor(entry)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive h-8 w-8 shrink-0"
+                          title={entry.isFolder ? "Delete folder" : "Delete file"}
+                          onClick={() => {
+                            setFileDeleteTarget(entry);
+                            setFileDeleteOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -487,6 +585,56 @@ export default function WorkspaceDetailPage(): ReactElement {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={fileEditOpen}
+        onOpenChange={(open) => {
+          setFileEditOpen(open);
+          if (!open) {
+            setFileEditPath(null);
+            setFileEditContent("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Markdown</DialogTitle>
+          </DialogHeader>
+          {fileEditPath ? (
+            <p className="text-muted-foreground break-all font-mono text-xs">{fileEditPath}</p>
+          ) : null}
+          {fileEditLoading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="workspace-file-md">Content</Label>
+              <Textarea
+                id="workspace-file-md"
+                value={fileEditContent}
+                onChange={(e) => setFileEditContent(e.target.value)}
+                rows={14}
+                className="font-mono text-xs"
+                disabled={!fileEditPath}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFileEditOpen(false);
+                setFileEditPath(null);
+                setFileEditContent("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => void saveFileEditor()} disabled={fileEditLoading || !fileEditPath}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={skillDialogOpen} onOpenChange={setSkillDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -522,6 +670,39 @@ export default function WorkspaceDetailPage(): ReactElement {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={fileDeleteOpen}
+        onOpenChange={(open) => {
+          setFileDeleteOpen(open);
+          if (!open) {
+            setFileDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {fileDeleteTarget?.isFolder ? "folder" : "file"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {fileDeleteTarget?.isFolder
+                ? "This removes the folder and everything inside it. This cannot be undone."
+                : "This file will be removed permanently. This cannot be undone."}
+              {fileDeleteTarget ? (
+                <>
+                  {" "}
+                  <span className="font-mono">{fileDeleteTarget.name}</span>
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDeleteEntry()}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteWsOpen} onOpenChange={setDeleteWsOpen}>
         <AlertDialogContent>

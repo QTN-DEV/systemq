@@ -42,6 +42,16 @@ class WorkspaceUploadResponse(BaseModel):
     path: str
 
 
+class WorkspaceFileContentResponse(BaseModel):
+    path: str
+    content: str
+
+
+class WorkspaceFileContentUpdate(BaseModel):
+    path: str = Field(..., min_length=1)
+    content: str = ""
+
+
 class SkillCreate(BaseModel):
     workspace_id: str
     name: str = Field(..., min_length=1, max_length=128)

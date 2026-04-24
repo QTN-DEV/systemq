@@ -20,6 +20,11 @@ export interface WorkspaceUploadResponse {
   path: string;
 }
 
+export interface WorkspaceFileContentPayload {
+  path: string;
+  content: string;
+}
+
 export interface SkillPayload {
   name: string;
   content: string;

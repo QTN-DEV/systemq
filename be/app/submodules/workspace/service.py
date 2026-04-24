@@ -50,6 +50,11 @@ class WorkspaceService:
     def __init__(self, storage_path: str | Path):
         self.base_path = Path(storage_path).resolve()
 
+    def _normalize_working_relative_path(self, relative_path: str) -> str:
+        rel = apply_default_data_prefix(relative_path.strip().lstrip("/"))
+        _reject_traversal(rel)
+        return rel
+
     def workspace_root(self, workspace_id: str) -> Path:
         return (self.base_path / workspace_id).resolve()
 
@@ -136,6 +141,41 @@ class WorkspaceService:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.touch(exist_ok=False)
         return target
+
+    def read_markdown_file(self, workspace_id: str, relative_path: str) -> tuple[str, str]:
+        rel = self._normalize_working_relative_path(relative_path)
+        if Path(rel).suffix.lower() != ".md":
+            raise WorkspacePathError("Only .md files can be read as text")
+        target = self._resolve_safe_path(workspace_id, rel)
+        if not target.exists():
+            raise FileNotFoundError(str(rel))
+        if not target.is_file():
+            raise IsADirectoryError(str(rel))
+        return rel, target.read_text(encoding="utf-8")
+
+    def write_markdown_file(self, workspace_id: str, relative_path: str, content: str) -> str:
+        rel = self._normalize_working_relative_path(relative_path)
+        if Path(rel).suffix.lower() != ".md":
+            raise WorkspacePathError("Only .md files can be updated from the UI")
+        target = self._resolve_safe_path(workspace_id, rel)
+        if not target.is_file():
+            raise FileNotFoundError(str(rel))
+        target.write_text(content, encoding="utf-8")
+        return rel
+
+    def delete_workspace_entry(self, workspace_id: str, relative_path: str) -> None:
+        rel = self._normalize_working_relative_path(relative_path)
+        normalized = rel.rstrip("/")
+        parts = normalized.split("/")
+        if len(parts) == 1 and parts[0] in _WORKSPACE_TOP_LEVEL:
+            raise WorkspacePathError("Cannot delete top-level workspace folders")
+        target = self._resolve_safe_path(workspace_id, rel)
+        if not target.exists():
+            raise FileNotFoundError(str(rel))
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
 
     async def save_upload(
         self,
