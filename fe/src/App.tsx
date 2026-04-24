@@ -7,6 +7,7 @@ import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import About from "./pages/about/about-page";
 import BlocksPage from "./pages/blocks/page";
 import ChangePassword from "./pages/change-password/change-password-page";
+import ChatPage from "./pages/chat/page";
 import Contact from "./pages/contact/contact-page";
 import Dashboard from "./pages/dashboard/dashboard-page";
 import DocumentEditorPage from "./pages/document-editor/page";
@@ -15,13 +16,11 @@ import EmployeeManagement from "./pages/employee-management/page";
 import ForgotPassword from "./pages/forgot-password/forgot-password-page";
 import Home from "./pages/home/home-page";
 import LoginPage from "./pages/login/login-page";
-import ProjectMappingPage from "./pages/project-mapping/page";
 import ProjectConfigurationPage from "./pages/project-configuration/page";
+import ProjectMappingPage from "./pages/project-mapping/page";
 import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
-import BlocksPage from "./pages/blocks/page";
-import ChatPage from "./pages/chat/page";
 
 function App(): ReactElement {
   return (
