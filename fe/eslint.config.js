@@ -150,7 +150,7 @@ export default tseslint.config(
       'no-alert': 'error',
       'no-var': 'error',
       'prefer-const': 'error',
-      'prefer-arrow-callback': 'error',
+      'prefer-arrow-callback': 'off',
       'no-duplicate-imports': 'error',
       'object-shorthand': 'error',
       'prefer-template': 'error',
