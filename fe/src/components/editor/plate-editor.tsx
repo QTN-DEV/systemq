@@ -10,10 +10,17 @@ import { Editor, EditorContainer } from "@/components/ui/editor";
 import { DndKit } from "./plugins/dnd-kit";
 import { ListKit } from "./plugins/list-kit";
 import { SlashKit } from "./plugins/slash-kit";
+import { TableKit } from "./plugins/table-kit";
 
 export function PlateEditor(): ReactElement {
   const editor = usePlateEditor({
-    plugins: [...BasicNodesKit, ...DndKit, ...ListKit, ...SlashKit],
+    plugins: [
+      ...BasicNodesKit,
+      ...DndKit,
+      ...ListKit,
+      ...TableKit,
+      ...SlashKit,
+    ],
     value,
   });
 
