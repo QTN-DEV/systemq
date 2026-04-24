@@ -65,3 +65,27 @@ class SkillUpdate(BaseModel):
 class SkillResponse(BaseModel):
     name: str
     content: str
+
+
+class WorkspaceChatCreate(BaseModel):
+    """Initial ``messages`` as a single string (e.g. JSON.stringify output). Defaults to ``[]``."""
+
+    messages: str = "[]"
+
+
+class WorkspaceChatCreatedResponse(BaseModel):
+    id: str
+
+
+class WorkspaceChatResponse(BaseModel):
+    id: str
+    workspace_id: str
+    messages: str
+
+
+class WorkspaceChatMessagesUpdate(BaseModel):
+    messages: str
+
+
+class WorkspaceChatListItem(BaseModel):
+    id: str

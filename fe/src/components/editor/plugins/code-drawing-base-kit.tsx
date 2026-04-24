@@ -1,7 +1,7 @@
-import { CodeDrawingPlugin } from "@platejs/code-drawing/react";
+import { BaseCodeDrawingPlugin } from "@platejs/code-drawing";
 
 import { CodeDrawingElement } from "@/components/ui/code-drawing-node";
 
 export const CodeDrawingKit = [
-  CodeDrawingPlugin.withComponent(CodeDrawingElement),
+  BaseCodeDrawingPlugin.withComponent(CodeDrawingElement),
 ];

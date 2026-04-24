@@ -15,3 +15,20 @@ class WorkspaceMetadata(Document):
     class Settings:
         name = "workspaces"
         indexes = ["owner_id"]
+
+
+class WorkspaceChat(Document):
+    """Persisted chat thread for a workspace; ``messages`` is an opaque string (e.g. JSON)."""
+
+    workspace_id: str = Field(
+        ...,
+        description="Workspace document id (MongoDB ObjectId as string).",
+    )
+    messages: str = Field(
+        default="[]",
+        description="Stringified messages payload (e.g. JSON array string).",
+    )
+
+    class Settings:
+        name = "workspace_chats"
+        indexes = ["workspace_id"]
