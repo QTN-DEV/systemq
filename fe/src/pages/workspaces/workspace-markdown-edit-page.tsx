@@ -1,3 +1,4 @@
+import { PlateEditor } from "@/components/editor/plate-editor";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,14 +118,14 @@ export default function WorkspaceMarkdownEditPage(): ReactElement {
           <p className="text-muted-foreground text-sm">Loading…</p>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <Label htmlFor="workspace-md-editor">Content</Label>
-            <Textarea
+            <PlateEditor />
+            {/* <Textarea
               id="workspace-md-editor"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[320px] flex-1 resize-y font-mono text-xs"
               spellCheck={false}
-            />
+            /> */}
           </div>
         )}
       </div>
