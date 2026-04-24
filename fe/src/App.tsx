@@ -22,6 +22,7 @@ import BlocksPage from "./pages/blocks/page";
 import ChatPage from "./pages/chat/page";
 import WorkspacesPage from "./pages/workspaces/page";
 import WorkspaceDetailPage from "./pages/workspaces/workspace-detail-page";
+import WorkspaceMarkdownEditPage from "./pages/workspaces/workspace-markdown-edit-page";
 
 function App(): ReactElement {
   return (
@@ -60,6 +61,16 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <WorkspacesPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces/:workspaceId/files/edit/*"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceMarkdownEditPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

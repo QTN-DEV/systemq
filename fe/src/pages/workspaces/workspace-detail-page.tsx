@@ -30,13 +30,12 @@ import {
   deleteWorkspace,
   deleteWorkspacePath,
   getSkill,
-  getWorkspaceMarkdownFile,
   listWorkspaceFiles,
   listWorkspaces,
   updateSkill,
-  updateWorkspaceMarkdownFile,
   uploadWorkspaceFile,
 } from "@/lib/shared/services/WorkspaceService";
+import { workspaceMarkdownEditPath } from "@/pages/workspaces/workspace-paths";
 import type { Workspace, WorkspaceFileEntry, WorkspaceFilesResponse } from "@/types/workspace";
 import { ArrowLeft, ArrowUp, FileIcon, FolderIcon, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { type ReactElement, useCallback, useEffect, useRef, useState } from "react";
@@ -89,11 +88,6 @@ export default function WorkspaceDetailPage(): ReactElement {
   const [skillEditingName, setSkillEditingName] = useState<string | null>(null);
   const [skillNameInput, setSkillNameInput] = useState("");
   const [skillContent, setSkillContent] = useState("");
-
-  const [fileEditOpen, setFileEditOpen] = useState(false);
-  const [fileEditPath, setFileEditPath] = useState<string | null>(null);
-  const [fileEditContent, setFileEditContent] = useState("");
-  const [fileEditLoading, setFileEditLoading] = useState(false);
 
   const [fileDeleteOpen, setFileDeleteOpen] = useState(false);
   const [fileDeleteTarget, setFileDeleteTarget] = useState<WorkspaceFileEntry | null>(null);
@@ -233,41 +227,6 @@ export default function WorkspaceDetailPage(): ReactElement {
       await loadFiles();
     } catch {
       toast.error("Upload failed");
-    }
-  };
-
-  const openFileEditor = async (entry: WorkspaceFileEntry): Promise<void> => {
-    if (!selectedId || !isWorkspaceMarkdownFile(entry)) {
-      return;
-    }
-    setFileEditPath(entry.id);
-    setFileEditContent("");
-    setFileEditOpen(true);
-    setFileEditLoading(true);
-    try {
-      const data = await getWorkspaceMarkdownFile(selectedId, entry.id);
-      setFileEditContent(data.content);
-    } catch {
-      toast.error("Could not load file");
-      setFileEditOpen(false);
-      setFileEditPath(null);
-    } finally {
-      setFileEditLoading(false);
-    }
-  };
-
-  const saveFileEditor = async (): Promise<void> => {
-    if (!selectedId || !fileEditPath) {
-      return;
-    }
-    try {
-      await updateWorkspaceMarkdownFile(selectedId, fileEditPath, fileEditContent);
-      toast.success("File saved");
-      setFileEditOpen(false);
-      setFileEditPath(null);
-      await loadFiles();
-    } catch {
-      toast.error("Could not save file");
     }
   };
 
@@ -467,16 +426,11 @@ export default function WorkspaceDetailPage(): ReactElement {
                           </div>
                         )}
                         <div className="flex w-8 shrink-0 justify-center">
-                          {isWorkspaceMarkdownFile(entry) ? (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              title="Edit Markdown"
-                              onClick={() => void openFileEditor(entry)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
+                          {isWorkspaceMarkdownFile(entry) && workspaceId ? (
+                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" title="Edit Markdown" asChild>
+                              <Link to={workspaceMarkdownEditPath(workspaceId, entry.id)} aria-label={`Edit ${entry.name}`}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Link>
                             </Button>
                           ) : null}
                         </div>
@@ -581,56 +535,6 @@ export default function WorkspaceDetailPage(): ReactElement {
               Cancel
             </Button>
             <Button onClick={() => void submitNewPath()}>Create</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={fileEditOpen}
-        onOpenChange={(open) => {
-          setFileEditOpen(open);
-          if (!open) {
-            setFileEditPath(null);
-            setFileEditContent("");
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Markdown</DialogTitle>
-          </DialogHeader>
-          {fileEditPath ? (
-            <p className="text-muted-foreground break-all font-mono text-xs">{fileEditPath}</p>
-          ) : null}
-          {fileEditLoading ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="workspace-file-md">Content</Label>
-              <Textarea
-                id="workspace-file-md"
-                value={fileEditContent}
-                onChange={(e) => setFileEditContent(e.target.value)}
-                rows={14}
-                className="font-mono text-xs"
-                disabled={!fileEditPath}
-              />
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setFileEditOpen(false);
-                setFileEditPath(null);
-                setFileEditContent("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => void saveFileEditor()} disabled={fileEditLoading || !fileEditPath}>
-              Save
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
