@@ -184,13 +184,16 @@ export default function WorkspaceDetailPage(): ReactElement {
   };
 
   const submitNewPath = async (): Promise<void> => {
-    const p = newPathValue.trim();
+    const p = newPathValue.trim().replace(/^\/+/, "");
     if (!p || !selectedId) {
       toast.error("Path is required");
       return;
     }
+    const base = browseIn === null ? null : browseIn.replace(/\/+$/, "");
+    const relativePath =
+      base === null || base === "" ? p : `${base}/${p}`;
     try {
-      await createWorkspacePath(selectedId, p, newPathIsFolder);
+      await createWorkspacePath(selectedId, relativePath, newPathIsFolder);
       toast.success(newPathIsFolder ? "Folder created" : "File created");
       setNewPathOpen(false);
       await loadFiles();
