@@ -2,67 +2,73 @@ export async function* parseSSE(response: Response) {
   const reader = response.body?.getReader();
   if (!reader) return;
   const decoder = new TextDecoder();
-  let buffer = '';
+  let buffer = "";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
 
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
 
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
+      if (line.startsWith("data: ")) {
         const data = line.slice(6);
-        if (data === '[DONE]') return;
+        if (data === "[DONE]") return;
         try {
           yield JSON.parse(data);
-        } catch (e) { }
+        } catch (e) {}
       }
     }
   }
 }
 
 export async function* mapAssistantStream(stream: AsyncIterable<any>) {
-  let currentParts: any[] = []
+  let currentParts: any[] = [];
 
-  for await (const chunk of stream) {
-    const { type } = chunk
+  for await (const _chunk of stream) {
 
-    console.log(JSON.stringify(chunk, null, 2))
+    const chunk = JSON.parse(_chunk.data);
+    const { type } = chunk;
 
     switch (type) {
       case "text_delta": {
-        const content = chunk.text
-        const lastIndex = currentParts.length - 1
-        const lastPart = currentParts[lastIndex]
+        const content = chunk.text;
+        const lastIndex = currentParts.length - 1;
+        const lastPart = currentParts[lastIndex];
         if (lastPart?.type === "text") {
-          currentParts[lastIndex] = { ...lastPart, text: lastPart.text + (content || "") }
+          currentParts[lastIndex] = {
+            ...lastPart,
+            text: lastPart.text + (content || ""),
+          };
         } else {
-          currentParts.push({ type: "text", text: content || "" })
+          currentParts.push({ type: "text", text: content || "" });
         }
-        break
+        break;
       }
 
       case "thinking_delta": {
-        const content = chunk.thinking
-        const lastIndex = currentParts.length - 1
-        const lastPart = currentParts[lastIndex]
+        const content = chunk.thinking;
+        const lastIndex = currentParts.length - 1;
+        const lastPart = currentParts[lastIndex];
         if (lastPart?.type === "reasoning") {
-          currentParts[lastIndex] = { ...lastPart, text: lastPart.text + (content || "") }
+          currentParts[lastIndex] = {
+            ...lastPart,
+            text: lastPart.text + (content || ""),
+          };
         } else {
-          currentParts.push({ type: "reasoning", text: content || "" })
+          currentParts.push({ type: "reasoning", text: content || "" });
         }
-        break
+        break;
       }
 
       case "cost": {
         currentParts.push({
           type: "cost",
           amount: chunk.total_cost_usd || 0,
-        })
-        break
+        });
+        break;
       }
 
       case "tool_call": {
@@ -72,37 +78,50 @@ export async function* mapAssistantStream(stream: AsyncIterable<any>) {
           toolName: chunk.tool_name,
           args: chunk.input || {},
           argsText: JSON.stringify(chunk.input || {}),
-        })
-        break
+        });
+        break;
       }
 
       case "tool_call_delta": {
-        const lastIndex = currentParts.length - 1
-        const lastPart = currentParts[lastIndex]
-        if (lastPart?.type === "tool-call" && lastPart.toolCallId === chunk.message_id) {
+        const lastIndex = currentParts.length - 1;
+        const lastPart = currentParts[lastIndex];
+        if (
+          lastPart?.type === "tool-call" &&
+          lastPart.toolCallId === chunk.message_id
+        ) {
           // Note: In some SDKs message_id is used for the current active tool call
-          // but our mapper currently sends message_id. 
+          // but our mapper currently sends message_id.
           // We should probably use a more specific ID if available.
         }
 
         // For now, let's find the last tool-call part and append to its argsText
-        const toolPart = [...currentParts].reverse().find(p => p.type === "tool-call");
+        const toolPart = [...currentParts]
+          .reverse()
+          .find((p) => p.type === "tool-call");
         if (toolPart) {
-          toolPart.argsText = (toolPart.argsText || "") + (chunk.input_delta || "");
+          toolPart.argsText =
+            (toolPart.argsText || "") + (chunk.input_delta || "");
           try {
             // Try to parse the accumulated JSON string
-            // We strip any trailing comma or incomplete parts if possible, 
+            // We strip any trailing comma or incomplete parts if possible,
             // or just catch the error if it's not valid JSON yet.
             toolPart.args = JSON.parse(toolPart.argsText);
           } catch (e) {
             // If it's partial, we might be able to extract fields with regex
-            const contentMatch = toolPart.argsText.match(/"content"\s*:\s*"([^"]*)"/);
+            const contentMatch = toolPart.argsText.match(
+              /"content"\s*:\s*"([^"]*)"/,
+            );
             if (contentMatch) {
-              toolPart.args = { ...toolPart.args, content: contentMatch[1].replace(/\\n/g, '').replace(/\\"/g, '"') };
+              toolPart.args = {
+                ...toolPart.args,
+                content: contentMatch[1]
+                  .replace(/\\n/g, "")
+                  .replace(/\\"/g, '"'),
+              };
             }
           }
         }
-        break
+        break;
       }
 
       case "tool_result": {
@@ -115,16 +134,16 @@ export async function* mapAssistantStream(stream: AsyncIterable<any>) {
               ...part,
               toolName: chunk.tool_name || part.toolName,
               result: chunk.content,
-            }
+            };
           }
-          return part
-        })
-        break
+          return part;
+        });
+        break;
       }
     }
 
     yield {
       content: [...currentParts],
-    }
+    };
   }
 }

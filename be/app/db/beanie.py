@@ -21,12 +21,17 @@ from app.models import (
     SystemStatus,
     User,
 )
-from app.submodules.workspace.models import WorkspaceChat, WorkspaceMetadata
+from app.submodules.workspace.models import WorkspaceMetadata
+from app.submodules.workspace_v2.documents import WorkspaceChat
 from app.submodules.blocks.models import Block, BlockHistory, Comment as BlockComment
 
 from app.submodules.daily_standup.models import StandupEntry
 from app.submodules.dashboard.models import DynamicDashboard
 from constants import MONGODB_DATABASE, MONGODB_URI
+
+from app.submodules.session import SessionToken as SessionTokenV2
+from app.submodules.user import User as UserV2
+from app.submodules.workspace_v2 import WorkspaceMetadata as WorkspaceMetadataV2
 
 _motor_client: AsyncIOMotorClient | None = None
 
@@ -45,7 +50,6 @@ async def init_database() -> None:
             User,
             PasswordResetToken,
             Project,
-            SessionToken,
             DocumentItem,
             DocumentHistory,
             EditHistoryEvent,
@@ -58,6 +62,10 @@ async def init_database() -> None:
             DynamicDashboard,
             WorkspaceMetadata,
             WorkspaceChat,
+            SessionToken,
+            SessionTokenV2,
+            WorkspaceMetadataV2,
+            UserV2,
         ],
     )
 

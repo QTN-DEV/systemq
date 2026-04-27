@@ -1,3 +1,9 @@
+import { ArrowLeft, ArrowUp, FileIcon, FolderIcon, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { type ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+
+import { WorkspaceAssistantThread } from "@/components/chat/workspace-assistant-thread";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +27,6 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { WorkspaceAssistantThread } from "@/components/chat/workspace-assistant-thread";
 import { useWorkspaceChatAdapter } from "@/hooks/use-workspace-chat-adapter";
 import {
   createSkill,
@@ -37,10 +42,7 @@ import {
 } from "@/lib/shared/services/WorkspaceService";
 import { workspaceMarkdownEditPath } from "@/pages/workspaces/workspace-paths";
 import type { Workspace, WorkspaceFileEntry, WorkspaceFilesResponse } from "@/types/workspace";
-import { ArrowLeft, ArrowUp, FileIcon, FolderIcon, Pencil, Plus, Trash2, Upload } from "lucide-react";
-import { type ReactElement, useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+
 
 function pathLabel(browseIn: string | null): string {
   if (browseIn === null) {
@@ -551,7 +553,7 @@ export default function WorkspaceDetailPage(): ReactElement {
                 id="skill-name"
                 value={skillNameInput}
                 onChange={(e) => setSkillNameInput(e.target.value)}
-                disabled={!!skillEditingName}
+                disabled={Boolean(skillEditingName)}
                 placeholder="my-skill"
               />
             </div>

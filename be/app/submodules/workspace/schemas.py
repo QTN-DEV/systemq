@@ -81,6 +81,7 @@ class WorkspaceChatResponse(BaseModel):
     id: str
     workspace_id: str
     messages: str
+    title: str = "New Chat"
 
 
 class WorkspaceChatMessagesUpdate(BaseModel):
@@ -89,3 +90,4 @@ class WorkspaceChatMessagesUpdate(BaseModel):
 
 class WorkspaceChatListItem(BaseModel):
     id: str
+    title: str = "New Chat"

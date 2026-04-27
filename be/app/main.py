@@ -6,15 +6,18 @@ import os
 import time
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, responses
+from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import Request
+from scalar_doc import ScalarDoc
 
 from app.api.routes import router as api_router
 from app.db.beanie import lifespan_context
+from app.submodules.workspace_v2 import WorkspaceModule
+from app.submodules.ai import AIModule
 from constants import APP_NAME
-
 # Configure application-wide logging before the FastAPI app is instantiated.
 default_log_level = os.getenv("APP_LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
@@ -66,7 +69,48 @@ app = FastAPI(
     version="0.1.0",
     openapi_tags=TAGS_METADATA,
     lifespan=lifespan_context,
+    docs_url=None,
+    redoc_url=None,
 )
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+        
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        tags=app.openapi_tags,
+        routes=app.routes,
+    )
+
+    if "components" not in openapi_schema:
+        openapi_schema["components"] = {}
+    if "securitySchemes" not in openapi_schema["components"]:
+        openapi_schema["components"]["securitySchemes"] = {}
+
+    openapi_schema["components"]["securitySchemes"]["BearerAuth"] = {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+    }
+
+    openapi_schema["security"] = [{"BearerAuth": []}]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+
+modules = [
+    WorkspaceModule(app, '/workspace_v2'),
+    AIModule(app, '/ai'),
+]
+
+docs = ScalarDoc.from_spec(spec=app.openapi_url, mode="url")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
@@ -76,6 +120,10 @@ app.add_middleware(
 )
 app.include_router(api_router)
 
+@app.get("/docs", include_in_schema=False)
+def get_docs():
+    docs_html = docs.to_html()
+    return responses.HTMLResponse(docs_html)
 
 @app.middleware("http")
 async def add_request_logging(request: Request, call_next):

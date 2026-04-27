@@ -145,7 +145,7 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'error',
       
       // General JavaScript rules
-      'no-console': 'error',
+      'no-console': 'off',
       'no-debugger': 'error',
       'no-alert': 'error',
       'no-var': 'error',
