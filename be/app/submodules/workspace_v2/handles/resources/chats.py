@@ -20,15 +20,22 @@ class ChatsResource:
     def _workspace_oid(self) -> PydanticObjectId:
         return PydanticObjectId(self.workspace.id)
 
-    async def list(self) -> list[WorkspaceChatListItem]:
-        """Chat ids for this workspace, newest first."""
+    async def list(self, *, skip: int = 0, limit: int = 20) -> list[WorkspaceChatListItem]:
+        """Chat ids for this workspace, newest first, with optional pagination."""
         wid = self._workspace_oid()
         chats = (
             await WorkspaceChat.find(WorkspaceChat.workspace_id == wid)
             .sort(-WorkspaceChat.id)
+            .skip(skip)
+            .limit(limit)
             .to_list()
         )
         return [WorkspaceChatListItem(id=str(c.id), title=c.title) for c in chats]
+
+    async def count(self) -> int:
+        """Total number of chats in this workspace."""
+        wid = self._workspace_oid()
+        return await WorkspaceChat.find(WorkspaceChat.workspace_id == wid).count()
 
     async def create(self, *, messages: list[WorkspaceChatMessage] | None = None, title: str = "New Chat") -> WorkspaceChatResponse:
         """Insert a new chat document scoped to this workspace."""
@@ -41,7 +48,7 @@ class ChatsResource:
         await doc.insert()
         return WorkspaceChatResponse(
             id=str(doc.id),
-            workspace_id=doc.workspace_id,
+            workspace_id=str(doc.workspace_id),
             messages=doc.messages,
             title=doc.title,
         )
@@ -63,3 +70,36 @@ class ChatsResource:
             messages=chat.messages,
             title=chat.title,
         )
+
+    async def update(self, chat_id: str, *, messages: list[WorkspaceChatMessage] | None = None, title: str | None = None) -> WorkspaceChatResponse:
+        try:
+            cid = PydanticObjectId(chat_id)
+        except Exception as exc:
+            raise ValueError("Invalid chat id") from exc
+        chat = await WorkspaceChat.get(cid)
+        if chat is None or chat.workspace_id != self._workspace_oid():
+            raise FileNotFoundError("Chat not found")
+        
+        if messages is not None:
+            chat.messages = messages
+        if title is not None:
+            chat.title = title
+        await chat.save()
+        
+        return WorkspaceChatResponse(
+            id=str(chat.id),
+            workspace_id=str(chat.workspace_id),
+            messages=chat.messages,
+            title=chat.title,
+        )
+
+    async def delete(self, chat_id: str) -> None:
+        """Delete a chat by id; must belong to this workspace."""
+        try:
+            cid = PydanticObjectId(chat_id)
+        except Exception as exc:
+            raise ValueError("Invalid chat id") from exc
+        chat = await WorkspaceChat.get(cid)
+        if chat is None or chat.workspace_id != self._workspace_oid():
+            raise FileNotFoundError("Chat not found")
+        await chat.delete()

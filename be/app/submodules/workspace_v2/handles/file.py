@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 
 class FileHandle:
@@ -15,3 +16,8 @@ class FileHandle:
 
     def delete(self) -> None:
         self.path.unlink(missing_ok=False)
+
+    @property
+    def mimetype(self) -> str:
+        mime, _ = mimetypes.guess_type(self.path)
+        return mime or "application/octet-stream"

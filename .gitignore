@@ -46,3 +46,5 @@ venv/
 .DS_Store
 .eggs/
 *.egg-info/
+
+uploads/*

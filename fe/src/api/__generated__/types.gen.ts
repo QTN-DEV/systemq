@@ -1120,6 +1120,58 @@ export type MessageResponse = {
 };
 
 /**
+ * PaginatedResponse[WorkspaceAiContextResponse]
+ */
+export type PaginatedResponseWorkspaceAiContextResponse = {
+    /**
+     * Items
+     */
+    items: Array<WorkspaceAiContextResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Has Next
+     */
+    has_next: boolean;
+};
+
+/**
+ * PaginatedResponse[WorkspaceChatListItem]
+ */
+export type PaginatedResponseWorkspaceChatListItem = {
+    /**
+     * Items
+     */
+    items: Array<AppSubmodulesWorkspaceV2SchemasWorkspaceChatListItem>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Has Next
+     */
+    has_next: boolean;
+};
+
+/**
  * PaginatedStandUpEntries
  */
 export type PaginatedStandUpEntries = {
@@ -1384,6 +1436,48 @@ export type ResponseEnvelopeNoneType = {
 };
 
 /**
+ * ResponseEnvelope[PaginatedResponse[WorkspaceAiContextResponse]]
+ */
+export type ResponseEnvelopePaginatedResponseWorkspaceAiContextResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: PaginatedResponseWorkspaceAiContextResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[PaginatedResponse[WorkspaceChatListItem]]
+ */
+export type ResponseEnvelopePaginatedResponseWorkspaceChatListItem = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: PaginatedResponseWorkspaceChatListItem | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ResponseEnvelope[SkillResponse]
  */
 export type ResponseEnvelopeSkillResponse = {
@@ -1392,6 +1486,48 @@ export type ResponseEnvelopeSkillResponse = {
      */
     success: boolean;
     result?: SkillResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[WorkspaceAiContextResponse]
+ */
+export type ResponseEnvelopeWorkspaceAiContextResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: WorkspaceAiContextResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[WorkspaceChatListItem]
+ */
+export type ResponseEnvelopeWorkspaceChatListItem = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: AppSubmodulesWorkspaceV2SchemasWorkspaceChatListItem | null;
     /**
      * Message
      */
@@ -1437,30 +1573,6 @@ export type ResponseEnvelopeListFileNode = {
      * Result
      */
     result?: Array<FileNode> | null;
-    /**
-     * Message
-     */
-    message?: string | null;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-};
-
-/**
- * ResponseEnvelope[list[WorkspaceChatListItem]]
- */
-export type ResponseEnvelopeListWorkspaceChatListItem = {
-    /**
-     * Success
-     */
-    success: boolean;
-    /**
-     * Result
-     */
-    result?: Array<AppSubmodulesWorkspaceV2SchemasWorkspaceChatListItem> | null;
     /**
      * Message
      */
@@ -1900,6 +2012,48 @@ export type WorkloadStandupSummary = {
 };
 
 /**
+ * WorkspaceAiContextCreate
+ */
+export type WorkspaceAiContextCreate = {
+    /**
+     * Content
+     *
+     * The context content to save.
+     */
+    content: string;
+};
+
+/**
+ * WorkspaceAiContextResponse
+ */
+export type WorkspaceAiContextResponse = {
+    /**
+     * Id
+     *
+     * Context document id.
+     */
+    id: string;
+    /**
+     * Workspace Id
+     *
+     * Owning workspace id.
+     */
+    workspace_id: string;
+    /**
+     * Content
+     *
+     * The context content.
+     */
+    content: string;
+    /**
+     * Created At
+     *
+     * Creation timestamp.
+     */
+    created_at?: unknown | null;
+};
+
+/**
  * WorkspaceChatCreatedResponse
  */
 export type WorkspaceChatCreatedResponse = {
@@ -1911,16 +2065,14 @@ export type WorkspaceChatCreatedResponse = {
 
 /**
  * WorkspaceChatDocumentCreate
- *
- * Body when creating a persisted chat document (opaque messages string, e.g. JSON array).
  */
 export type WorkspaceChatDocumentCreate = {
     /**
      * Messages
      *
-     * Initial messages payload as a string (typically JSON.stringify of thread messages).
+     * Initial messages payload.
      */
-    messages?: string;
+    messages?: Array<WorkspaceChatMessage>;
     /**
      * Title
      *
@@ -1934,6 +2086,18 @@ export type WorkspaceChatDocumentCreate = {
  */
 export type WorkspaceChatMessage = {
     /**
+     * Id
+     *
+     * Unique message ID.
+     */
+    id?: string | null;
+    /**
+     * Parent Id
+     *
+     * Parent message ID for threaded conversations.
+     */
+    parent_id?: string | null;
+    /**
      * Role
      *
      * Speaker role in the conversation.
@@ -1942,9 +2106,35 @@ export type WorkspaceChatMessage = {
     /**
      * Content
      *
-     * Plain-text message body.
+     * Plain-text or JSON-stringified message body.
      */
     content: string;
+    /**
+     * Attachments
+     *
+     * List of message attachments.
+     */
+    attachments?: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Created At
+     *
+     * Creation timestamp.
+     */
+    created_at?: unknown | null;
+};
+
+/**
+ * WorkspaceChatRename
+ */
+export type WorkspaceChatRename = {
+    /**
+     * Title
+     *
+     * New title for the chat.
+     */
+    title: string;
 };
 
 /**
@@ -2260,9 +2450,9 @@ export type AppSubmodulesWorkspaceV2SchemasWorkspaceChatResponse = {
     /**
      * Messages
      *
-     * Stored messages string.
+     * Stored messages.
      */
-    messages: string;
+    messages: Array<WorkspaceChatMessage>;
     /**
      * Title
      *
@@ -2415,7 +2605,20 @@ export type ListWorkspaceChatsWorkspaceV2WorkspaceIdChatsGetData = {
          */
         workspace_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-indexed)
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * Items per page
+         */
+        page_size?: number;
+    };
     url: '/workspace_v2/{workspace_id}/chats';
 };
 
@@ -2432,7 +2635,7 @@ export type ListWorkspaceChatsWorkspaceV2WorkspaceIdChatsGetResponses = {
     /**
      * Successful Response
      */
-    200: ResponseEnvelopeListWorkspaceChatListItem;
+    200: ResponseEnvelopePaginatedResponseWorkspaceChatListItem;
 };
 
 export type ListWorkspaceChatsWorkspaceV2WorkspaceIdChatsGetResponse = ListWorkspaceChatsWorkspaceV2WorkspaceIdChatsGetResponses[keyof ListWorkspaceChatsWorkspaceV2WorkspaceIdChatsGetResponses];
@@ -2467,6 +2670,108 @@ export type CreateWorkspaceChatWorkspaceV2WorkspaceIdChatsPostResponses = {
 
 export type CreateWorkspaceChatWorkspaceV2WorkspaceIdChatsPostResponse = CreateWorkspaceChatWorkspaceV2WorkspaceIdChatsPostResponses[keyof CreateWorkspaceChatWorkspaceV2WorkspaceIdChatsPostResponses];
 
+export type DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}';
+};
+
+export type DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteError = DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteErrors[keyof DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteErrors];
+
+export type DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeNoneType;
+};
+
+export type DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteResponse = DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteResponses[keyof DeleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDeleteResponses];
+
+export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}';
+};
+
+export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetError = GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetErrors[keyof GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetErrors];
+
+export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceChatResponse;
+};
+
+export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponse = GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses[keyof GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses];
+
+export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchData = {
+    body: WorkspaceChatRename;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}/title';
+};
+
+export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchError = RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchErrors[keyof RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchErrors];
+
+export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceChatListItem;
+};
+
+export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponse = RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponses[keyof RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponses];
+
 export type WorkspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPostData = {
     body: AppSubmodulesWorkspaceV2SchemasWorkspaceChatCreate;
     path: {
@@ -2498,6 +2803,40 @@ export type WorkspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPostRespon
      */
     200: unknown;
 };
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostData = {
+    body: WorkspaceChatMessage;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}/messages';
+};
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostError = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors];
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceChatResponse;
+};
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponse = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses];
 
 export type CreateWorkspaceFileWorkspaceV2WorkspaceIdDriveFilePostData = {
     body: CreateFileInWorkspaceRequest;
@@ -2821,6 +3160,147 @@ export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponses = {
 };
 
 export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponse = UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponses[keyof UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponses];
+
+export type ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-indexed)
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * Items per page
+         */
+        page_size?: number;
+    };
+    url: '/workspace_v2/{workspace_id}/contexts';
+};
+
+export type ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetError = ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetErrors[keyof ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetErrors];
+
+export type ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopePaginatedResponseWorkspaceAiContextResponse;
+};
+
+export type ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetResponse = ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetResponses[keyof ListWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetResponses];
+
+export type CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostData = {
+    body: WorkspaceAiContextCreate;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/contexts';
+};
+
+export type CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostError = CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostErrors[keyof CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostErrors];
+
+export type CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseEnvelopeWorkspaceAiContextResponse;
+};
+
+export type CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostResponse = CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostResponses[keyof CreateWorkspaceContextWorkspaceV2WorkspaceIdContextsPostResponses];
+
+export type DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Context Id
+         */
+        context_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/contexts/{context_id}';
+};
+
+export type DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteError = DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteErrors[keyof DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteErrors];
+
+export type DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeNoneType;
+};
+
+export type DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteResponse = DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteResponses[keyof DeleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteResponses];
+
+export type GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Context Id
+         */
+        context_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/contexts/{context_id}';
+};
+
+export type GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetError = GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetErrors[keyof GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetErrors];
+
+export type GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceAiContextResponse;
+};
+
+export type GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetResponse = GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetResponses[keyof GetWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdGetResponses];
 
 export type GetModelsAiModelsGetData = {
     body?: never;

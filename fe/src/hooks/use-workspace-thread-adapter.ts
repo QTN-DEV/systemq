@@ -4,31 +4,34 @@ import { useMemo } from "react";
 import {
   listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet as listWorkspaceChats,
   createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost as createWorkspaceChat,
+  getWorkspaceChatWorkspacesWorkspaceIdChatsChatIdGet as getWorkspaceChat,
 } from "@/api";
 
 export function useWorkspaceThreadAdapter(options: { workspaceId: string }) {
   const adapter = useMemo<RemoteThreadListAdapter>(
     () => ({
       async list() {
-        console.log("list");
         const response = await listWorkspaceChats({
           path: {
             workspace_id: options.workspaceId,
           },
         });
 
-        console.log("response", response);
-
         if (!response.data) {
           return { threads: [] };
         }
+
+        console.log("Threads", response.data.result?.map((chat) => ({
+          remoteId: chat.id,
+          title: chat.title,
+          status: "regular",
+        })) ?? [])
 
         return {
           threads:
             response.data.result?.map((chat) => ({
               remoteId: chat.id,
-              // Your API currently just returns an ID. You can set a default title here.
-              title: "Workspace Conversation",
+              title: chat.title,
               status: "regular",
             })) ?? [],
         };
@@ -41,15 +44,24 @@ export function useWorkspaceThreadAdapter(options: { workspaceId: string }) {
           externalId: threadId,
         };
       },
-      async delete(remoteId: string) { },
-      async archive(remoteId: string) { },
+      async delete(remoteId: string) {
+        console.log({ remoteId })
+        console.log("delete " + remoteId)
+      },
+      async archive(remoteId: string) {
+        console.log({ remoteId })
+        console.log("achiving " + remoteId)
+      },
       async unarchive(remoteId: string) { },
       async rename(remoteId: string, title: string) { },
-      async fetch(remoteId: string) { },
+      async fetch(remoteId: string) {
+        console.log({ remoteId })
+        return {}
+      },
       async generateTitle(remoteId: string) {
         console.log("generateTitle", remoteId);
         return {
-          title: "Workspace Conversation",
+          title: "Workspace Conversatioxxxn",
         };
       },
     }),

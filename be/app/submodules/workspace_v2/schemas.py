@@ -1,6 +1,8 @@
-from typing import Literal, NotRequired, TypedDict
+from typing import Generic, Literal, NotRequired, TypedDict, Optional, Any, TypeVar
 
 from pydantic import BaseModel, Field
+
+T = TypeVar("T")
 
 
 class FileNode(TypedDict):
@@ -51,14 +53,18 @@ class CreatedWorkspaceItemResponse(BaseModel):
     )
 
 class WorkspaceChatMessage(BaseModel):
+    id: Optional[str] = Field(None, description="Unique message ID.")
+    parent_id: Optional[str] = Field(None, description="Parent message ID for threaded conversations.")
     role: Literal["user", "assistant", "system"] = Field(
         ...,
         description="Speaker role in the conversation.",
     )
     content: str = Field(
         ...,
-        description="Plain-text message body.",
+        description="Plain-text or JSON-stringified message body.",
     )
+    attachments: Optional[list[dict]] = Field(None, description="List of message attachments.")
+    created_at: Optional[Any] = Field(None, description="Creation timestamp.")
 
 
 class SkillCreate(BaseModel):
@@ -104,3 +110,31 @@ class WorkspaceChatResponse(BaseModel):
 class WorkspaceChatListItem(BaseModel):
     id: str = Field(..., description="Chat document id.")
     title: str = Field(default="New Chat", description="Display title for the thread.")
+
+
+class WorkspaceFileUploadResponse(BaseModel):
+    filename: str
+    relative_url: str
+
+
+class WorkspaceAiContextCreate(BaseModel):
+    content: str = Field(..., description="The context content to save.")
+
+
+class WorkspaceAiContextResponse(BaseModel):
+    id: str = Field(..., description="Context document id.")
+    workspace_id: str = Field(..., description="Owning workspace id.")
+    content: str = Field(..., description="The context content.")
+    created_at: Optional[Any] = Field(None, description="Creation timestamp.")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    page_size: int
+    has_next: bool
+
+
+class WorkspaceChatRename(BaseModel):
+    title: str = Field(..., min_length=1, max_length=256, description="New title for the chat.")

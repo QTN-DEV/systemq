@@ -22,7 +22,7 @@ class PromptBlueprint:
         self._vars.update(kwargs)
         return self
 
-    def use_model(self, model: str):
+    def set_model(self, model: str):
         self._model = model
         return self
 

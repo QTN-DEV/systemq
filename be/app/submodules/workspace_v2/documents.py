@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from beanie import Document, PydanticObjectId
 from pydantic import Field, field_validator
 
@@ -40,8 +41,31 @@ class WorkspaceChat(Document):
         default="New Chat",
         description="Title of the chat.",
     )
-
+    
     class Settings:
         name = "workspace_chats"
+        indexes = ["workspace_id"]
+
+
+class WorkspaceAiContext(Document):
+    id: PydanticObjectId = Field(
+        default_factory=PydanticObjectId,
+        description="Context document id (MongoDB ObjectId).",
+    )
+    workspace_id: PydanticObjectId = Field(
+        ...,
+        description="Owning workspace document id (MongoDB ObjectId).",
+    )
+    content: str = Field(
+        ...,
+        description="The context content.",
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Creation timestamp.",
+    )
+
+    class Settings:
+        name = "workspace_ai_contexts"
         indexes = ["workspace_id"]
 

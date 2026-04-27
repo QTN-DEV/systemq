@@ -36,6 +36,7 @@ import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Image } from "../image";
 
 export const Thread: FC<React.ComponentProps<typeof ThreadPrimitive.Root>> = (
   props,

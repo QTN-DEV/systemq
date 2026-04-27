@@ -108,7 +108,7 @@ class FilesResource:
         """Create a new file; raise FileExistsError if the path already exists."""
         return await self.write(relative_path, content, must_not_exist=True)
 
-    async def mkdir(self, relative_path: str) -> Path:
+    async def make_directory(self, relative_path: str) -> Path:
         """Create a new directory (including parents). Fails if the path already exists."""
         def _mkdir() -> Path:
             s = (relative_path or "").strip().lstrip("/")

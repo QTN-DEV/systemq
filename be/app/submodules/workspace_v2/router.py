@@ -1,3 +1,5 @@
+import json
+import json
 from collections.abc import AsyncIterable
 from typing import Optional
 
@@ -19,16 +21,23 @@ from .schemas import (
     CreateWorkspaceRequest,
     CreateWorkspaceResponse,
     FileNode,
+    PaginatedResponse,
     SkillCreate,
     SkillResponse,
     SkillUpdate,
     WorkspaceChatCreate,
     WorkspaceChatDocumentCreate,
+    WorkspaceChatMessage,
     WorkspaceChatListItem,
+    WorkspaceChatRename,
     WorkspaceChatResponse,
     WorkspaceListItem,
+    WorkspaceFileUploadResponse,
+    WorkspaceAiContextCreate,
+    WorkspaceAiContextResponse,
 )
 from .dependencies import UseWorkspace, UseWorkspaceService, SanitizedPath
+from .mcps import workspace_ai_context_mcp
 
 router = APIRouter()
 
@@ -122,7 +131,7 @@ async def create_workspace_folder(
     context: UseAuthContext,
 ) -> ResponseEnvelope[CreatedWorkspaceItemResponse]:
     try:
-        created = await workspace.files.mkdir(payload.path)
+        created = await workspace.files.make_directory(payload.path)
     except PermissionError:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -158,8 +167,8 @@ async def list_workspace_chats(
     workspace: UseWorkspace,
     context: UseAuthContext,
 ) -> ResponseEnvelope[list[WorkspaceChatListItem]]:
-    result = await workspace.chats.list()
-    return ResponseEnvelope(success=True, result=result)
+    items = await workspace.chats.list()
+    return ResponseEnvelope(success=True, result=items)
 
 
 @router.post(
@@ -180,6 +189,74 @@ async def create_workspace_chat(
     )
     return ResponseEnvelope(success=True, result=chat)
 
+@router.get(
+    "/{workspace_id}/chats/{chat_id}",
+    response_model=ResponseEnvelope[WorkspaceChatResponse],
+    summary="Get a specific workspace chat document",
+)
+@allow(["read:all"])
+async def get_workspace_chat(
+    chat_id: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceChatResponse]:
+    from beanie import PydanticObjectId
+    try:
+        cid = PydanticObjectId(chat_id)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid chat id") from exc
+        
+    chat = await workspace.chats.get(str(cid))
+    if chat is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Chat not found")
+        
+    return ResponseEnvelope(success=True, result=chat)
+
+
+@router.delete(
+    "/{workspace_id}/chats/{chat_id}",
+    response_model=ResponseEnvelope[None],
+    summary="Delete a workspace chat",
+)
+@allow(["write:all"])
+async def delete_workspace_chat(
+    chat_id: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[None]:
+    try:
+        await workspace.chats.delete(chat_id)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Chat not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ResponseEnvelope(success=True, result=None)
+
+
+@router.patch(
+    "/{workspace_id}/chats/{chat_id}/title",
+    response_model=ResponseEnvelope[WorkspaceChatListItem],
+    summary="Rename a workspace chat title",
+)
+@allow(["write:all"])
+async def rename_workspace_chat(
+    chat_id: str,
+    payload: WorkspaceChatRename,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceChatListItem]:
+    try:
+        result = await workspace.chats.update(chat_id, title=payload.title)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Chat not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ResponseEnvelope(
+        success=True,
+        result=WorkspaceChatListItem(id=result.id, title=result.title),
+    )
+
+
 @router.post(
     "/{workspace_id}/chats/{chat_id}/stream",
     response_class=EventSourceResponse,
@@ -190,15 +267,70 @@ async def workspace_chat_stream(
     workspace: UseWorkspace,
     payload: WorkspaceChatCreate,
 ) -> AsyncIterable[StreamChunkModel]:
+    try:
+        chat = await workspace.chats.get(chat_id)
+        db_messages = chat.messages
+    except Exception:
+        db_messages = payload.messages
+
+    all_messages = db_messages + payload.messages
+    conversation = "\n\n".join([f"-----\n{m.role}: {m.content} \nattachments {str(m.attachments)}" for m in all_messages])
+    print(f"Streaming conversation context:\n{conversation}")
+
+    system_instructions = (
+        f"Context: CWD is `{workspace.root_path}`. Workspace ID is `{workspace.id}` "
+        "If the user asks to 'remember' something or provides info that should be persisted, "
+        "you must call the `workspace_ai_context` tools to save it to the database for future sessions. "
+        "You have to call `get_contexts_tool` to get the contexts before responding. "
+        "\n\n"
+        "Image Analysis: When asked to analyze an image, use the file system tools. "
+        "Images are stored in the `uploads` folder. URL paths (e.g., .../files/uploads%2F...) "
+        "map to local paths relative to your CWD. "
+        "Restriction: You are only permitted to access image files within this specific chat context."
+    )
+
+
+    print("System instructions:", system_instructions)
+
     blueprint = PromptBlueprint(
-        template="",
+        template=conversation,
         working_directory=str(workspace.root_path),
-    ).use_model("claude-haiku-4-5-20251001")
+    )
+    blueprint.add_mcp("workspace_ai_context", workspace_ai_context_mcp)
+    blueprint.set_model("claude-haiku-4-5-20251001")
+    blueprint.set_system_prompt(system_instructions)
 
     runner = AnthropicRunner(blueprint)
 
     async for chunk in runner.run():
         yield chunk 
+
+@router.post(
+    "/{workspace_id}/chats/{chat_id}/messages",
+    response_model=ResponseEnvelope[WorkspaceChatResponse],
+    summary="Append a message to a workspace chat",
+)
+@allow(["write:all"])
+async def append_workspace_chat_message(
+    chat_id: str,
+    payload: WorkspaceChatMessage,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceChatResponse]:
+    from beanie import PydanticObjectId
+    try:
+        cid = PydanticObjectId(chat_id)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid chat id") from exc
+        
+    chat = await workspace.chats.get(str(cid))
+    if chat is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Chat not found")
+        
+    updated_messages = chat.messages + [payload]
+    result = await workspace.chats.update(chat_id, messages=updated_messages)
+    
+    return ResponseEnvelope(success=True, result=result)
 
 @router.post(
     "/{workspace_id}/drive/file",
@@ -389,8 +521,11 @@ async def get_workspace_file(
             path=file.path,
             filename=file.path.name,
             media_type="text/markdown" if isinstance(
-                file, DocumentHandle) else None,
+                file, DocumentHandle) else file.mimetype,
             content_disposition_type="inline",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+            }
         )
 
     except PermissionError:
@@ -510,3 +645,89 @@ async def delete_workspace_skill(
     except PermissionError:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
 
+
+# ---------------------------------------------------------------------------
+# AI Contexts
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/{workspace_id}/contexts",
+    response_model=ResponseEnvelope[PaginatedResponse[WorkspaceAiContextResponse]],
+    summary="List AI context entries for a workspace (paginated)",
+)
+@allow(["read:all"])
+async def list_workspace_contexts(
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+    page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+) -> ResponseEnvelope[PaginatedResponse[WorkspaceAiContextResponse]]:
+    skip = (page - 1) * page_size
+    items = await workspace.contexts.list(skip=skip, limit=page_size)
+    total = await workspace.contexts.count()
+    return ResponseEnvelope(
+        success=True,
+        result=PaginatedResponse(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            has_next=(skip + page_size) < total,
+        ),
+    )
+
+
+@router.post(
+    "/{workspace_id}/contexts",
+    response_model=ResponseEnvelope[WorkspaceAiContextResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new AI context entry for a workspace",
+)
+@allow(["write:all"])
+async def create_workspace_context(
+    payload: WorkspaceAiContextCreate,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceAiContextResponse]:
+    item = await workspace.contexts.create(payload.content)
+    return ResponseEnvelope(success=True, result=item)
+
+
+@router.get(
+    "/{workspace_id}/contexts/{context_id}",
+    response_model=ResponseEnvelope[WorkspaceAiContextResponse],
+    summary="Get a single AI context entry",
+)
+@allow(["read:all"])
+async def get_workspace_context(
+    context_id: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceAiContextResponse]:
+    try:
+        item = await workspace.contexts.get(context_id)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Context not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ResponseEnvelope(success=True, result=item)
+
+
+@router.delete(
+    "/{workspace_id}/contexts/{context_id}",
+    response_model=ResponseEnvelope[None],
+    summary="Delete an AI context entry",
+)
+@allow(["write:all"])
+async def delete_workspace_context(
+    context_id: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[None]:
+    try:
+        await workspace.contexts.delete(context_id)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Context not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ResponseEnvelope(success=True, result=None)

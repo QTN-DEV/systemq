@@ -8,6 +8,7 @@ import shutil
 
 from .resources.chats import ChatsResource
 from .resources.files import FilesResource
+from .resources.contexts import ContextsResource
 from ..documents import WorkspaceMetadata
 
 
@@ -32,6 +33,7 @@ class WorkspaceHandle:
         self.options = options
         self.files = FilesResource(self)
         self.chats = ChatsResource(self)
+        self.contexts = ContextsResource(self)
     
     @property
     def root_path(self) -> Path:
@@ -64,7 +66,7 @@ class WorkspaceHandle:
     async def scaffold(self) -> None:
         def _create() -> None:
             root = self.options.root_path.resolve()
-            for folder in ("data", "outputs", "workflows", ".claude/skills"):
+            for folder in ("data", "outputs", "workflows", "uploads", ".claude/skills"):
                 (root / folder).mkdir(parents=True, exist_ok=True)
 
         await asyncio.to_thread(_create)

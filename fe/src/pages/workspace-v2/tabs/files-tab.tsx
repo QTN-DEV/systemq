@@ -65,6 +65,7 @@ export function WorkspaceV2FilesTab(props: WorkspaceV2FilesTabProps) {
       path: { workspace_id: id },
     }),
     enabled: id.length > 0,
+    refetchOnWindowFocus: true,
   });
 
   const tree = data?.result ?? null;

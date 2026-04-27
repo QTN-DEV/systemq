@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
-import { type ReactElement, useRef } from "react";
+import { type ReactElement, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 export type WorkspaceV2MarkdownEditPageProps = {
   className?: string;
 };
+
+type EditorMode = "plate" | "raw";
 
 function decodeSplatToFilePath(splat: string | undefined): string {
   if (!splat) {
@@ -37,6 +39,8 @@ export default function WorkspaceV2MarkdownEditPage(props: WorkspaceV2MarkdownEd
   const viewOnly = searchParams.get("mode") === "view";
   const queryClient = useQueryClient();
   const plateRef = useRef<PlateEditorHandle>(null);
+  const [editorMode, setEditorMode] = useState<EditorMode>("plate");
+  const [rawValue, setRawValue] = useState<string | undefined>(undefined);
 
   const filePath = decodeSplatToFilePath(splatPath);
   const wsId = workspaceId?.trim() ?? "";
@@ -100,8 +104,24 @@ export default function WorkspaceV2MarkdownEditPage(props: WorkspaceV2MarkdownEd
     if (!wsId || !filePath) {
       return;
     }
-    const md = plateRef.current?.getMarkdown() ?? markdown ?? "";
+    const md =
+      editorMode === "raw"
+        ? (rawValue ?? markdown ?? "")
+        : (plateRef.current?.getMarkdown() ?? markdown ?? "");
     saveMutation.mutate(md);
+  };
+
+  const handleSwitchMode = (mode: EditorMode) => {
+    if (mode === editorMode) return;
+    // Sync content from the current editor before switching
+    if (editorMode === "plate" && mode === "raw") {
+      const currentMd = plateRef.current?.getMarkdown() ?? markdown ?? "";
+      setRawValue(currentMd);
+    } else if (editorMode === "raw" && mode === "plate") {
+      // raw → plate: rawValue will be passed as new initialMarkdown via key
+      // PlateEditor will re-initialise with rawValue
+    }
+    setEditorMode(mode);
   };
 
   const backHref = wsId ? `/workspace-v2/${wsId}/files` : "/workspace-v2";
@@ -150,8 +170,11 @@ export default function WorkspaceV2MarkdownEditPage(props: WorkspaceV2MarkdownEd
     );
   }
 
+  const activeMd = rawValue !== undefined ? rawValue : (markdown ?? "");
+
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
+      {/* Toolbar */}
       <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b bg-background px-4 py-2.5">
         <Button variant="ghost" size="sm" className="h-8 gap-1 px-2" asChild>
           <Link to={backHref}>
@@ -163,6 +186,37 @@ export default function WorkspaceV2MarkdownEditPage(props: WorkspaceV2MarkdownEd
         <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-[11px]" title={filePath}>
           {filePath}
         </span>
+
+        {/* Mode switcher */}
+        {!viewOnly && (
+          <div className="flex items-center rounded-md border bg-muted p-0.5">
+            <button
+              type="button"
+              onClick={() => handleSwitchMode("plate")}
+              className={cn(
+                "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                editorMode === "plate"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Editor
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchMode("raw")}
+              className={cn(
+                "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                editorMode === "raw"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Raw
+            </button>
+          </div>
+        )}
+
         {viewOnly ? null : (
           <Button
             type="button"
@@ -178,15 +232,24 @@ export default function WorkspaceV2MarkdownEditPage(props: WorkspaceV2MarkdownEd
         )}
       </div>
 
+      {/* Editor area */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {loading ? (
           <p className="text-muted-foreground p-4 text-sm">Loading…</p>
+        ) : editorMode === "raw" ? (
+          <textarea
+            className="h-full w-full min-h-0 flex-1 resize-none bg-background p-4 font-mono text-sm text-foreground outline-none"
+            value={rawValue ?? activeMd}
+            onChange={(e) => setRawValue(e.target.value)}
+            readOnly={viewOnly}
+            spellCheck={false}
+          />
         ) : (
           <PlateEditor
-            key={filePath}
+            key={`${filePath}-${editorMode}-${activeMd.slice(0, 32)}`}
             ref={plateRef}
             className="min-h-0 flex-1"
-            initialMarkdown={markdown}
+            initialMarkdown={activeMd}
             readOnly={viewOnly}
           />
         )}
