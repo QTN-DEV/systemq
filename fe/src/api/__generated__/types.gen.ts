@@ -1384,6 +1384,27 @@ export type ResponseEnvelopeNoneType = {
 };
 
 /**
+ * ResponseEnvelope[SkillResponse]
+ */
+export type ResponseEnvelopeSkillResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: SkillResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ResponseEnvelope[WorkspaceChatResponse]
  */
 export type ResponseEnvelopeWorkspaceChatResponse = {
@@ -1540,24 +1561,6 @@ export type SearchResult = {
      * Avatar
      */
     avatar?: string | null;
-};
-
-/**
- * SkillCreate
- */
-export type SkillCreate = {
-    /**
-     * Workspace Id
-     */
-    workspace_id: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Content
-     */
-    content?: string;
 };
 
 /**
@@ -2129,6 +2132,24 @@ export type AppSubmodulesDailyStandupModelsWorkloadSummary = {
 };
 
 /**
+ * SkillCreate
+ */
+export type AppSubmodulesWorkspaceSchemasSkillCreate = {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Content
+     */
+    content?: string;
+};
+
+/**
  * WorkspaceChatCreate
  *
  * Initial ``messages`` as a single string (e.g. JSON.stringify output). Defaults to ``[]``.
@@ -2174,6 +2195,20 @@ export type AppSubmodulesWorkspaceSchemasWorkspaceChatResponse = {
      * Title
      */
     title?: string;
+};
+
+/**
+ * SkillCreate
+ */
+export type AppSubmodulesWorkspaceV2SchemasSkillCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Content
+     */
+    content?: string;
 };
 
 /**
@@ -2654,6 +2689,138 @@ export type DeleteWorkspaceWorkspaceV2WorkspaceIdDeleteResponses = {
 };
 
 export type DeleteWorkspaceWorkspaceV2WorkspaceIdDeleteResponse = DeleteWorkspaceWorkspaceV2WorkspaceIdDeleteResponses[keyof DeleteWorkspaceWorkspaceV2WorkspaceIdDeleteResponses];
+
+export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostData = {
+    body: AppSubmodulesWorkspaceV2SchemasSkillCreate;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/skills';
+};
+
+export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostError = CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostErrors[keyof CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostErrors];
+
+export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseEnvelopeSkillResponse;
+};
+
+export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponse = CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponses[keyof CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponses];
+
+export type DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/skills/{name}';
+};
+
+export type DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteError = DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteErrors[keyof DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteErrors];
+
+export type DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeNoneType;
+};
+
+export type DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteResponse = DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteResponses[keyof DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteResponses];
+
+export type GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetData = {
+    body?: never;
+    path: {
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/skills/{name}';
+};
+
+export type GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetError = GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetErrors[keyof GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetErrors];
+
+export type GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeSkillResponse;
+};
+
+export type GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetResponse = GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetResponses[keyof GetWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameGetResponses];
+
+export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutData = {
+    body: SkillUpdate;
+    path: {
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/skills/{name}';
+};
+
+export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutError = UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutErrors[keyof UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutErrors];
+
+export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeSkillResponse;
+};
+
+export type UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponse = UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponses[keyof UpdateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNamePutResponses];
 
 export type GetModelsAiModelsGetData = {
     body?: never;
@@ -4630,7 +4797,7 @@ export type GetWorkspaceChatWorkspacesWorkspaceIdChatsChatIdGetResponses = {
 export type GetWorkspaceChatWorkspacesWorkspaceIdChatsChatIdGetResponse = GetWorkspaceChatWorkspacesWorkspaceIdChatsChatIdGetResponses[keyof GetWorkspaceChatWorkspacesWorkspaceIdChatsChatIdGetResponses];
 
 export type CreateSkillSkillsPostData = {
-    body: SkillCreate;
+    body: AppSubmodulesWorkspaceSchemasSkillCreate;
     headers: {
         /**
          * Authorization

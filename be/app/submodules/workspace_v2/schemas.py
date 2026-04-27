@@ -61,6 +61,21 @@ class WorkspaceChatMessage(BaseModel):
     )
 
 
+class SkillCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    content: str = ""
+
+
+class SkillUpdate(BaseModel):
+    content: str
+
+
+class SkillResponse(BaseModel):
+    name: str
+    content: str
+
+
+
 class WorkspaceChatCreate(BaseModel):
     messages: list[WorkspaceChatMessage] = Field(
         ...,
@@ -69,11 +84,9 @@ class WorkspaceChatCreate(BaseModel):
 
 
 class WorkspaceChatDocumentCreate(BaseModel):
-    """Body when creating a persisted chat document (opaque messages string, e.g. JSON array)."""
-
-    messages: str = Field(
-        default="[]",
-        description="Initial messages payload as a string (typically JSON.stringify of thread messages).",
+    messages: list[WorkspaceChatMessage] = Field(
+        default_factory=list,
+        description="Initial messages payload.",
     )
     title: str = Field(
         default="New Chat",
@@ -84,7 +97,7 @@ class WorkspaceChatDocumentCreate(BaseModel):
 class WorkspaceChatResponse(BaseModel):
     id: str = Field(..., description="Chat document id.")
     workspace_id: str = Field(..., description="Owning workspace id.")
-    messages: str = Field(..., description="Stored messages string.")
+    messages: list[WorkspaceChatMessage] = Field(..., description="Stored messages.")
     title: str = Field(default="New Chat", description="Display title for the thread.")
 
 

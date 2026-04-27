@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from beanie import Document, PydanticObjectId
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class WorkspaceMetadata(Document):
@@ -20,6 +21,8 @@ class WorkspaceMetadata(Document):
         indexes = ["owner_id"]
 
 
+from app.submodules.workspace_v2.schemas import WorkspaceChatMessage
+
 class WorkspaceChat(Document):
     id: PydanticObjectId = Field(
         default_factory=PydanticObjectId,
@@ -29,9 +32,9 @@ class WorkspaceChat(Document):
         ...,
         description="Owning workspace document id (MongoDB ObjectId).",
     )
-    messages: str = Field(
-        default="[]",
-        description="Stringified messages payload (e.g. JSON array string).",
+    messages: list[WorkspaceChatMessage] = Field(
+        default_factory=list,
+        description="List of messages in the chat.",
     )
     title: str = Field(
         default="New Chat",

@@ -26,6 +26,7 @@ import WorkspaceV2MarkdownEditPage from "./pages/workspace-v2/markdown-edit";
 import { WorkspaceV2ChatTab } from "./pages/workspace-v2/tabs/chat-tab";
 import { WorkspaceV2FilesTab } from "./pages/workspace-v2/tabs/files-tab";
 import { WorkspaceV2SettingsTab } from "./pages/workspace-v2/tabs/settings-tab";
+import { WorkspaceV2SkillsTab } from "./pages/workspace-v2/tabs/skills-tab";
 import WorkspacesPage from "./pages/workspaces/page";
 import WorkspaceDetailPage from "./pages/workspaces/workspace-detail-page";
 import WorkspaceMarkdownEditPage from "./pages/workspaces/workspace-markdown-edit-page";
@@ -123,6 +124,7 @@ function App(): ReactElement {
       >
         <Route index element={<Navigate to="files" replace />} />
         <Route path="files" element={<WorkspaceV2FilesTab />} />
+        <Route path="skills" element={<WorkspaceV2SkillsTab />} />
         <Route path="chat" element={<WorkspaceV2ChatTab />} />
         <Route path="settings" element={<WorkspaceV2SettingsTab />} />
       </Route>

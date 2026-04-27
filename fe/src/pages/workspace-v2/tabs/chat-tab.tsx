@@ -18,13 +18,11 @@ export function WorkspaceV2ChatTab(
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const id = workspaceId?.trim() ?? "";
 
+  const threadAdapter = useWorkspaceThreadAdapter({ workspaceId: id });
+
   const runtime = useRemoteThreadListRuntime({
-    adapter: useWorkspaceThreadAdapter({ workspaceId: id }),
-    runtimeHook: () =>
-      useWorkspaceChatAdapter({
-        workspaceId: id,
-        chatId: "asdasda",
-      }),
+    adapter: threadAdapter,
+    runtimeHook: useWorkspaceChatAdapter,
   });
 
   if (!id) {

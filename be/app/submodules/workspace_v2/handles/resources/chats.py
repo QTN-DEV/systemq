@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from beanie import PydanticObjectId
 
 from app.submodules.workspace_v2.documents import WorkspaceChat
-from app.submodules.workspace_v2.schemas import WorkspaceChatListItem, WorkspaceChatResponse
+from app.submodules.workspace_v2.schemas import WorkspaceChatListItem, WorkspaceChatResponse, WorkspaceChatMessage
 
 if TYPE_CHECKING:
     from ..workspace import WorkspaceHandle
@@ -30,13 +30,12 @@ class ChatsResource:
         )
         return [WorkspaceChatListItem(id=str(c.id), title=c.title) for c in chats]
 
-    async def create(self, *, messages: str = "[]", title: str = "New Chat") -> WorkspaceChatResponse:
+    async def create(self, *, messages: list[WorkspaceChatMessage] | None = None, title: str = "New Chat") -> WorkspaceChatResponse:
         """Insert a new chat document scoped to this workspace."""
-        normalized = (messages or "").strip() or "[]"
         chat_title = (title or "").strip() or "New Chat"
         doc = WorkspaceChat(
             workspace_id=self.workspace.id,
-            messages=normalized,
+            messages=messages or [],
             title=chat_title,
         )
         await doc.insert()

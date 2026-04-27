@@ -41,11 +41,11 @@ export function useWorkspaceThreadAdapter(options: { workspaceId: string }) {
           externalId: threadId,
         };
       },
-      async delete(remoteId: string) {},
-      async archive(remoteId: string) {},
-      async unarchive(remoteId: string) {},
-      async rename(remoteId: string, title: string) {},
-      async fetch(remoteId: string) {},
+      async delete(remoteId: string) { },
+      async archive(remoteId: string) { },
+      async unarchive(remoteId: string) { },
+      async rename(remoteId: string, title: string) { },
+      async fetch(remoteId: string) { },
       async generateTitle(remoteId: string) {
         console.log("generateTitle", remoteId);
         return {

@@ -28,17 +28,18 @@ const tabTriggerClass = (isActive: boolean) =>
       : "text-muted-foreground hover:text-foreground",
   );
 
-function getActiveTabFromPath(basePath: string, pathname: string): "files" | "chat" | "settings" {
+function getActiveTabFromPath(basePath: string, pathname: string): "files" | "skills" | "chat" | "settings" {
   const rest = pathname.slice(basePath.length).replace(/^\/+/, "");
   const first = rest.split("/")[0] || "files";
-  if (first === "chat" || first === "settings") {
+  if (first === "chat" || first === "settings" || first === "skills") {
     return first;
   }
   return "files";
 }
 
-const tabLabel: Record<"files" | "chat" | "settings", string> = {
+const tabLabel: Record<"files" | "skills" | "chat" | "settings", string> = {
   files: "Files",
+  skills: "Skills",
   chat: "Chat",
   settings: "Settings",
 };
@@ -133,6 +134,9 @@ export default function WorkspaceV2DetailLayout(props: WorkspaceV2DetailLayoutPr
         <nav className="bg-muted/60 flex w-fit max-w-full flex-wrap gap-0.5 rounded-lg p-1" aria-label="Workspace sections">
           <Link to={`${basePath}/files`} className={tabTriggerClass(activeTab === "files")}>
             Files
+          </Link>
+          <Link to={`${basePath}/skills`} className={tabTriggerClass(activeTab === "skills")}>
+            Skills
           </Link>
           <Link to={`${basePath}/chat`} className={tabTriggerClass(activeTab === "chat")}>
             Chat

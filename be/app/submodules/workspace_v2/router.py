@@ -19,6 +19,9 @@ from .schemas import (
     CreateWorkspaceRequest,
     CreateWorkspaceResponse,
     FileNode,
+    SkillCreate,
+    SkillResponse,
+    SkillUpdate,
     WorkspaceChatCreate,
     WorkspaceChatDocumentCreate,
     WorkspaceChatListItem,
@@ -28,6 +31,23 @@ from .schemas import (
 from .dependencies import UseWorkspace, UseWorkspaceService, SanitizedPath
 
 router = APIRouter()
+
+def _skill_display_name(name: str) -> str:
+    base = name.strip()
+    return base[:-3] if base.lower().endswith(".md") else base
+
+def _skill_file_path(name: str) -> str:
+    safe = _skill_display_name(name)
+    if not safe or any(c in safe for c in ("/", "\\", "..")):
+        raise ValueError("Invalid skill name")
+    return f".claude/skills/{safe}/SKILL.md"
+
+def _skill_dir_path(name: str) -> str:
+    safe = _skill_display_name(name)
+    if not safe or any(c in safe for c in ("/", "\\", "..")):
+        raise ValueError("Invalid skill name")
+    return f".claude/skills/{safe}"
+
 
 
 @router.get("/list", response_model=ResponseEnvelope[list[WorkspaceListItem]])
@@ -378,3 +398,115 @@ async def get_workspace_file(
                             detail="Path outside workspace boundaries")
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Path not found")
+
+
+@router.post(
+    "/{workspace_id}/skills",
+    response_model=ResponseEnvelope[SkillResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a skill markdown file",
+)
+@allow(["write:all"])
+async def create_workspace_skill(
+    payload: SkillCreate,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[SkillResponse]:
+    try:
+        path = _skill_file_path(payload.name)
+        await workspace.files.create(path, payload.content.encode("utf-8"))
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PermissionError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
+    except FileExistsError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Skill already exists") from exc
+    
+    return ResponseEnvelope(
+        success=True, 
+        result=SkillResponse(name=_skill_display_name(payload.name), content=payload.content)
+    )
+
+
+@router.get(
+    "/{workspace_id}/skills/{name}",
+    response_model=ResponseEnvelope[SkillResponse],
+    summary="Read a skill file",
+)
+@allow(["read:all"])
+async def get_workspace_skill(
+    name: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[SkillResponse]:
+    try:
+        path = _skill_file_path(name)
+        file_handle = await workspace.files.get(WorkspaceHandleGetItemByPathOptions(path=path))
+        if isinstance(file_handle, FolderHandle):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Path is a directory")
+        
+        if not file_handle.path.exists():
+            raise FileNotFoundError()
+            
+        content = file_handle.path.read_text(encoding="utf-8")
+        return ResponseEnvelope(
+            success=True, 
+            result=SkillResponse(name=_skill_display_name(name), content=content)
+        )
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Skill not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PermissionError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
+
+
+@router.put(
+    "/{workspace_id}/skills/{name}",
+    response_model=ResponseEnvelope[SkillResponse],
+    summary="Update a skill file",
+)
+@allow(["write:all"])
+async def update_workspace_skill(
+    name: str,
+    payload: SkillUpdate,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[SkillResponse]:
+    try:
+        path = _skill_file_path(name)
+        await workspace.files.write(path, payload.content.encode("utf-8"))
+        return ResponseEnvelope(
+            success=True, 
+            result=SkillResponse(name=_skill_display_name(name), content=payload.content)
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PermissionError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
+    except IsADirectoryError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Path is a directory") from None
+
+
+@router.delete(
+    "/{workspace_id}/skills/{name}",
+    response_model=ResponseEnvelope[None],
+    summary="Delete a skill file",
+)
+@allow(["write:all"])
+async def delete_workspace_skill(
+    name: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[None]:
+    try:
+        path = _skill_dir_path(name)
+        await workspace.files.delete(path)
+        return ResponseEnvelope(success=True, result=None)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Skill not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PermissionError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
+
