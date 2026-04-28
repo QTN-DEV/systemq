@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -21,6 +21,18 @@ import ProjectMappingPage from "./pages/project-mapping/page";
 import ResetPassword from "./pages/reset-password/reset-password-page";
 import StructureOrganization from "./pages/structure-organization/structure-organization-page";
 import WorkloadTrackingPage from "./pages/workload-tracking/page";
+import WorkspaceV2DetailLayout from "./pages/workspace-v2/detail-layout";
+import WorkspaceV2ListPage from "./pages/workspace-v2/list";
+import WorkspaceV2MarkdownEditPage from "./pages/workspace-v2/markdown-edit";
+import { WorkspaceV2ChatTab } from "./pages/workspace-v2/tabs/chat-tab";
+import { WorkspaceV2FilesTab } from "./pages/workspace-v2/tabs/files-tab";
+import { WorkspaceV2SettingsTab } from "./pages/workspace-v2/tabs/settings-tab";
+import { WorkspaceV2SkillsTab } from "./pages/workspace-v2/tabs/skills-tab";
+import { WorkspaceV2WorkflowsTab } from "./pages/workspace-v2/tabs/workflows-tab";
+import WorkspaceV2WorkflowEditPage from "./pages/workspace-v2/workflow-edit";
+import WorkspacesPage from "./pages/workspaces/page";
+import WorkspaceDetailPage from "./pages/workspaces/workspace-detail-page";
+import WorkspaceMarkdownEditPage from "./pages/workspaces/workspace-markdown-edit-page";
 
 function App(): ReactElement {
   return (
@@ -53,6 +65,91 @@ function App(): ReactElement {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ChatPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspacesPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces/:workspaceId/files/edit/*"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceMarkdownEditPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspaces/:workspaceId"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceDetailPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace-v2"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceV2ListPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace-v2/:workspaceId/files/edit/*"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceV2MarkdownEditPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace-v2/:workspaceId"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <WorkspaceV2DetailLayout />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="files" replace />} />
+        <Route path="files" element={<WorkspaceV2FilesTab />} />
+        <Route path="skills" element={<WorkspaceV2SkillsTab />} />
+        <Route path="workflows" element={<WorkspaceV2WorkflowsTab />} />
+        <Route
+          path="workflows/:workflowName/edit"
+          element={
+            <ProtectedRoute>
+              <WorkspaceV2WorkflowEditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="chat" element={<WorkspaceV2ChatTab />} />
+        <Route path="settings" element={<WorkspaceV2SettingsTab />} />
+      </Route>
       <Route
         path="/home"
         element={

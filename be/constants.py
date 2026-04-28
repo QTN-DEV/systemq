@@ -8,6 +8,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 _BASE_DIR = Path(__file__).resolve().parent
+
+# Local filesystem root for per-user workspaces (see app.submodules.workspace.service).
+WORKSPACE_STORAGE_ROOT: Path = Path(
+    os.getenv("WORKSPACE_STORAGE_ROOT", str(_BASE_DIR / "workspace_data"))
+).resolve()
 _DOTENV_PATH = _BASE_DIR / ".env"
 if _DOTENV_PATH.exists():
     load_dotenv(_DOTENV_PATH)

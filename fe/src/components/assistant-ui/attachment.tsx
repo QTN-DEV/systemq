@@ -13,6 +13,7 @@ import { useShallow } from "zustand/shallow";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
@@ -24,6 +25,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { cn } from "@/lib/utils";
+import { Image } from "../image";
 
 const useFileSrc = (file: File | undefined) => {
   const [src, setSrc] = useState<string | undefined>(undefined);
@@ -111,14 +113,9 @@ const AttachmentThumb: FC = () => {
 
   return (
     <Avatar className="aui-attachment-tile-avatar h-full w-full rounded-none">
-      <AvatarImage
+      <Image
         src={src}
-        alt="Attachment preview"
-        className="aui-attachment-tile-image object-cover"
-      />
-      <AvatarFallback>
-        <FileText className="aui-attachment-tile-fallback-icon size-8 text-muted-foreground" />
-      </AvatarFallback>
+        alt="Attachment preview" />
     </Avatar>
   );
 };
@@ -143,31 +140,33 @@ const AttachmentUI: FC = () => {
   });
 
   return (
-    <Tooltip>
-      <AttachmentPrimitive.Root
-        className={cn(
-          "aui-attachment-root relative",
-          isImage && "aui-attachment-root-composer only:*:first:size-24",
-        )}
-      >
-        <AttachmentPreviewDialog>
-          <TooltipTrigger asChild>
-            <div
-              className="aui-attachment-tile size-14 cursor-pointer overflow-hidden rounded-[calc(var(--composer-radius)-var(--composer-padding))] border bg-muted transition-opacity hover:opacity-75"
-              role="button"
-              tabIndex={0}
-              aria-label={`${typeLabel} attachment`}
-            >
-              <AttachmentThumb />
-            </div>
-          </TooltipTrigger>
-        </AttachmentPreviewDialog>
-        {isComposer && <AttachmentRemove />}
-      </AttachmentPrimitive.Root>
-      <TooltipContent side="top">
-        <AttachmentPrimitive.Name />
-      </TooltipContent>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <AttachmentPrimitive.Root
+          className={cn(
+            "aui-attachment-root relative",
+            isImage && "aui-attachment-root-composer only:*:first:size-24",
+          )}
+        >
+          <AttachmentPreviewDialog>
+            <TooltipTrigger asChild>
+              <div
+                className="aui-attachment-tile size-14 cursor-pointer overflow-hidden rounded-[calc(var(--composer-radius)-var(--composer-padding))] border bg-muted transition-opacity hover:opacity-75"
+                role="button"
+                tabIndex={0}
+                aria-label={`${typeLabel} attachment`}
+              >
+                <AttachmentThumb />
+              </div>
+            </TooltipTrigger>
+          </AttachmentPreviewDialog>
+          {isComposer && <AttachmentRemove />}
+        </AttachmentPrimitive.Root>
+        <TooltipContent side="top">
+          <AttachmentPrimitive.Name />
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

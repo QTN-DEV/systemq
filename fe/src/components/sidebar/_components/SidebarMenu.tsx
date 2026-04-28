@@ -13,6 +13,7 @@ import {
   Inbox,
   CheckSquare,
   MessageSquare,
+  FolderOpen,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
@@ -38,6 +39,7 @@ const iconMap = {
   Inbox,
   CheckSquare,
   MessageSquare,
+  FolderOpen,
 };
 
 interface SidebarMenuProps {
@@ -85,7 +87,7 @@ export function SidebarMenu({
 
           // Generic collapsible menu
           if (item.type === "collapsible" && item.children) {
-            const isAnyChildActive = item.children.some(child => 
+            const isAnyChildActive = item.children.some(child =>
               location.pathname === child.path || location.pathname.startsWith(`${child.path}/`)
             );
 

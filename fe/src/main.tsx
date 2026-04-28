@@ -1,4 +1,7 @@
+import './api/configure-hey-api-client'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NuqsAdapter } from 'nuqs/adapters/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -25,9 +28,11 @@ if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <NuqsAdapter>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </NuqsAdapter>
       </QueryClientProvider>
     </StrictMode>,
   )

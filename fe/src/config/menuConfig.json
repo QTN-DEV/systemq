@@ -59,6 +59,38 @@
       ]
     },
     {
+      "id": "workspaces",
+      "title": "Workspaces",
+      "path": "/workspaces",
+      "icon": "FolderOpen",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm",
+        "superadmin"
+      ]
+    },
+    {
+      "id": "workspace-v2",
+      "title": "Workspaces (v2)",
+      "path": "/workspace-v2",
+      "icon": "Folder",
+      "type": "item",
+      "roles": [
+        "admin",
+        "ceo",
+        "employee",
+        "hr",
+        "internalops",
+        "pm",
+        "superadmin"
+      ]
+    },
+    {
       "id": "documents",
       "title": "Documents",
       "path": "/documents",
