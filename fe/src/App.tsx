@@ -30,9 +30,6 @@ import { WorkspaceV2SettingsTab } from "./pages/workspace-v2/tabs/settings-tab";
 import { WorkspaceV2SkillsTab } from "./pages/workspace-v2/tabs/skills-tab";
 import { WorkspaceV2WorkflowsTab } from "./pages/workspace-v2/tabs/workflows-tab";
 import WorkspaceV2WorkflowEditPage from "./pages/workspace-v2/workflow-edit";
-import WorkspacesPage from "./pages/workspaces/page";
-import WorkspaceDetailPage from "./pages/workspaces/workspace-detail-page";
-import WorkspaceMarkdownEditPage from "./pages/workspaces/workspace-markdown-edit-page";
 
 function App(): ReactElement {
   return (
@@ -71,36 +68,6 @@ function App(): ReactElement {
           <ProtectedRoute>
             <DashboardLayout>
               <ChatPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/workspaces"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <WorkspacesPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/workspaces/:workspaceId/files/edit/*"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <WorkspaceMarkdownEditPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/workspaces/:workspaceId"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <WorkspaceDetailPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

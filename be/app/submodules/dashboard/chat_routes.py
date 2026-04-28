@@ -1,55 +1,71 @@
 """Dashboard AI chat route — streams Claude responses for layout editing."""
 
+import logging
+from collections.abc import AsyncIterable
 from pathlib import Path
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import StreamingResponse
+from typing import Any
+
+from fastapi import APIRouter, Depends
+from fastapi.sse import EventSourceResponse
+from pydantic import BaseModel
 
 from app.api.routes.auth import get_current_user
 from app.schemas.auth import UserProfile
-from app.services.ai import AnthropicPromptRunner, AnthropicPromptRunnerOptions
+from app.submodules.ai import AnthropicRunner, PromptBlueprint, StreamChunkModel
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 _PROMPT_FILE = Path(__file__).parent / "prompts" / "dashboard_system_prompt.md"
 DASHBOARD_SYSTEM_PROMPT = _PROMPT_FILE.read_text(encoding="utf-8")
 
+logger = logging.getLogger(__name__)
 
-@router.post("/chat/stream")
+
+class DashboardChatMessage(BaseModel):
+    role: str
+    content: str | list[Any]
+
+
+class DashboardChatRequest(BaseModel):
+    messages: list[DashboardChatMessage] = []
+    current_content: str = ""
+
+
+@router.post(
+    "/chat/stream",
+    response_class=EventSourceResponse,
+)
 async def dashboard_chat_stream(
-    request: Request,
+    payload: DashboardChatRequest,
     current_user: UserProfile = Depends(get_current_user),
-):
-    body = await request.json()
-    messages = body.get("messages", [])
-    current_content = body.get("current_content", "")
+) -> AsyncIterable[StreamChunkModel]:
+
+    logger.info(f"Received chat request with {len(payload.messages)} messages")
 
     # Build a conversation-style prompt from history
     prompt = ""
-    if current_content:
-        prompt += f"[Current dashboard source]\n```jsx\n{current_content}\n```\n\n"
+    if payload.current_content:
+        prompt += f"[Current dashboard source]\n```jsx\n{payload.current_content}\n```\n\n"
 
-    for m in messages:
-        role = m.get("role", "user")
-        content = m.get("content", "")
+    for m in payload.messages:
+        role = m.role
+        content = m.content
         if isinstance(content, list):
             text_parts = [c.get("text", "") for c in content if c.get("type") == "text"]
             content = "".join(text_parts)
         prompt += f"{role.capitalize()}: {content}\n"
     prompt += "Assistant: "
 
-    options = AnthropicPromptRunnerOptions(
-        prompt_template="{prompt}",
-        data={"prompt": prompt},
+    blueprint = PromptBlueprint(
+        template=prompt,
         working_directory=".",
-        system_prompt=DASHBOARD_SYSTEM_PROMPT,
-        max_turns=5,
-        tools=["update_dashboard"],
     )
+    blueprint.set_system_prompt(DASHBOARD_SYSTEM_PROMPT)
+    blueprint.set_model("claude-haiku-4-5-20251001")
+    blueprint.configure_tools(allowed=["update_dashboard"])
 
-    runner = AnthropicPromptRunner(options)
+    runner = AnthropicRunner(blueprint)
 
-    async def generate():
-        async for chunk in runner.run():
-            yield f"data: {chunk['data']}\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    async for chunk in runner.run():
+        logger.info(f"Received chunk: {chunk}")
+        yield chunk

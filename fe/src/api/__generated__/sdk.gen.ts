@@ -898,7 +898,7 @@ export const getUploadedFileUploadsFilesFilenameGet = <ThrowOnError extends bool
 /**
  * Chat Stream
  */
-export const chatStreamChatStreamPost = <ThrowOnError extends boolean = false>(options?: Options<ChatStreamChatStreamPostData, ThrowOnError>) => (options?.client ?? client).post<ChatStreamChatStreamPostResponses, unknown, ThrowOnError>({
+export const chatStreamChatStreamPost = <ThrowOnError extends boolean = false>(options?: Options<ChatStreamChatStreamPostData, ThrowOnError, unknown>) => (options?.client ?? client).sse.post<ChatStreamChatStreamPostResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/chat/stream',
     ...options
@@ -1233,7 +1233,7 @@ export const updateDashboardDashboardAssetsUserIdPost = <ThrowOnError extends bo
 /**
  * Dashboard Chat Stream
  */
-export const dashboardChatStreamDashboardChatStreamPost = <ThrowOnError extends boolean = false>(options: Options<DashboardChatStreamDashboardChatStreamPostData, ThrowOnError>) => (options.client ?? client).post<DashboardChatStreamDashboardChatStreamPostResponses, DashboardChatStreamDashboardChatStreamPostErrors, ThrowOnError>({
+export const dashboardChatStreamDashboardChatStreamPost = <ThrowOnError extends boolean = false>(options: Options<DashboardChatStreamDashboardChatStreamPostData, ThrowOnError, unknown>) => (options.client ?? client).sse.post<DashboardChatStreamDashboardChatStreamPostResponses, DashboardChatStreamDashboardChatStreamPostErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/dashboard/chat/stream',
     ...options

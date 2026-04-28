@@ -24,7 +24,7 @@ export function useDashboardChatAdapter() {
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
       async *run({ messages, abortSignal }) {
-        const { content, version } = storeApi.getState();
+        const { content } = storeApi.getState();
 
         const session = useAuthStore.getState().getCurrentSession();
         const headers: HeadersInit = {
@@ -55,6 +55,7 @@ export function useDashboardChatAdapter() {
 
         let lastProcessedContent = "";
         for await (const update of mapAssistantStream(parseSSE(response))) {
+          console.log({ update });
           // Intercept update_dashboard tool calls and write into the store
           const toolCall = update.content.find(
             (part: {
