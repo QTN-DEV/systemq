@@ -37,3 +37,4 @@ pandas
 claude-agent-sdk
 chevron
 anthropic
+scalar_doc
