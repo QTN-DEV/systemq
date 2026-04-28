@@ -350,6 +350,114 @@ export type ChartEmployee = {
 };
 
 /**
+ * ChatAppendMessages
+ */
+export type ChatAppendMessages = {
+    /**
+     * Messages
+     */
+    messages: Array<ChatMessageSchema>;
+};
+
+/**
+ * ChatCreate
+ */
+export type ChatCreate = {
+    /**
+     * Title
+     */
+    title?: string;
+    /**
+     * Messages
+     */
+    messages?: Array<ChatMessageSchema>;
+};
+
+/**
+ * ChatListItem
+ */
+export type ChatListItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * ChatMessageSchema
+ */
+export type ChatMessageSchema = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Role
+     */
+    role: 'user' | 'assistant' | 'system';
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Attachments
+     */
+    attachments?: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Created At
+     */
+    created_at?: unknown | null;
+};
+
+/**
+ * ChatRename
+ */
+export type ChatRename = {
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * ChatResponse
+ */
+export type ChatResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * User Id
+     */
+    user_id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Messages
+     */
+    messages: Array<ChatMessageSchema>;
+};
+
+/**
+ * ChatStreamRequest
+ */
+export type ChatStreamRequest = {
+    /**
+     * Messages
+     */
+    messages: Array<ChatMessageSchema>;
+};
+
+/**
  * CommentCreate
  */
 export type CommentCreate = {
@@ -497,6 +605,34 @@ export type CreatedWorkspaceItemResponse = {
      * Path of the created item, relative to the workspace root (leading slash, tree-style).
      */
     relative_path: string;
+};
+
+/**
+ * DashboardChatMessage
+ */
+export type DashboardChatMessage = {
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Content
+     */
+    content: string | Array<unknown>;
+};
+
+/**
+ * DashboardChatRequest
+ */
+export type DashboardChatRequest = {
+    /**
+     * Messages
+     */
+    messages?: Array<DashboardChatMessage>;
+    /**
+     * Current Content
+     */
+    current_content?: string;
 };
 
 /**
@@ -1120,6 +1256,32 @@ export type MessageResponse = {
 };
 
 /**
+ * PaginatedChats
+ */
+export type PaginatedChats = {
+    /**
+     * Items
+     */
+    items: Array<ChatListItem>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Has Next
+     */
+    has_next: boolean;
+};
+
+/**
  * PaginatedResponse[WorkspaceAiContextResponse]
  */
 export type PaginatedResponseWorkspaceAiContextResponse = {
@@ -1320,6 +1482,48 @@ export type ResetPasswordRequest = {
 };
 
 /**
+ * ResponseEnvelope[ChatListItem]
+ */
+export type ResponseEnvelopeChatListItem = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: ChatListItem | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[ChatResponse]
+ */
+export type ResponseEnvelopeChatResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: ChatResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ResponseEnvelope[CreateWorkspaceResponse]
  */
 export type ResponseEnvelopeCreateWorkspaceResponse = {
@@ -1397,6 +1601,27 @@ export type ResponseEnvelopeNoneType = {
      * Result
      */
     result?: null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[PaginatedChats]
+ */
+export type ResponseEnvelopePaginatedChats = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: PaginatedChats | null;
     /**
      * Message
      */
@@ -5130,14 +5355,249 @@ export type GetUploadedFileUploadsFilesFilenameGetResponses = {
 
 export type GetUploadedFileUploadsFilesFilenameGetResponse = GetUploadedFileUploadsFilesFilenameGetResponses[keyof GetUploadedFileUploadsFilesFilenameGetResponses];
 
-export type ChatStreamChatStreamPostData = {
+export type ListChatsChatsGetData = {
     body?: never;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
     path?: never;
-    query?: never;
-    url: '/chat/stream';
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/chats';
 };
 
-export type ChatStreamChatStreamPostResponses = {
+export type ListChatsChatsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListChatsChatsGetError = ListChatsChatsGetErrors[keyof ListChatsChatsGetErrors];
+
+export type ListChatsChatsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopePaginatedChats;
+};
+
+export type ListChatsChatsGetResponse = ListChatsChatsGetResponses[keyof ListChatsChatsGetResponses];
+
+export type CreateChatChatsPostData = {
+    body: ChatCreate;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/chats';
+};
+
+export type CreateChatChatsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateChatChatsPostError = CreateChatChatsPostErrors[keyof CreateChatChatsPostErrors];
+
+export type CreateChatChatsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatResponse;
+};
+
+export type CreateChatChatsPostResponse = CreateChatChatsPostResponses[keyof CreateChatChatsPostResponses];
+
+export type DeleteChatChatsChatIdDeleteData = {
+    body?: never;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+    };
+    query?: never;
+    url: '/chats/{chat_id}';
+};
+
+export type DeleteChatChatsChatIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteChatChatsChatIdDeleteError = DeleteChatChatsChatIdDeleteErrors[keyof DeleteChatChatsChatIdDeleteErrors];
+
+export type DeleteChatChatsChatIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeNoneType;
+};
+
+export type DeleteChatChatsChatIdDeleteResponse = DeleteChatChatsChatIdDeleteResponses[keyof DeleteChatChatsChatIdDeleteResponses];
+
+export type GetChatChatsChatIdGetData = {
+    body?: never;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+    };
+    query?: never;
+    url: '/chats/{chat_id}';
+};
+
+export type GetChatChatsChatIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetChatChatsChatIdGetError = GetChatChatsChatIdGetErrors[keyof GetChatChatsChatIdGetErrors];
+
+export type GetChatChatsChatIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatResponse;
+};
+
+export type GetChatChatsChatIdGetResponse = GetChatChatsChatIdGetResponses[keyof GetChatChatsChatIdGetResponses];
+
+export type RenameChatChatsChatIdTitlePatchData = {
+    body: ChatRename;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+    };
+    query?: never;
+    url: '/chats/{chat_id}/title';
+};
+
+export type RenameChatChatsChatIdTitlePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RenameChatChatsChatIdTitlePatchError = RenameChatChatsChatIdTitlePatchErrors[keyof RenameChatChatsChatIdTitlePatchErrors];
+
+export type RenameChatChatsChatIdTitlePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatListItem;
+};
+
+export type RenameChatChatsChatIdTitlePatchResponse = RenameChatChatsChatIdTitlePatchResponses[keyof RenameChatChatsChatIdTitlePatchResponses];
+
+export type AppendMessagesChatsChatIdMessagesPostData = {
+    body: ChatAppendMessages;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+    };
+    query?: never;
+    url: '/chats/{chat_id}/messages';
+};
+
+export type AppendMessagesChatsChatIdMessagesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AppendMessagesChatsChatIdMessagesPostError = AppendMessagesChatsChatIdMessagesPostErrors[keyof AppendMessagesChatsChatIdMessagesPostErrors];
+
+export type AppendMessagesChatsChatIdMessagesPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatResponse;
+};
+
+export type AppendMessagesChatsChatIdMessagesPostResponse = AppendMessagesChatsChatIdMessagesPostResponses[keyof AppendMessagesChatsChatIdMessagesPostResponses];
+
+export type ChatStreamChatsChatIdStreamPostData = {
+    body: ChatStreamRequest;
+    headers: {
+        /**
+         * Authorization
+         */
+        authorization: string;
+    };
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+    };
+    query?: never;
+    url: '/chats/{chat_id}/stream';
+};
+
+export type ChatStreamChatsChatIdStreamPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChatStreamChatsChatIdStreamPostError = ChatStreamChatsChatIdStreamPostErrors[keyof ChatStreamChatsChatIdStreamPostErrors];
+
+export type ChatStreamChatsChatIdStreamPostResponses = {
     /**
      * Successful Response
      */
@@ -6269,7 +6729,7 @@ export type UpdateDashboardDashboardAssetsUserIdPostResponses = {
 export type UpdateDashboardDashboardAssetsUserIdPostResponse = UpdateDashboardDashboardAssetsUserIdPostResponses[keyof UpdateDashboardDashboardAssetsUserIdPostResponses];
 
 export type DashboardChatStreamDashboardChatStreamPostData = {
-    body?: never;
+    body: DashboardChatRequest;
     headers: {
         /**
          * Authorization
