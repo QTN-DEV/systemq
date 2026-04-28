@@ -11,3 +11,4 @@ venv/
 .eggs/
 *.egg-info/
 static/uploads/
+.data

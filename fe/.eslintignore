@@ -1,0 +1,2 @@
+src/api/__generated__
+scripts/**/*.ts

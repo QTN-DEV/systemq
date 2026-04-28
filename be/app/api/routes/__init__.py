@@ -17,6 +17,7 @@ from .workloads import router as workloads_router
 from .chat import router as chat_router
 from .daily_standup import router as daily_standup_router
 from app.submodules.blocks import router as blocks_router
+from app.submodules.workspace import router as workspace_router
 from app.submodules.dashboard import router as dashboard_router
 
 router = APIRouter()
@@ -29,6 +30,7 @@ router.include_router(projects_router)
 router.include_router(root_router)
 router.include_router(uploads_router)
 router.include_router(chat_router)
+router.include_router(workspace_router)
 router.include_router(blocks_router)
 router.include_router(dashboard_router)
 
