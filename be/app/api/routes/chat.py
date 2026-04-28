@@ -1,17 +1,22 @@
-import json
-from typing import List, Dict, Any
+from app.submodules.ai import StreamChunkModel
+from collections.abc import AsyncIterable
+
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.sse import EventSourceResponse
 
 from app.services.ai import AnthropicPromptRunner, AnthropicPromptRunnerOptions
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
-@router.post("/stream")
-async def chat_stream(request: Request):
+
+@router.post(
+    "/stream",
+    response_class=EventSourceResponse,
+)
+async def chat_stream(request: Request) -> AsyncIterable[StreamChunkModel]:
     body = await request.json()
     messages = body.get("messages", [])
-    
+
     prompt = ""
     for m in messages:
         role = m.get("role", "user")
@@ -35,13 +40,10 @@ async def chat_stream(request: Request):
             "   - Synthesize the findings of each window internally.\n"
             "   - Only after processing all windows, provide a final, high-level consolidated summary.\n"
             "   - Focus on persistent blockers, major milestones, and team trajectory."
-        )
+        ),
     )
-    
+
     runner = AnthropicPromptRunner(options)
 
-    async def generate():
-        async for chunk in runner.run():
-            yield f"data: {chunk['data']}\n\n"
-            
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    async for chunk in runner.run():
+        yield chunk

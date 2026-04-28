@@ -301,5 +301,6 @@ export function WorkspaceAssistantThread({
           </div>
         </AssistantRuntimeProvider>
       </div>
-      );
+    </div>
+  )
 }
