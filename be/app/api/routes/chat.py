@@ -207,6 +207,10 @@ async def chat_stream(
     payload: ChatStreamRequest,
     current_user: UserProfile = Depends(get_current_user),
 ) -> AsyncIterable[StreamChunkModel]:
+    from app.services.ai.tools.daily_standup import daily_standup_tools_server
+    from app.services.ai.tools.employee import employee_tools_server
+    from app.services.ai.tools.dashboard import dashboard_tools_server
+
     chat = await _get_owned_chat(chat_id, current_user)
 
     # Build conversation from stored history + incoming messages
@@ -224,6 +228,9 @@ async def chat_stream(
     )
     blueprint.set_system_prompt(SYSTEM_PROMPT)
     blueprint.set_model("claude-haiku-4-5-20251001")
+    blueprint.add_mcp("employee-service", employee_tools_server)
+    blueprint.add_mcp("daily-standup-service", daily_standup_tools_server)
+    blueprint.add_mcp("dashboard-service", dashboard_tools_server)
 
     runner = AnthropicRunner(blueprint)
 
