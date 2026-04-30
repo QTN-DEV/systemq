@@ -35,3 +35,4 @@ langchain-openai
 langchain-core
 pandas
 claude-agent-sdk
+fastapi-sse
