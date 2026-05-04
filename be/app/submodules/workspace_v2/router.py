@@ -29,6 +29,7 @@ from .schemas import (
     WorkflowListItem,
     WorkflowResponse,
     WorkflowUpdate,
+    WorkflowExecuteRequest,
     WorkspaceChatCreate,
     WorkspaceChatDocumentCreate,
     WorkspaceChatMessage,
@@ -39,6 +40,8 @@ from .schemas import (
     WorkspaceFileUploadResponse,
     WorkspaceAiContextCreate,
     WorkspaceAiContextResponse,
+    WorkspaceInstructionResponse,
+    WorkspaceInstructionUpdate,
 )
 from .dependencies import UseWorkspace, UseWorkspaceService, SanitizedPath
 from .mcps import workspace_ai_context_mcp
@@ -779,10 +782,8 @@ async def create_workspace_workflow(
     workspace: UseWorkspace,
     context: UseAuthContext,
 ) -> ResponseEnvelope[WorkflowResponse]:
-    # Derive the file slug from the payload id if given, else from name
     slug = (payload.id or payload.name).strip().lower().replace(" ", "-")
     data = payload.model_dump(exclude_none=True)
-    # Ensure the slug is stored as the YAML id
     data["id"] = slug
     try:
         wf = await workspace.workflows.create(slug, data)
@@ -864,3 +865,104 @@ async def delete_workspace_workflow(
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Workflow not found")
     return ResponseEnvelope(success=True, result=None)
+
+
+@router.post(
+    "/{workspace_id}/workflows/{name}/execute",
+    response_class=EventSourceResponse,
+    summary="Execute a workflow and stream the response",
+    operation_id="workspaceExecuteWorkflow"
+)
+async def execute_workspace_workflow(
+    name: str,
+    payload: WorkflowExecuteRequest,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> AsyncIterable[StreamChunkModel]:
+    try:
+        wf = await workspace.workflows.get(name)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    # Replace {input} syntax in the template with actual values
+    # because the prompt templates often use single brackets.
+    template_str = wf.prompt_template
+    for key, val in payload.inputs.items():
+        template_str = template_str.replace(f"{{{key}}}", str(val))
+
+    blueprint = PromptBlueprint(
+        template=template_str,
+        working_directory=str(workspace.root_path)
+    )
+    
+    blueprint.set_vars(
+        **payload.inputs,
+        workspace_id=str(workspace.id),
+        root_path=str(workspace.root_path),
+    )
+    
+    if wf.model:
+        blueprint.set_model(wf.model)
+        
+    if wf.max_turns is not None:
+        blueprint._max_turns = wf.max_turns
+        
+    if wf.max_budget_usd is not None:
+        blueprint._max_budget_usd = wf.max_budget_usd
+
+    blueprint.configure_tools(allowed=wf.allowed_tools, disallowed=wf.disallowed_tools)
+    
+    blueprint.add_mcp("workspace_ai_context", workspace_ai_context_mcp)
+
+    if getattr(wf, "mcp_servers", None):
+        pass
+
+    runner = AnthropicRunner(blueprint)
+
+    async for chunk in runner.run():
+        yield chunk
+
+@router.get(
+    "/{workspace_id}/instruction",
+    response_model=ResponseEnvelope[WorkspaceInstructionResponse],
+    summary="Get the workspace instruction (CLAUDE.md)",
+    operation_id="getWorkspaceInstruction"
+)
+@allow(["read:all"])
+async def get_workspace_instruction(
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceInstructionResponse]:
+    path = "CLAUDE.md"
+    try:
+        from .handles import WorkspaceHandleGetItemByPathOptions, FolderHandle
+        file_handle = await workspace.files.get(WorkspaceHandleGetItemByPathOptions(path=path))
+        if isinstance(file_handle, FolderHandle):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Path is a directory")
+        content = file_handle.path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        content = ""
+    return ResponseEnvelope(success=True, result=WorkspaceInstructionResponse(content=content))
+
+
+@router.put(
+    "/{workspace_id}/instruction",
+    response_model=ResponseEnvelope[WorkspaceInstructionResponse],
+    summary="Update the workspace instruction (CLAUDE.md)",
+    operation_id="updateWorkspaceInstruction"
+)
+@allow(["write:all"])
+async def update_workspace_instruction(
+    payload: WorkspaceInstructionUpdate,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[WorkspaceInstructionResponse]:
+    path = "CLAUDE.md"
+    try:
+        await workspace.files.write(path, payload.content.encode("utf-8"))
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ResponseEnvelope(success=True, result=WorkspaceInstructionResponse(content=payload.content))
+

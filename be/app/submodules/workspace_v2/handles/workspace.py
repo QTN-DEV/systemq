@@ -70,5 +70,11 @@ class WorkspaceHandle:
             root = self.options.root_path.resolve()
             for folder in ("data", "outputs", "workflows", "uploads", ".claude/skills"):
                 (root / folder).mkdir(parents=True, exist_ok=True)
+            claude_md = root / "CLAUDE.md"
+            if not claude_md.exists():
+                claude_md.write_text(
+                    "# Workspace\n\nContext and instructions for Claude in this workspace.\n",
+                    encoding="utf-8",
+                )
 
         await asyncio.to_thread(_create)

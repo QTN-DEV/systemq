@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GitBranch, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { GitBranch, Plus, RefreshCw, Trash2, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import { WorkflowCreateDialog } from "@/components/workspace-v2/workflow-create-
 import { WorkflowExecuteDialog } from "@/components/workspace-v2/workflow-execute-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { WorkspaceWorkflowRun } from "@/components/chat/workspace-workflow";
 
 export type WorkspaceV2WorkflowsTabProps = {
   className?: string;
@@ -25,11 +26,13 @@ export function WorkspaceV2WorkflowsTab(props: WorkspaceV2WorkflowsTabProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  const [executingWorkflow, setExecutingWorkflow] = useState<{name: string, inputs: Record<string, string>} | null>(null);
+
   const { data, isLoading, refetch } = useQuery({
     ...listWorkspaceWorkflowsWorkspaceV2WorkspaceIdWorkflowsGetOptions({
       path: { workspace_id: id },
     }),
-    enabled: id.length > 0,
+    enabled: id.length > 0 && executingWorkflow === null,
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
@@ -63,6 +66,27 @@ export function WorkspaceV2WorkflowsTab(props: WorkspaceV2WorkflowsTabProps) {
   });
 
   if (!workspaceId) return null;
+
+  if (executingWorkflow) {
+    return (
+      <div className={cn("flex flex-col min-h-0 flex-1 bg-background", className)}>
+        <div className="flex items-center gap-2 p-4 border-b border-border">
+          <Button variant="ghost" size="sm" onClick={() => setExecutingWorkflow(null)}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Workflows
+          </Button>
+          <span className="font-medium text-sm">Executing: {executingWorkflow.name}</span>
+        </div>
+        <div className="flex-1 min-h-0">
+          <WorkspaceWorkflowRun 
+            workspaceId={id} 
+            workflowName={executingWorkflow.name} 
+            inputs={executingWorkflow.inputs} 
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("min-h-0 flex-1 overflow-auto p-4 md:p-6 flex flex-col gap-4", className)}>
@@ -162,25 +186,25 @@ export function WorkspaceV2WorkflowsTab(props: WorkspaceV2WorkflowsTabProps) {
                   <span className="text-muted-foreground/60 font-mono text-[10px]">
                     {wf.id}
                   </span>
-                  <WorkflowExecuteDialog
-                    workspaceId={id}
-                    workflowName={wf.name}
-                    workflowDisplayName={wf.display_name}
-                    onExecute={(values) => {
-                      // TODO: wire to actual execution endpoint
-                      console.log("Execute workflow", wf.name, "with", values);
-                    }}
-                  >
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 gap-1 text-xs opacity-0 transition-opacity group-hover:opacity-100"
-                      type="button"
-                      onClick={(e) => e.stopPropagation()}
+                  <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                    <WorkflowExecuteDialog
+                      workspaceId={id}
+                      workflowName={wf.name}
+                      workflowDisplayName={wf.display_name}
+                      onExecute={(values) => {
+                        setExecutingWorkflow({ name: wf.name, inputs: values as Record<string, string> });
+                      }}
                     >
-                      ▶ Run
-                    </Button>
-                  </WorkflowExecuteDialog>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 gap-1 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                        type="button"
+                      >
+                        ▶ Run
+                      </Button>
+                    </WorkflowExecuteDialog>
+                  </div>
                 </div>
               </div>
             );
