@@ -123,7 +123,7 @@ export function WorkflowExecuteDialog(props: WorkflowExecuteDialogProps) {
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Play className="h-4 w-4" />
