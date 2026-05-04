@@ -24,7 +24,7 @@ from app.models import (
 from app.submodules.workspace.models import WorkspaceMetadata
 from app.submodules.workspace_v2.documents import WorkspaceChat, WorkspaceAiContext
 from app.submodules.blocks.models import Block, BlockHistory, Comment as BlockComment
-from app.submodules.chat.documents import Chat
+from app.submodules.chat.documents import ChatThread
 
 from app.submodules.daily_standup.models import StandupEntry
 from app.submodules.dashboard.models import DynamicDashboard
@@ -68,7 +68,7 @@ async def init_database() -> None:
             SessionTokenV2,
             WorkspaceMetadataV2,
             UserV2,
-            Chat,
+            ChatThread,
         ],
     )
 
