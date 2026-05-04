@@ -12,7 +12,7 @@ pipeline {
 
     SLACK_BOT_WEBHOOK_URL = credentials('slack-webhookurl-internalops')
 
-    KUBECONFIG_CRED = 'matrix-rancher'
+    KUBECONFIG_CRED = 'internalops-rancher'
   }
 
   triggers {
