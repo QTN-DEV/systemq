@@ -1,5 +1,5 @@
 import json
-import json
+import os
 from collections.abc import AsyncIterable
 from typing import Optional
 
@@ -42,6 +42,7 @@ from .schemas import (
 )
 from .dependencies import UseWorkspace, UseWorkspaceService, SanitizedPath
 from .mcps import workspace_ai_context_mcp
+from .constants import PROMPTS_DIR
 
 router = APIRouter()
 
@@ -275,35 +276,20 @@ async def workspace_chat_stream(
         chat = await workspace.chats.get(chat_id)
         db_messages = chat.messages
     except Exception:
-        db_messages = payload.messages
+        db_messages = []
 
     all_messages = db_messages + payload.messages
-    conversation = "\n\n".join([f"-----\n{m.role}: {m.content} \nattachments {str(m.attachments)}" for m in all_messages])
-    print(f"Streaming conversation context:\n{conversation}")
 
-    system_instructions = (
-        f"Context: CWD is `{workspace.root_path}`. Workspace ID is `{workspace.id}` "
-        "Dont say you are claude, Say you are Personal Assistant for Internal Ops"
-        "If the user asks to 'remember' something or provides info that should be persisted, "
-        "you must call the `workspace_ai_context` tools to save it to the database for future sessions. "
-        "You have to call `get_contexts_tool` to get the contexts before responding. "
-        "\n\n"
-        "Image Analysis: When asked to analyze an image, use the file system tools. "
-        "Images are stored in the `uploads` folder. URL paths (e.g., .../files/uploads%2F...) "
-        "map to local paths relative to your CWD. "
-        "Restriction: You are only permitted to access image files within this specific chat context."
+    blueprint = PromptBlueprint(working_directory=str(workspace.root_path))
+    blueprint.set_prompt_from_file(os.path.join(PROMPTS_DIR, "conversation.hbs"))
+    blueprint.set_vars(
+        root_path=str(workspace.root_path),
+        workspace_id=str(workspace.id),
+        messages=[m.model_dump() for m in all_messages],
     )
-
-
-    print("System instructions:", system_instructions)
-
-    blueprint = PromptBlueprint(
-        template=conversation,
-        working_directory=str(workspace.root_path),
-    )
+    blueprint.set_system_prompt_from_file(os.path.join(PROMPTS_DIR, "workspace_assistant.hbs"))
     blueprint.add_mcp("workspace_ai_context", workspace_ai_context_mcp)
     blueprint.set_model("claude-haiku-4-5-20251001")
-    blueprint.set_system_prompt(system_instructions)
 
     runner = AnthropicRunner(blueprint)
 

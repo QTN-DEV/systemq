@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from app.api.routes.auth import get_current_user
 from app.schemas.auth import UserProfile
 from app.submodules.ai import AnthropicRunner, PromptBlueprint, StreamChunkModel
-from app.submodules.chat.documents import Chat, ChatMessage
+from app.submodules.chat.documents import ChatThread, ChatThreadMessage
 from app.core import ResponseEnvelope
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ def _user_oid(user: UserProfile) -> PydanticObjectId:
     return PydanticObjectId(user.id)
 
 
-def _to_response(chat: Chat) -> ChatResponse:
+def _to_response(chat: ChatThread) -> ChatResponse:
     return ChatResponse(
         id=str(chat.id),
         user_id=str(chat.user_id),
@@ -99,12 +99,12 @@ def _to_response(chat: Chat) -> ChatResponse:
     )
 
 
-async def _get_owned_chat(chat_id: str, user: UserProfile) -> Chat:
+async def _get_owned_chat(chat_id: str, user: UserProfile) -> ChatThread:
     try:
         cid = PydanticObjectId(chat_id)
     except Exception:
         raise HTTPException(400, "Invalid chat id")
-    chat = await Chat.get(cid)
+    chat = await ChatThread.get(cid)
     if chat is None or chat.user_id != _user_oid(user):
         raise HTTPException(404, "Chat not found")
     return chat
@@ -122,10 +122,10 @@ async def list_chats(
 ):
     uid = _user_oid(current_user)
     skip = (page - 1) * page_size
-    total = await Chat.find(Chat.user_id == uid).count()
+    total = await ChatThread.find(ChatThread.user_id == uid).count()
     chats = (
-        await Chat.find(Chat.user_id == uid)
-        .sort(-Chat.id)
+        await ChatThread.find(ChatThread.user_id == uid)
+        .sort(-ChatThread.id)
         .skip(skip)
         .limit(page_size)
         .to_list()
@@ -146,10 +146,10 @@ async def create_chat(
     payload: ChatCreate,
     current_user: UserProfile = Depends(get_current_user),
 ):
-    chat = Chat(
+    chat = ChatThread(
         user_id=_user_oid(current_user),
         title=(payload.title or "New Chat").strip() or "New Chat",
-        messages=[ChatMessage(**m.model_dump()) for m in payload.messages],
+        messages=[ChatThreadMessage(**m.model_dump()) for m in payload.messages],
     )
     await chat.insert()
     return ResponseEnvelope(result=_to_response(chat))
@@ -183,7 +183,7 @@ async def append_messages(
     current_user: UserProfile = Depends(get_current_user),
 ):
     chat = await _get_owned_chat(chat_id, current_user)
-    chat.messages.extend([ChatMessage(**m.model_dump()) for m in payload.messages])
+    chat.messages.extend([ChatThreadMessage(**m.model_dump()) for m in payload.messages])
     await chat.save()
     return ResponseEnvelope(result=_to_response(chat))
 
@@ -214,7 +214,7 @@ async def chat_stream(
     chat = await _get_owned_chat(chat_id, current_user)
 
     # Build conversation from stored history + incoming messages
-    all_messages = chat.messages + [ChatMessage(**m.model_dump()) for m in payload.messages]
+    all_messages = chat.messages + [ChatThreadMessage(**m.model_dump()) for m in payload.messages]
     conversation = "\n".join(
         f"{m.role.capitalize()}: {m.content}" for m in all_messages
     )

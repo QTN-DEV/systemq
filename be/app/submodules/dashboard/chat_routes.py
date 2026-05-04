@@ -58,7 +58,6 @@ async def dashboard_chat_stream(
 
     blueprint = PromptBlueprint(
         template=prompt,
-        working_directory=".",
     )
     blueprint.set_system_prompt(DASHBOARD_SYSTEM_PROMPT)
     blueprint.set_model("claude-haiku-4-5-20251001")
@@ -67,5 +66,4 @@ async def dashboard_chat_stream(
     runner = AnthropicRunner(blueprint)
 
     async for chunk in runner.run():
-        logger.info(f"Received chunk: {chunk}")
         yield chunk

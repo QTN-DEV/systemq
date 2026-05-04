@@ -1,11 +1,13 @@
 import { AssistantRuntimeProvider, RuntimeAdapterProvider, useAui, useLocalRuntime, useRemoteThreadListRuntime, type AttachmentAdapter, type ChatModelAdapter, type CompleteAttachment, type PendingAttachment, type RemoteThreadListAdapter, type ThreadHistoryAdapter } from "@assistant-ui/react";
 import { useMemo, type ReactElement } from "react";
 
+import { deleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDelete as deleteWorkspaceChat, getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet, listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet, appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost, workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost, createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost, uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost } from '@/api'
+import { client } from "@/api/__generated__/client.gen";
+import { mapAssistantStream } from "@/utils/map-assistant-stream";
+
 import { Thread } from "../assistant-ui/thread";
 import { ThreadList } from "../assistant-ui/thread-list";
-import { deleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDelete as deleteWorkspaceChat, getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet, listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet, appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost, workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost, createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost, uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost } from '@/api'
-import { mapAssistantStream } from "@/utils/map-assistant-stream";
-import { client } from "@/api/__generated__/client.gen";
+
 
 type WorkspaceAssistantThreadProps = {
   workspaceId?: string | undefined;
@@ -93,13 +95,13 @@ export function WorkspaceAssistantThread({
     },
 
     async initialize(threadId) {
-      console.log('thread init ' + threadId)
+      console.log(`thread init ${  threadId}`)
       const { data: chat } = await createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost({
         path: {
           workspace_id: workspaceId as string
         },
         body: {
-          title: 'Test ' + threadId
+          title: `Test ${  threadId}`
         }
       })
 
@@ -110,38 +112,35 @@ export function WorkspaceAssistantThread({
     },
 
     async rename(remoteId, newTitle) {
-      console.log('thread rename ' + remoteId + ' ' + newTitle)
+      console.log(`thread rename ${  remoteId  } ${  newTitle}`)
     },
 
     async archive(remoteId) {
-      console.log('thread archive ' + remoteId)
+      console.log(`thread archive ${  remoteId}`)
     },
 
     async unarchive(remoteId) {
-      console.log('thread unarchive ' + remoteId)
+      console.log(`thread unarchive ${  remoteId}`)
     },
 
     async delete(remoteId) {
-      console.log('thread delete ' + remoteId)
+      console.log(`thread delete ${  remoteId}`)
       await deleteWorkspaceChat({
         path: {
-          chat_id: remoteId as string,
+          chat_id: remoteId,
           workspace_id: workspaceId as string
         }
       })
     },
 
     async generateTitle(remoteId, unstable_messages) {
-      console.log('thread generateTitle ' + remoteId + ' ' + JSON.stringify(unstable_messages))
+      console.log(`thread generateTitle ${  remoteId  } ${  JSON.stringify(unstable_messages)}`)
     },
   };
 
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
       async *run({ messages, unstable_threadId, context }) {
-
-        console.log("sending to " + unstable_threadId)
-        console.log(JSON.stringify({ send_message: messages }, null, 2))
 
         const response = await workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost({
           path: {
@@ -191,10 +190,10 @@ export function WorkspaceAssistantThread({
 
               const { remoteId } = aui.threadListItem().getState();
               if (!remoteId) return { messages: [] };
-              console.log("load history " + remoteId)
+              console.log(`load history ${  remoteId}`)
               const { data: chat } = await getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet({
                 path: {
-                  chat_id: remoteId as string,
+                  chat_id: remoteId,
                   workspace_id: workspaceId as string
                 }
               })
@@ -254,11 +253,11 @@ export function WorkspaceAssistantThread({
             async append({ message, parentId }) {
               // Wait for initialization to get remoteId (safe to call multiple times)
               const { remoteId } = await aui.threadListItem().initialize();
-              console.log("append message " + remoteId + " " + JSON.stringify(message))
+              console.log(`append message ${  remoteId  } ${  JSON.stringify(message)}`)
 
               await appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost({
                 path: {
-                  chat_id: remoteId as string,
+                  chat_id: remoteId,
                   workspace_id: workspaceId as string
                 },
                 body: {

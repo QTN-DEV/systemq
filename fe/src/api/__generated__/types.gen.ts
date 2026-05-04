@@ -458,6 +458,140 @@ export type ChatStreamRequest = {
 };
 
 /**
+ * ChatThreadCreate
+ */
+export type ChatThreadCreate = {
+    /**
+     * Messages
+     *
+     * Initial messages payload.
+     */
+    messages?: Array<ChatThreadMessageSchema>;
+    /**
+     * Title
+     *
+     * Display title for the thread.
+     */
+    title?: string;
+};
+
+/**
+ * ChatThreadListItem
+ */
+export type ChatThreadListItem = {
+    /**
+     * Id
+     *
+     * Chat thread ID.
+     */
+    id: string;
+    /**
+     * Title
+     *
+     * Display title for the thread.
+     */
+    title?: string;
+};
+
+/**
+ * ChatThreadMessageSchema
+ */
+export type ChatThreadMessageSchema = {
+    /**
+     * Id
+     *
+     * Unique message ID.
+     */
+    id?: string | null;
+    /**
+     * Parent Id
+     *
+     * Parent message ID for threaded conversations.
+     */
+    parent_id?: string | null;
+    /**
+     * Role
+     *
+     * Speaker role in the conversation.
+     */
+    role: 'user' | 'assistant' | 'system';
+    /**
+     * Content
+     *
+     * Plain-text or JSON-stringified message body.
+     */
+    content: string;
+    /**
+     * Attachments
+     *
+     * List of message attachments.
+     */
+    attachments?: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Created At
+     *
+     * Creation timestamp.
+     */
+    created_at?: unknown | null;
+};
+
+/**
+ * ChatThreadRename
+ */
+export type ChatThreadRename = {
+    /**
+     * Title
+     *
+     * New title for the thread.
+     */
+    title: string;
+};
+
+/**
+ * ChatThreadResponse
+ */
+export type ChatThreadResponse = {
+    /**
+     * Id
+     *
+     * Chat thread ID.
+     */
+    id: string;
+    /**
+     * User Id
+     *
+     * Owner user ID.
+     */
+    user_id: string;
+    /**
+     * Messages
+     *
+     * Stored messages.
+     */
+    messages: Array<ChatThreadMessageSchema>;
+    /**
+     * Title
+     *
+     * Display title for the thread.
+     */
+    title?: string;
+};
+
+/**
+ * ChatThreadStreamRequest
+ */
+export type ChatThreadStreamRequest = {
+    /**
+     * Messages
+     *
+     * Conversation history for the AI thread.
+     */
+    messages: Array<ChatThreadMessageSchema>;
+};
+
+/**
  * CommentCreate
  */
 export type CommentCreate = {
@@ -1282,6 +1416,32 @@ export type PaginatedChats = {
 };
 
 /**
+ * PaginatedResponse[ChatThreadListItem]
+ */
+export type PaginatedResponseChatThreadListItem = {
+    /**
+     * Items
+     */
+    items: Array<ChatThreadListItem>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Has Next
+     */
+    has_next: boolean;
+};
+
+/**
  * PaginatedResponse[WorkspaceAiContextResponse]
  */
 export type PaginatedResponseWorkspaceAiContextResponse = {
@@ -1524,6 +1684,48 @@ export type ResponseEnvelopeChatResponse = {
 };
 
 /**
+ * ResponseEnvelope[ChatThreadListItem]
+ */
+export type ResponseEnvelopeChatThreadListItem = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: ChatThreadListItem | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[ChatThreadResponse]
+ */
+export type ResponseEnvelopeChatThreadResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: ChatThreadResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ResponseEnvelope[CreateWorkspaceResponse]
  */
 export type ResponseEnvelopeCreateWorkspaceResponse = {
@@ -1622,6 +1824,27 @@ export type ResponseEnvelopePaginatedChats = {
      */
     success: boolean;
     result?: PaginatedChats | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * ResponseEnvelope[PaginatedResponse[ChatThreadListItem]]
+ */
+export type ResponseEnvelopePaginatedResponseChatThreadListItem = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: PaginatedResponseChatThreadListItem | null;
     /**
      * Message
      */
@@ -3949,6 +4172,213 @@ export type GetModelsAiModelsGetResponses = {
 };
 
 export type GetModelsAiModelsGetResponse = GetModelsAiModelsGetResponses[keyof GetModelsAiModelsGetResponses];
+
+export type ListChatThreadsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/chat/list';
+};
+
+export type ListChatThreadsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListChatThreadsError = ListChatThreadsErrors[keyof ListChatThreadsErrors];
+
+export type ListChatThreadsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopePaginatedResponseChatThreadListItem;
+};
+
+export type ListChatThreadsResponse = ListChatThreadsResponses[keyof ListChatThreadsResponses];
+
+export type CreateChatThreadData = {
+    body?: ChatThreadCreate;
+    path?: never;
+    query?: never;
+    url: '/chat/create';
+};
+
+export type CreateChatThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateChatThreadError = CreateChatThreadErrors[keyof CreateChatThreadErrors];
+
+export type CreateChatThreadResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseEnvelopeChatThreadResponse;
+};
+
+export type CreateChatThreadResponse = CreateChatThreadResponses[keyof CreateChatThreadResponses];
+
+export type DeleteChatThreadData = {
+    body?: never;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/chat/{thread_id}';
+};
+
+export type DeleteChatThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteChatThreadError = DeleteChatThreadErrors[keyof DeleteChatThreadErrors];
+
+export type DeleteChatThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeNoneType;
+};
+
+export type DeleteChatThreadResponse = DeleteChatThreadResponses[keyof DeleteChatThreadResponses];
+
+export type GetChatThreadData = {
+    body?: never;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/chat/{thread_id}';
+};
+
+export type GetChatThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetChatThreadError = GetChatThreadErrors[keyof GetChatThreadErrors];
+
+export type GetChatThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatThreadResponse;
+};
+
+export type GetChatThreadResponse = GetChatThreadResponses[keyof GetChatThreadResponses];
+
+export type UpdateChatThreadData = {
+    body: ChatThreadRename;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/chat/{thread_id}/title';
+};
+
+export type UpdateChatThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateChatThreadError = UpdateChatThreadErrors[keyof UpdateChatThreadErrors];
+
+export type UpdateChatThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatThreadListItem;
+};
+
+export type UpdateChatThreadResponse = UpdateChatThreadResponses[keyof UpdateChatThreadResponses];
+
+export type AppendMessageToChatThreadData = {
+    body: ChatThreadMessageSchema;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/chat/{thread_id}/messages';
+};
+
+export type AppendMessageToChatThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AppendMessageToChatThreadError = AppendMessageToChatThreadErrors[keyof AppendMessageToChatThreadErrors];
+
+export type AppendMessageToChatThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeChatThreadResponse;
+};
+
+export type AppendMessageToChatThreadResponse = AppendMessageToChatThreadResponses[keyof AppendMessageToChatThreadResponses];
+
+export type StreamChatThreadData = {
+    body: ChatThreadStreamRequest;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/chat/{thread_id}/stream';
+};
+
+export type StreamChatThreadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StreamChatThreadError = StreamChatThreadErrors[keyof StreamChatThreadErrors];
+
+export type StreamChatThreadResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type LoginAuthLoginPostData = {
     body: LoginRequest;
