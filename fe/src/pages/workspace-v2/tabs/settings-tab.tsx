@@ -2,15 +2,20 @@ import { type ReactElement, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Brain, Settings2, Loader2, FileText } from "lucide-react";
+import { Trash2, Brain, Settings2, Loader2, FileText, BookOpen, Save } from "lucide-react";
 
 import {
   deleteWorkspaceContextWorkspaceV2WorkspaceIdContextsContextIdDeleteMutation,
   listWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetOptions,
   listWorkspaceContextsWorkspaceV2WorkspaceIdContextsGetQueryKey,
+  getWorkspaceInstructionOptions,
+  updateWorkspaceInstructionMutation,
+  getWorkspaceInstructionQueryKey,
 } from "@/api";
 import type { WorkspaceAiContextResponse } from "@/api";
+import { PlateEditor, type PlateEditorHandle } from "@/components/editor/plate-editor";
 import { Button } from "@/components/ui/button";
+import { useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -159,6 +164,60 @@ function ContextsContent(props: ContextsContentProps) {
   );
 }
 
+function InstructionContent({ workspaceId }: { workspaceId: string }) {
+  const plateRef = useRef<PlateEditorHandle>(null);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    ...getWorkspaceInstructionOptions({ path: { workspace_id: workspaceId } }),
+    enabled: !!workspaceId,
+  });
+
+  const { mutate, isPending } = useMutation({
+    ...updateWorkspaceInstructionMutation(),
+    onSuccess: () => {
+      toast.success("Instructions saved");
+      queryClient.invalidateQueries({
+        queryKey: getWorkspaceInstructionQueryKey({ path: { workspace_id: workspaceId } }),
+      });
+    },
+    onError: () => toast.error("Failed to save instructions"),
+  });
+
+  const handleSave = () => {
+    const content = plateRef.current?.getMarkdown() ?? "";
+    mutate({ path: { workspace_id: workspaceId }, body: { content } });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[500px] border border-border rounded-md overflow-hidden bg-background">
+      <div className="flex justify-between items-center p-2 border-b border-border bg-muted/20">
+        <span className="text-xs font-mono text-muted-foreground ml-2">CLAUDE.md</span>
+        <Button size="sm" onClick={handleSave} disabled={isPending}>
+          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+          Save
+        </Button>
+      </div>
+      <div className="flex-1 min-h-0 relative">
+        <PlateEditor
+          key={`instruction-${workspaceId}`}
+          ref={plateRef}
+          initialMarkdown={data?.result?.content ?? ""}
+          className="h-full overflow-y-auto"
+        />
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Settings nav items
 // ---------------------------------------------------------------------------
@@ -170,6 +229,11 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
+  {
+    id: "instruction",
+    label: "Instructions",
+    icon: <BookOpen className="h-4 w-4" />,
+  },
   {
     id: "context",
     label: "Context",
@@ -193,7 +257,7 @@ export type WorkspaceV2SettingsTabProps = {
 export function WorkspaceV2SettingsTab(props: WorkspaceV2SettingsTabProps): ReactElement {
   const { className } = props;
   const { workspaceId } = useParams<{ workspaceId: string }>();
-  const [activeSection, setActiveSection] = useState<string>("context");
+  const [activeSection, setActiveSection] = useState<string>("instruction");
 
   const id = workspaceId?.trim() ?? "";
 
@@ -223,7 +287,23 @@ export function WorkspaceV2SettingsTab(props: WorkspaceV2SettingsTabProps): Reac
       </aside>
 
       {/* Right content */}
-      <main className="min-w-0 flex-1 overflow-y-auto p-6">
+      <main className="min-w-0 flex-1 overflow-y-auto p-6 flex flex-col">
+        {activeSection === "instruction" && (
+          <section className="flex flex-col flex-1 min-h-0">
+            <div className="mb-5 shrink-0">
+              <h2 className="text-foreground text-base font-semibold">Workspace Instructions</h2>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                Edit the CLAUDE.md file to define global instructions and behaviors for AI agents in this workspace.
+              </p>
+            </div>
+            {id ? (
+              <InstructionContent workspaceId={id} />
+            ) : (
+              <p className="text-muted-foreground text-sm">No workspace selected.</p>
+            )}
+          </section>
+        )}
+
         {activeSection === "context" && (
           <section>
             <div className="mb-5">

@@ -1984,6 +1984,27 @@ export type ResponseEnvelopeWorkspaceChatResponse = {
 };
 
 /**
+ * ResponseEnvelope[WorkspaceInstructionResponse]
+ */
+export type ResponseEnvelopeWorkspaceInstructionResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: WorkspaceInstructionResponse | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ResponseEnvelope[list[FileNode]]
  */
 export type ResponseEnvelopeListFileNode = {
@@ -2425,6 +2446,20 @@ export type WorkflowCreate = {
      * Mcp Servers
      */
     mcp_servers?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * WorkflowExecuteRequest
+ */
+export type WorkflowExecuteRequest = {
+    /**
+     * Inputs
+     *
+     * Input variables for the workflow.
+     */
+    inputs?: {
         [key: string]: unknown;
     };
 };
@@ -2931,6 +2966,30 @@ export type WorkspaceFilesResponse = {
      * Result
      */
     result: Array<WorkspaceFileEntry>;
+};
+
+/**
+ * WorkspaceInstructionResponse
+ */
+export type WorkspaceInstructionResponse = {
+    /**
+     * Content
+     *
+     * The markdown content of the CLAUDE.md instruction file.
+     */
+    content: string;
+};
+
+/**
+ * WorkspaceInstructionUpdate
+ */
+export type WorkspaceInstructionUpdate = {
+    /**
+     * Content
+     *
+     * The new markdown content for the CLAUDE.md instruction file.
+     */
+    content: string;
 };
 
 /**
@@ -4156,6 +4215,98 @@ export type UpdateWorkspaceWorkflowWorkspaceV2WorkspaceIdWorkflowsNamePutRespons
 };
 
 export type UpdateWorkspaceWorkflowWorkspaceV2WorkspaceIdWorkflowsNamePutResponse = UpdateWorkspaceWorkflowWorkspaceV2WorkspaceIdWorkflowsNamePutResponses[keyof UpdateWorkspaceWorkflowWorkspaceV2WorkspaceIdWorkflowsNamePutResponses];
+
+export type WorkspaceExecuteWorkflowData = {
+    body: WorkflowExecuteRequest;
+    path: {
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/workflows/{name}/execute';
+};
+
+export type WorkspaceExecuteWorkflowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkspaceExecuteWorkflowError = WorkspaceExecuteWorkflowErrors[keyof WorkspaceExecuteWorkflowErrors];
+
+export type WorkspaceExecuteWorkflowResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetWorkspaceInstructionData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/instruction';
+};
+
+export type GetWorkspaceInstructionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetWorkspaceInstructionError = GetWorkspaceInstructionErrors[keyof GetWorkspaceInstructionErrors];
+
+export type GetWorkspaceInstructionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceInstructionResponse;
+};
+
+export type GetWorkspaceInstructionResponse = GetWorkspaceInstructionResponses[keyof GetWorkspaceInstructionResponses];
+
+export type UpdateWorkspaceInstructionData = {
+    body: WorkspaceInstructionUpdate;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/instruction';
+};
+
+export type UpdateWorkspaceInstructionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateWorkspaceInstructionError = UpdateWorkspaceInstructionErrors[keyof UpdateWorkspaceInstructionErrors];
+
+export type UpdateWorkspaceInstructionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceInstructionResponse;
+};
+
+export type UpdateWorkspaceInstructionResponse = UpdateWorkspaceInstructionResponses[keyof UpdateWorkspaceInstructionResponses];
 
 export type GetModelsAiModelsGetData = {
     body?: never;

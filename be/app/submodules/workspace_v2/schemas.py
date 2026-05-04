@@ -140,6 +140,14 @@ class WorkspaceChatRename(BaseModel):
     title: str = Field(..., min_length=1, max_length=256, description="New title for the chat.")
 
 
+class WorkspaceInstructionResponse(BaseModel):
+    content: str = Field(..., description="The markdown content of the CLAUDE.md instruction file.")
+
+
+class WorkspaceInstructionUpdate(BaseModel):
+    content: str = Field(..., description="The new markdown content for the CLAUDE.md instruction file.")
+
+
 # ---------------------------------------------------------------------------
 # Workflow schemas
 # ---------------------------------------------------------------------------
@@ -180,6 +188,10 @@ class WorkflowUpdate(BaseModel):
     max_budget_usd: Optional[float] = None
     model: Optional[str] = None
     mcp_servers: Optional[dict[str, Any]] = None
+
+
+class WorkflowExecuteRequest(BaseModel):
+    inputs: dict[str, Any] = Field(default_factory=dict, description="Input variables for the workflow.")
 
 
 class WorkflowListItem(BaseModel):
