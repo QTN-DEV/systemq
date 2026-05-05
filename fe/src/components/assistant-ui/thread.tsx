@@ -23,7 +23,8 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
+import { createContext, useContext } from "react";
 
 import {
   ComposerAddAttachment,
@@ -37,11 +38,19 @@ import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Image } from "../image";
+import { ModelSelector, type ModelOption } from "./model-selector";
 
-export const Thread: FC<React.ComponentProps<typeof ThreadPrimitive.Root>> = (
-  props,
-) => {
+type ThreadModelsContextValue = ModelOption[];
+const ThreadModelsContext = createContext<ThreadModelsContextValue>([]);
+
+export type ThreadProps = React.ComponentProps<typeof ThreadPrimitive.Root> & {
+  models?: ModelOption[];
+  defaultModel?: string;
+};
+
+export const Thread: FC<ThreadProps> = ({ models = [], defaultModel, ...props }) => {
   return (
+    <ThreadModelsContext.Provider value={models}>
     <ThreadPrimitive.Root
       className={cn(
         "aui-root aui-thread-root @container flex h-full flex-col bg-background",
@@ -75,11 +84,12 @@ export const Thread: FC<React.ComponentProps<typeof ThreadPrimitive.Root>> = (
 
           <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-(--composer-radius) bg-background pb-4 md:pb-6">
             <ThreadScrollToBottom />
-            <Composer />
+            <Composer defaultModel={defaultModel} />
           </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
+    </ThreadModelsContext.Provider>
   );
 };
 
@@ -150,7 +160,7 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
-const Composer: FC = () => {
+const Composer: FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone asChild>
@@ -166,17 +176,25 @@ const Composer: FC = () => {
             autoFocus
             aria-label="Message input"
           />
-          <ComposerAction />
+          <ComposerAction defaultModel={defaultModel} />
         </div>
       </ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
   );
 };
 
-const ComposerAction: FC = () => {
+const ComposerAction: FC<{ defaultModel?: string }> = ({ defaultModel }) => {
+  const models = useContext(ThreadModelsContext);
   return (
-    <div className="aui-composer-action-wrapper relative flex items-center justify-between">
+    <div className="aui-composer-action-wrapper relative flex items-center justify-end gap-2">
       <ComposerAddAttachment />
+      {models.length > 0 && (
+        <ModelSelector
+          models={models}
+          defaultValue={defaultModel ?? models[0]?.id}
+          size="sm"
+        />
+      )}
       <AuiIf condition={(s) => !s.thread.isRunning}>
         <ComposerPrimitive.Send asChild>
           <TooltipIconButton

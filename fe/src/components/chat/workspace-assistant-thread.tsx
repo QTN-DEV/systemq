@@ -1,9 +1,10 @@
 import { AssistantRuntimeProvider, RuntimeAdapterProvider, useAui, useLocalRuntime, useRemoteThreadListRuntime, type AttachmentAdapter, type ChatModelAdapter, type CompleteAttachment, type PendingAttachment, type RemoteThreadListAdapter, type ThreadHistoryAdapter } from "@assistant-ui/react";
 import { useMemo, type ReactElement } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { deleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDelete as deleteWorkspaceChat, getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet, listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet, appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost, workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost, createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost, uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost } from '@/api'
 import { client } from "@/api/__generated__/client.gen";
-import { generateWorkspaceChatTitle, renameWorkspaceChat } from '@/api';
+import { generateWorkspaceChatTitle, renameWorkspaceChat, getAvailableAiModelsOptions } from '@/api';
 import { mapAssistantStream } from "@/utils/map-assistant-stream";
 
 import { Thread } from "../assistant-ui/thread";
@@ -19,6 +20,10 @@ type WorkspaceAssistantThreadProps = {
 export function WorkspaceAssistantThread({
   workspaceId
 }: WorkspaceAssistantThreadProps): ReactElement {
+
+  const { data: modelsData } = useQuery(getAvailableAiModelsOptions());
+  const models = (modelsData?.result ?? []).map(m => ({ id: m.id, name: m.name ?? m.id }));
+  const defaultModel = models.find(m => m.id.toLowerCase().includes("sonnet"))?.id;
 
   class VisionImageAdapter implements AttachmentAdapter {
     accept = "image/jpeg,image/png,image/webp,image/gif";
@@ -210,6 +215,7 @@ export function WorkspaceAssistantThread({
                 .map((c) => (c.type === "text" ? c.text : ""))
                 .join(""),
             })),
+            model: (context.config as any)?.modelName || undefined,
           },
         });
         yield* mapAssistantStream(response.stream)
@@ -345,7 +351,7 @@ export function WorkspaceAssistantThread({
               <ThreadList />
             </div>
             <div className="flex flex-1 overflow-hidden">
-              <Thread className="w-full" />
+              <Thread className="w-full" models={models} defaultModel={defaultModel} />
             </div>
           </div>
         </AssistantRuntimeProvider>

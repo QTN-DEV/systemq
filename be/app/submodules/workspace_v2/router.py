@@ -314,8 +314,6 @@ async def generate_workspace_chat_title(
                 {"role": "user", "content": pkg["prompt"]}
             ]
         )
-        print("generated title from ai")
-        print(response.content)
         
         title = ""
         if hasattr(response, "content") and len(response.content) > 0:
@@ -360,7 +358,7 @@ async def workspace_chat_stream(
     from app.submodules.drive import drive_documents_mcp
     blueprint.add_mcp("workspace_ai_context", workspace_ai_context_mcp)
     blueprint.add_mcp("drive-documents-service", drive_documents_mcp)
-    blueprint.set_model("claude-sonnet-4-5-20250929")
+    blueprint.set_model(payload.model or "claude-sonnet-4-5-20250929")
 
     runner = AnthropicRunner(blueprint)
 

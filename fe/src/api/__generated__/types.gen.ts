@@ -3226,6 +3226,12 @@ export type AppSubmodulesWorkspaceV2SchemasWorkspaceChatCreate = {
      * Conversation history to send to the workspace chat.
      */
     messages: Array<WorkspaceChatMessage>;
+    /**
+     * Model
+     *
+     * Optional custom model to use for completion.
+     */
+    model?: string | null;
 };
 
 /**
@@ -4456,21 +4462,21 @@ export type UpdateWorkspaceInstructionResponses = {
 
 export type UpdateWorkspaceInstructionResponse = UpdateWorkspaceInstructionResponses[keyof UpdateWorkspaceInstructionResponses];
 
-export type GetModelsAiModelsGetData = {
+export type GetAvailableAiModelsData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/ai/models';
 };
 
-export type GetModelsAiModelsGetResponses = {
+export type GetAvailableAiModelsResponses = {
     /**
      * Successful Response
      */
     200: ResponseEnvelopeListAiModelListItem;
 };
 
-export type GetModelsAiModelsGetResponse = GetModelsAiModelsGetResponses[keyof GetModelsAiModelsGetResponses];
+export type GetAvailableAiModelsResponse = GetAvailableAiModelsResponses[keyof GetAvailableAiModelsResponses];
 
 export type ListChatThreadsData = {
     body?: never;
