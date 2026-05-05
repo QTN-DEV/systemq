@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileIcon, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { FileIcon, Pencil, Plus, Trash2, Upload, TextCursorInput } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -9,6 +9,8 @@ import {
   deleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteMutation,
   getWorkspaceFilesWorkspaceV2WorkspaceIdFilesGetOptions,
   getWorkspaceFilesWorkspaceV2WorkspaceIdFilesGetQueryKey,
+  uploadWorkspaceSkillMutation,
+  renameWorkspaceSkillMutation,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +43,12 @@ export function WorkspaceV2SkillsTab(props: WorkspaceV2SkillsTabProps) {
 
   const [skillDialogOpen, setSkillDialogOpen] = useState(false);
   const [skillNameInput, setSkillNameInput] = useState("");
+
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameSkillInput, setRenameSkillInput] = useState("");
+  const [skillToRename, setSkillToRename] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, refetch } = useQuery({
     ...getWorkspaceFilesWorkspaceV2WorkspaceIdFilesGetOptions({
@@ -97,6 +105,74 @@ export function WorkspaceV2SkillsTab(props: WorkspaceV2SkillsTabProps) {
     onError: () => toast.error("Could not delete skill"),
   });
 
+  const uploadSkillMutation = useMutation({
+    ...uploadWorkspaceSkillMutation(),
+    onSuccess: (res) => {
+      if (!res.success) {
+        toast.error("Could not upload skill");
+        return;
+      }
+      toast.success("Skill uploaded");
+      invalidateSkills();
+    },
+    onError: () => toast.error("Could not upload skill"),
+  });
+
+  const renameSkillMutation = useMutation({
+    ...renameWorkspaceSkillMutation(),
+    onSuccess: (res) => {
+      if (!res.success) {
+        toast.error("Could not rename skill");
+        return;
+      }
+      toast.success("Skill renamed");
+      setRenameDialogOpen(false);
+      invalidateSkills();
+    },
+    onError: () => toast.error("Could not rename skill"),
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const defaultName = file.name.replace(/\.[^/.]+$/, "");
+    const skillName = window.prompt("Enter skill name:", defaultName);
+    
+    if (!skillName) {
+      e.target.value = "";
+      return;
+    }
+
+    uploadSkillMutation.mutate({
+      path: { workspace_id: id },
+      body: { file, name: skillName }
+    });
+    
+    e.target.value = "";
+  };
+
+  const openRenameDialog = (name: string) => {
+    setSkillToRename(name);
+    setRenameSkillInput(name);
+    setRenameDialogOpen(true);
+  };
+
+  const saveRename = () => {
+    const newName = renameSkillInput.trim();
+    if (!newName || !skillToRename) {
+      toast.error("Skill name is required");
+      return;
+    }
+    renameSkillMutation.mutate({
+      path: { workspace_id: id, name: skillToRename },
+      body: { name: newName }
+    });
+  };
+
+  const isRenaming = renameSkillMutation.isPending;
+  const isUploading = uploadSkillMutation.isPending;
+
   const openSkillDialog = () => {
     setSkillNameInput("");
     setSkillDialogOpen(true);
@@ -125,6 +201,11 @@ export function WorkspaceV2SkillsTab(props: WorkspaceV2SkillsTabProps) {
           <Plus className="mr-1 h-3.5 w-3.5" />
           New skill
         </Button>
+        <Button size="sm" variant="secondary" className="h-8" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+          <Upload className="mr-1 h-3.5 w-3.5" />
+          {isUploading ? "Uploading..." : "Upload skill"}
+        </Button>
+        <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept=".md,.txt" />
         <Button size="sm" variant="outline" className="h-8" onClick={() => void refetch()}>
           Refresh
         </Button>
@@ -153,6 +234,14 @@ export function WorkspaceV2SkillsTab(props: WorkspaceV2SkillsTabProps) {
                     <Link to={`/workspace-v2/${id}/files/edit/${encodeFilePathForUrl(`.claude/skills/${e.name}/SKILL.md`)}`}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Link>
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => openRenameDialog(e.name)}
+                  >
+                    <TextCursorInput className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     size="icon"
@@ -199,6 +288,34 @@ export function WorkspaceV2SkillsTab(props: WorkspaceV2SkillsTabProps) {
             </Button>
             <Button onClick={saveSkill} disabled={isSaving}>
               {isSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename skill</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="rename-skill-name">New Name</Label>
+              <Input
+                id="rename-skill-name"
+                value={renameSkillInput}
+                onChange={(e) => setRenameSkillInput(e.target.value)}
+                disabled={isRenaming}
+                placeholder="new-skill-name"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isRenaming}>
+              Cancel
+            </Button>
+            <Button onClick={saveRename} disabled={isRenaming}>
+              {isRenaming ? "Renaming..." : "Rename"}
             </Button>
           </DialogFooter>
         </DialogContent>

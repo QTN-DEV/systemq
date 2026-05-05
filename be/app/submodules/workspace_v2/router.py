@@ -25,6 +25,7 @@ from .schemas import (
     SkillCreate,
     SkillResponse,
     SkillUpdate,
+    SkillRename,
     WorkflowCreate,
     WorkflowListItem,
     WorkflowResponse,
@@ -622,6 +623,74 @@ async def create_workspace_skill(
         success=True, 
         result=SkillResponse(name=_skill_display_name(payload.name), content=payload.content)
     )
+
+
+@router.post(
+    "/{workspace_id}/skills/upload",
+    response_model=ResponseEnvelope[SkillResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a skill markdown file",
+    operation_id="uploadWorkspaceSkill",
+)
+@allow(["write:all"])
+async def upload_workspace_skill(
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+    file: UploadFile = File(...),
+    name: str = Form(..., description="Name of the skill"),
+) -> ResponseEnvelope[SkillResponse]:
+    safe_name = _skill_display_name(name)
+    try:
+        path = _skill_file_path(name)
+        content = await file.read()
+        await workspace.files.create(path, content)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PermissionError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
+    except FileExistsError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Skill already exists") from exc
+        
+    return ResponseEnvelope(
+        success=True, 
+        result=SkillResponse(name=safe_name, content=content.decode("utf-8", errors="replace"))
+    )
+
+
+@router.patch(
+    "/{workspace_id}/skills/{name}/rename",
+    response_model=ResponseEnvelope[SkillResponse],
+    summary="Rename a skill",
+    operation_id="renameWorkspaceSkill",
+)
+@allow(["write:all"])
+async def rename_workspace_skill(
+    name: str,
+    payload: SkillRename,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[SkillResponse]:
+    try:
+        old_dir = _skill_dir_path(name)
+        new_dir = _skill_dir_path(payload.name)
+        await workspace.files.move(old_dir, new_dir)
+        
+        new_file_path = _skill_file_path(payload.name)
+        file_handle = await workspace.files.get(WorkspaceHandleGetItemByPathOptions(path=new_file_path))
+        content = file_handle.path.read_text(encoding="utf-8")
+        
+        return ResponseEnvelope(
+            success=True, 
+            result=SkillResponse(name=_skill_display_name(payload.name), content=content)
+        )
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Skill not found")
+    except FileExistsError:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Target skill already exists")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PermissionError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Path outside workspace boundaries") from None
 
 
 @router.get(

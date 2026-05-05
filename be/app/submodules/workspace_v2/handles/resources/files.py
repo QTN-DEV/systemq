@@ -147,6 +147,19 @@ class FilesResource:
 
         await asyncio.to_thread(_delete)
 
+    async def move(self, source_path: str, destination_path: str) -> None:
+        def _move() -> None:
+            source = self.workspace.get_safe_target_path(source_path)
+            dest = self.workspace.get_safe_target_path(destination_path)
+            if not source.exists():
+                raise FileNotFoundError(source_path)
+            if dest.exists():
+                raise FileExistsError(destination_path)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            source.rename(dest)
+
+        await asyncio.to_thread(_move)
+
     async def get_tree(self) -> List[FileNode]:
         return await asyncio.to_thread(self._scan_workspace)
 
