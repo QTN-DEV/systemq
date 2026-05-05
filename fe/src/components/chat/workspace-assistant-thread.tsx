@@ -154,7 +154,10 @@ export function WorkspaceAssistantThread({
             },
           });
           if (data?.title) {
-            controller.appendText(data.title);
+            for (const char of data.title) {
+              controller.appendText(char);
+              await new Promise((resolve) => setTimeout(resolve, 40));
+            }
           }
 
           await renameWorkspaceChat({
