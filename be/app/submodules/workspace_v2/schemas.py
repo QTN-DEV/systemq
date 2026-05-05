@@ -149,6 +149,17 @@ class WorkspaceInstructionUpdate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Generate Title Schemas
+# ---------------------------------------------------------------------------
+
+class GenerateTitleRequest(BaseModel):
+    messages: list[Any] = Field(..., description="The chat messages to base the title on")
+
+class GenerateTitleResponse(BaseModel):
+    title: str = Field(..., description="The generated title")
+
+
+# ---------------------------------------------------------------------------
 # Workflow schemas
 # ---------------------------------------------------------------------------
 

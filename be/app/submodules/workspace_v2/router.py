@@ -42,6 +42,8 @@ from .schemas import (
     WorkspaceAiContextResponse,
     WorkspaceInstructionResponse,
     WorkspaceInstructionUpdate,
+    GenerateTitleRequest,
+    GenerateTitleResponse,
 )
 from .dependencies import UseWorkspace, UseWorkspaceService, SanitizedPath
 from .mcps import workspace_ai_context_mcp
@@ -245,6 +247,7 @@ async def delete_workspace_chat(
     "/{workspace_id}/chats/{chat_id}/title",
     response_model=ResponseEnvelope[WorkspaceChatListItem],
     summary="Rename a workspace chat title",
+    operation_id="renameWorkspaceChat"
 )
 @allow(["write:all"])
 async def rename_workspace_chat(
@@ -263,6 +266,67 @@ async def rename_workspace_chat(
         success=True,
         result=WorkspaceChatListItem(id=result.id, title=result.title),
     )
+
+
+@router.post(
+    "/{workspace_id}/chats/{chat_id}/title",
+    response_model=GenerateTitleResponse,
+    summary="Generate a title for the chat based on messages",
+    operation_id="generateWorkspaceChatTitle"
+)
+@allow(["write:all"])
+async def generate_workspace_chat_title(
+    chat_id: str,
+    payload: GenerateTitleRequest,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> GenerateTitleResponse:
+    import anthropic
+    import json
+    chat_history_str = json.dumps(payload.messages, indent=2)
+            
+    if not payload.messages:
+        return GenerateTitleResponse(title="New Chat")
+        
+    try:
+        from app.submodules.ai import PromptBlueprint
+        import anthropic
+
+        blueprint = PromptBlueprint(
+            template="{{chat_history_str}}",
+            working_directory=str(workspace.root_path)
+        )
+        blueprint.set_vars(chat_history_str=chat_history_str)
+        blueprint.set_system_prompt(
+            "Act as a title generator. Summarize the user's intent in 2-5 words. "
+            "Use Title Case. Do not use punctuation or quotes. "
+            "Output ONLY the title."
+        )
+        pkg = blueprint.build()
+        
+        client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        response = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=20,
+            system=pkg["system_prompt"],
+            messages=[
+                {"role": "user", "content": pkg["prompt"]}
+            ]
+        )
+        print("generated title from ai")
+        print(response.content)
+        
+        title = ""
+        if hasattr(response, "content") and len(response.content) > 0:
+            title = response.content[0].text.strip(' \n\r\t"\'')
+            
+        if not title:
+            title = "New Chat"
+            
+        return GenerateTitleResponse(title=title)
+    except Exception as exc:
+        print(f"Error generating chat title: {exc}")
+        return GenerateTitleResponse(title="New Chat")
 
 
 @router.post(

@@ -1346,6 +1346,30 @@ export type ForgotPasswordRequest = {
 };
 
 /**
+ * GenerateTitleRequest
+ */
+export type GenerateTitleRequest = {
+    /**
+     * Messages
+     *
+     * The chat messages to base the title on
+     */
+    messages: Array<unknown>;
+};
+
+/**
+ * GenerateTitleResponse
+ */
+export type GenerateTitleResponse = {
+    /**
+     * Title
+     *
+     * The generated title
+     */
+    title: string;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -3490,7 +3514,7 @@ export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses = {
 
 export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponse = GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses[keyof GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses];
 
-export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchData = {
+export type RenameWorkspaceChatData = {
     body: WorkspaceChatRename;
     path: {
         /**
@@ -3506,23 +3530,57 @@ export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchData =
     url: '/workspace_v2/{workspace_id}/chats/{chat_id}/title';
 };
 
-export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchErrors = {
+export type RenameWorkspaceChatErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchError = RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchErrors[keyof RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchErrors];
+export type RenameWorkspaceChatError = RenameWorkspaceChatErrors[keyof RenameWorkspaceChatErrors];
 
-export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponses = {
+export type RenameWorkspaceChatResponses = {
     /**
      * Successful Response
      */
     200: ResponseEnvelopeWorkspaceChatListItem;
 };
 
-export type RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponse = RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponses[keyof RenameWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdTitlePatchResponses];
+export type RenameWorkspaceChatResponse = RenameWorkspaceChatResponses[keyof RenameWorkspaceChatResponses];
+
+export type GenerateWorkspaceChatTitleData = {
+    body: GenerateTitleRequest;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}/title';
+};
+
+export type GenerateWorkspaceChatTitleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GenerateWorkspaceChatTitleError = GenerateWorkspaceChatTitleErrors[keyof GenerateWorkspaceChatTitleErrors];
+
+export type GenerateWorkspaceChatTitleResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerateTitleResponse;
+};
+
+export type GenerateWorkspaceChatTitleResponse = GenerateWorkspaceChatTitleResponses[keyof GenerateWorkspaceChatTitleResponses];
 
 export type WorkspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPostData = {
     body: AppSubmodulesWorkspaceV2SchemasWorkspaceChatCreate;

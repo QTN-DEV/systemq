@@ -33,6 +33,7 @@ from constants import MONGODB_DATABASE, MONGODB_URI
 from app.submodules.session import SessionToken as SessionTokenV2
 from app.submodules.user import User as UserV2
 from app.submodules.workspace_v2 import WorkspaceMetadata as WorkspaceMetadataV2
+from app.submodules.drive import Documents, DocumentEditHistoryEvent, DocumentHistory as DocumentHistoryV2
 
 _motor_client: AsyncIOMotorClient | None = None
 
@@ -69,6 +70,9 @@ async def init_database() -> None:
             WorkspaceMetadataV2,
             UserV2,
             ChatThread,
+            Documents,
+            DocumentEditHistoryEvent,
+            DocumentHistoryV2,
         ],
     )
 
