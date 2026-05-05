@@ -353,10 +353,13 @@ async def workspace_chat_stream(
         root_path=str(workspace.root_path),
         workspace_id=str(workspace.id),
         messages=[m.model_dump() for m in all_messages],
+        employee_id=context.user.employee_id,
     )
     blueprint.set_system_prompt_from_file(os.path.join(PROMPTS_DIR, "workspace_assistant.hbs"))
+    from app.submodules.drive import drive_documents_mcp
     blueprint.add_mcp("workspace_ai_context", workspace_ai_context_mcp)
-    blueprint.set_model("claude-haiku-4-5-20251001")
+    blueprint.add_mcp("drive-documents-service", drive_documents_mcp)
+    blueprint.set_model("claude-sonnet-4-5-20250929")
 
     runner = AnthropicRunner(blueprint)
 

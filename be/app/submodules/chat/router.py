@@ -169,13 +169,16 @@ async def append_chat_message(
     summary="SSE streaming AI chat thread",
     operation_id="streamChatThread",
 )
+@allow(["write:all"])
 async def chat_stream(
     thread: UseThread,
     payload: ChatThreadStreamRequest,
+    context: UseAuthContext,
 ) -> AsyncIterable[StreamChunkModel]:
     from app.services.ai.tools.daily_standup import daily_standup_tools_server
     from app.services.ai.tools.employee import employee_tools_server
     from app.services.ai.tools.dashboard import dashboard_tools_server
+    from app.submodules.drive import drive_documents_mcp
 
     try:
         existing = await thread.get()
@@ -188,12 +191,16 @@ async def chat_stream(
 
     blueprint = PromptBlueprint(working_directory=".")
     blueprint.set_prompt_from_file(os.path.join(PROMPTS_DIR, "conversation.hbs"))
-    blueprint.set_vars(messages=[m.model_dump() for m in all_messages])
+    blueprint.set_vars(
+        messages=[m.model_dump() for m in all_messages],
+        employee_id=context.user.employee_id
+    )
     blueprint.set_system_prompt_from_file(os.path.join(PROMPTS_DIR, "system_prompt.hbs"))
     blueprint.set_model("claude-haiku-4-5-20251001")
     blueprint.add_mcp("employee-service", employee_tools_server)
     blueprint.add_mcp("daily-standup-service", daily_standup_tools_server)
     blueprint.add_mcp("dashboard-service", dashboard_tools_server)
+    blueprint.add_mcp("drive-documents-service", drive_documents_mcp)
 
     runner = AnthropicRunner(blueprint)
 

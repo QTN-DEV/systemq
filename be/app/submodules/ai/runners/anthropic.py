@@ -52,6 +52,8 @@ class AnthropicRunner:
                 "include_partial_messages": True,
                 "mcp_servers": self.package["mcp_servers"]
             }
+
+            print("self.package", self.package)
             
             if self.package["system_prompt"]:
                 agent_opts_dict["system_prompt"] = self.package["system_prompt"]
