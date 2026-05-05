@@ -234,6 +234,22 @@ export type BlockUpdate = {
 };
 
 /**
+ * Body_uploadWorkspaceSkill
+ */
+export type BodyUploadWorkspaceSkill = {
+    /**
+     * File
+     */
+    file: Blob | File;
+    /**
+     * Name
+     *
+     * Name of the skill
+     */
+    name: string;
+};
+
+/**
  * Body_upload_file_to_workspace_workspace_v2__workspace_id__drive_upload_post
  */
 export type BodyUploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost = {
@@ -2191,6 +2207,16 @@ export type SearchResult = {
 };
 
 /**
+ * SkillRename
+ */
+export type SkillRename = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * SkillResponse
  */
 export type SkillResponse = {
@@ -3868,6 +3894,70 @@ export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponses = {
 };
 
 export type CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponse = CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponses[keyof CreateWorkspaceSkillWorkspaceV2WorkspaceIdSkillsPostResponses];
+
+export type UploadWorkspaceSkillData = {
+    body: BodyUploadWorkspaceSkill;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/skills/upload';
+};
+
+export type UploadWorkspaceSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UploadWorkspaceSkillError = UploadWorkspaceSkillErrors[keyof UploadWorkspaceSkillErrors];
+
+export type UploadWorkspaceSkillResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseEnvelopeSkillResponse;
+};
+
+export type UploadWorkspaceSkillResponse = UploadWorkspaceSkillResponses[keyof UploadWorkspaceSkillResponses];
+
+export type RenameWorkspaceSkillData = {
+    body: SkillRename;
+    path: {
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/skills/{name}/rename';
+};
+
+export type RenameWorkspaceSkillErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RenameWorkspaceSkillError = RenameWorkspaceSkillErrors[keyof RenameWorkspaceSkillErrors];
+
+export type RenameWorkspaceSkillResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeSkillResponse;
+};
+
+export type RenameWorkspaceSkillResponse = RenameWorkspaceSkillResponses[keyof RenameWorkspaceSkillResponses];
 
 export type DeleteWorkspaceSkillWorkspaceV2WorkspaceIdSkillsNameDeleteData = {
     body?: never;

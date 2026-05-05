@@ -75,6 +75,9 @@ class SkillCreate(BaseModel):
 class SkillUpdate(BaseModel):
     content: str
 
+class SkillRename(BaseModel):
+    name: str
+
 
 class SkillResponse(BaseModel):
     name: str
