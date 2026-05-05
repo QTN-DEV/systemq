@@ -3,10 +3,13 @@ import { useMemo, type ReactElement } from "react";
 
 import { deleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDelete as deleteWorkspaceChat, getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet, listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet, appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost, workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost, createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost, uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost } from '@/api'
 import { client } from "@/api/__generated__/client.gen";
+import { generateWorkspaceChatTitle, renameWorkspaceChat } from '@/api';
 import { mapAssistantStream } from "@/utils/map-assistant-stream";
 
 import { Thread } from "../assistant-ui/thread";
 import { ThreadList } from "../assistant-ui/thread-list";
+import { createAssistantStream, } from "assistant-stream";
+import type { RemoteThreadMetadata } from "@assistant-ui/core";
 
 
 type WorkspaceAssistantThreadProps = {
@@ -83,7 +86,7 @@ export function WorkspaceAssistantThread({
         path: {
           workspace_id: workspaceId as string
         }
-      })
+      });
       return {
         threads: res.data?.result?.map((t) => ({
           remoteId: t.id,
@@ -91,51 +94,100 @@ export function WorkspaceAssistantThread({
           status: 'regular',
           externalId: t.id
         })) || []
-      }
+      };
     },
 
     async initialize(threadId) {
-      console.log(`thread init ${  threadId}`)
       const { data: chat } = await createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost({
         path: {
           workspace_id: workspaceId as string
         },
         body: {
-          title: `Test ${  threadId}`
+          title: `New Chat`
         }
-      })
+      });
 
       return {
         remoteId: chat?.result?.id || 'asdsd',
         externalId: undefined,
-      }
+      };
     },
 
     async rename(remoteId, newTitle) {
-      console.log(`thread rename ${  remoteId  } ${  newTitle}`)
+      await renameWorkspaceChat({
+        path: {
+          workspace_id: workspaceId as string,
+          chat_id: remoteId,
+        },
+        body: {
+          title: newTitle,
+        },
+      });
     },
 
     async archive(remoteId) {
-      console.log(`thread archive ${  remoteId}`)
     },
 
     async unarchive(remoteId) {
-      console.log(`thread unarchive ${  remoteId}`)
     },
 
     async delete(remoteId) {
-      console.log(`thread delete ${  remoteId}`)
       await deleteWorkspaceChat({
         path: {
           chat_id: remoteId,
           workspace_id: workspaceId as string
         }
-      })
+      });
     },
 
     async generateTitle(remoteId, unstable_messages) {
-      console.log(`thread generateTitle ${  remoteId  } ${  JSON.stringify(unstable_messages)}`)
+      return createAssistantStream(async (controller) => {
+        try {
+          const { data } = await generateWorkspaceChatTitle({
+            path: {
+              workspace_id: workspaceId as string,
+              chat_id: remoteId,
+            },
+            body: {
+              // @ts-ignore
+              messages: unstable_messages,
+            },
+          });
+          if (data?.title) {
+            controller.appendText(data.title);
+          }
+
+          await renameWorkspaceChat({
+            path: {
+              workspace_id: workspaceId as string,
+              chat_id: remoteId,
+            },
+            body: {
+              title: data?.title || 'New Chat',
+            },
+          });
+        } catch (error) {
+          console.error("Failed to generate title:", error);
+        }
+      });
     },
+    async fetch(threadId: string) {
+      const { data: chat } = await getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet({
+        path: {
+          chat_id: threadId,
+          workspace_id: workspaceId as string
+        }
+      });
+
+      if (!chat?.result) throw new Error("Chat not found");
+
+      return {
+        remoteId: chat.result.id,
+        title: chat.result.title,
+        status: 'regular',
+        externalId: chat.result.id
+      };
+    }
   };
 
   const adapter = useMemo<ChatModelAdapter>(
@@ -178,19 +230,15 @@ export function WorkspaceAssistantThread({
     adapter: {
       ...myDatabaseAdapter,
 
-      // The Provider component adds thread-specific adapters
       unstable_Provider: ({ children }) => {
-        // This runs in the context of each thread
         const aui = useAui();
-
-        // Create thread-specific history adapter
         const history = useMemo<ThreadHistoryAdapter>(
           () => ({
+            // @ts-ignore
             async load() {
 
               const { remoteId } = aui.threadListItem().getState();
               if (!remoteId) return { messages: [] };
-              console.log(`load history ${  remoteId}`)
               const { data: chat } = await getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet({
                 path: {
                   chat_id: remoteId,
@@ -253,7 +301,6 @@ export function WorkspaceAssistantThread({
             async append({ message, parentId }) {
               // Wait for initialization to get remoteId (safe to call multiple times)
               const { remoteId } = await aui.threadListItem().initialize();
-              console.log(`append message ${  remoteId  } ${  JSON.stringify(message)}`)
 
               await appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost({
                 path: {
@@ -291,7 +338,7 @@ export function WorkspaceAssistantThread({
       <div className="flex h-full min-h-0 flex-col bg-background">
         <AssistantRuntimeProvider runtime={runtime}>
           <div className="min-h-0 flex flex-1 overflow-hidden">
-            <div className="w-64 border-r border-gray-200 p-4">
+            <div className="w-72 border-r border-gray-200 p-4">
               <ThreadList />
             </div>
             <div className="flex flex-1 overflow-hidden">
