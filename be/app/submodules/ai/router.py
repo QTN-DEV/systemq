@@ -9,7 +9,7 @@ from .schemas import AIModelListItem
 
 router = APIRouter(tags=["AI"])
 
-@router.get("/models", response_model=ResponseEnvelope[List[AIModelListItem]])
+@router.get("/models", response_model=ResponseEnvelope[List[AIModelListItem]], operation_id="getAvailableAiModels")
 @allow(["read:all"])
 async def get_models(context: UseAuthContext) -> ResponseEnvelope[List[AIModelListItem]]:
     try:

@@ -90,6 +90,7 @@ class WorkspaceChatCreate(BaseModel):
         ...,
         description="Conversation history to send to the workspace chat.",
     )
+    model: Optional[str] = Field(None, description="Optional custom model to use for completion.")
 
 
 class WorkspaceChatDocumentCreate(BaseModel):
