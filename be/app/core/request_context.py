@@ -6,6 +6,7 @@ class RequestContextUser:
     id: str
     name: str
     permissions: list[str]
+    employee_id: str | None = None
 
 @dataclass(frozen=True)
 class RequestContext:
