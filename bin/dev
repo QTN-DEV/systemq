@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+const concurrently = require("concurrently");
+const path = require("path");
+
+const projectRoot = path.resolve(__dirname, "..");
+
+const { result } = concurrently(
+  [
+    {
+      command: `bash "${path.join(projectRoot, "be/scripts/run_server.sh")}"`,
+      name: "backend",
+      prefixColor: "blue",
+      cwd: path.join(projectRoot, "be"),
+      env: {
+        ...process.env,
+        PYTHONPATH: path.join(projectRoot, "be"),
+        RELOAD: "true",
+      },
+    },
+    {
+      command: "npm run dev",
+      name: "frontend",
+      prefixColor: "green",
+      cwd: path.join(projectRoot, "fe"),
+      env: process.env,
+    },
+    {
+      command: `npx nodemon --watch "be/app" -e py --exec "npx wait-on http://127.0.0.1:47430/openapi.json && npm run generate-api-client"`,
+      name: "openapi",
+      prefixColor: "magenta",
+      cwd: path.join(projectRoot, "fe"),
+    },
+  ],
+  {
+    prefix: "name",
+    killOthersOnFail: true,
+    shell: true,
+  },
+);
+
+result.then(
+  () => process.exit(0),
+  (err) => {
+    if (!err || (Array.isArray(err) && err.every((e) => e.exitCode === null))) {
+      process.exit(0);
+    }
+    process.exit(1);
+  },
+);
