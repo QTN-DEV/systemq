@@ -2,49 +2,92 @@
 
 const concurrently = require("concurrently");
 const path = require("path");
+const { execSync } = require("child_process");
 
-const projectRoot = path.resolve(__dirname, "..");
+const root = process.cwd();
+
+const paths = {
+  be: path.join(root, "be"),
+  fe: path.join(root, "fe"),
+  dockerCompose: path.join(root, "docker/local-stack.docker-compose.yml"),
+  beScript: path.join(root, "be/scripts/run_server.sh"),
+  workerScript: path.join(root, "be/scripts/run_workers.sh"),
+  beApp: path.join(root, "be/app")
+};
+
+try {
+  console.log("🐳 Starting Docker stack...");
+  execSync(`docker compose -f "${paths.dockerCompose}" -p systemq up -d --wait`, { stdio: "inherit" });
+  console.log("✅ Docker stack is ready.");
+} catch (error) {
+  console.error("❌ Failed to start Docker:", error.message);
+  process.exit(1);
+}
 
 const { result } = concurrently(
   [
     {
-      command: `bash "${path.join(projectRoot, "be/scripts/run_server.sh")}"`,
+      command: `bash "${paths.beScript}"`,
       name: "backend",
       prefixColor: "blue",
-      cwd: path.join(projectRoot, "be"),
+      cwd: paths.be,
       env: {
         ...process.env,
-        PYTHONPATH: path.join(projectRoot, "be"),
+        PYTHONPATH: paths.be,
         RELOAD: "true",
+      },
+    },
+    {
+      command: `bash "${paths.workerScript}"`,
+      name: "workers",
+      prefixColor: "yellow",
+      cwd: paths.be,
+      env: {
+        ...process.env,
+        PYTHONPATH: paths.be,
       },
     },
     {
       command: "npm run dev",
       name: "frontend",
       prefixColor: "green",
-      cwd: path.join(projectRoot, "fe"),
+      cwd: paths.fe,
       env: process.env,
     },
     {
-      command: `npx nodemon --watch "be/app" -e py --exec "npx wait-on http://127.0.0.1:47430/openapi.json && npm run generate-api-client"`,
+      command: `npx nodemon --watch "${paths.beApp}" -e py --exec "npx wait-on http://127.0.0.1:47430/openapi.json && npm run generate-api-client"`,
       name: "openapi",
       prefixColor: "magenta",
-      cwd: path.join(projectRoot, "fe"),
+      cwd: paths.fe,
     },
   ],
   {
     prefix: "name",
     killOthersOnFail: true,
     shell: true,
-  },
+  }
 );
 
+const cleanup = () => {
+  console.log("\n🛑 Shutting down Docker stack...");
+  try {
+    execSync(`docker compose -f "${paths.dockerCompose}" -p systemq stop`, { stdio: "inherit" });
+  } catch (e) {
+  }
+};
+
 result.then(
-  () => process.exit(0),
+  () => {
+    cleanup();
+    process.exit(0);
+  },
   (err) => {
+    cleanup();
     if (!err || (Array.isArray(err) && err.every((e) => e.exitCode === null))) {
       process.exit(0);
     }
     process.exit(1);
-  },
+  }
 );
+
+process.on('SIGINT', cleanup);

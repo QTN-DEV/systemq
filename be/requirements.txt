@@ -38,3 +38,4 @@ claude-agent-sdk
 chevron
 anthropic
 scalar-doc
+bullmq

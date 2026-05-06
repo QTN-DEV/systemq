@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+const { execSync } = require("child_process");
+const path = require("path");
+
+const root = process.cwd();
+
+const paths = {
+  be: path.join(root, "be"),
+  fe: path.join(root, "fe")
+};
+
+function setup() {
+  try {
+    console.log("📦 Setting up backend (venv + pip)...");
+    execSync(
+      `python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt`,
+      { 
+        cwd: paths.be, 
+        stdio: "inherit", 
+        shell: "/bin/bash" 
+      }
+    );
+
+    console.log("\n📦 Setting up frontend (npm install)...");
+    execSync(`npm install --legacy-peer-deps`, {
+      cwd: paths.fe,
+      stdio: "inherit",
+    });
+
+    console.log("\n✅ Setup complete.");
+  } catch (error) {
+    console.error("\n❌ Setup failed:", error.message);
+    process.exit(1);
+  }
+}
+
+setup();
