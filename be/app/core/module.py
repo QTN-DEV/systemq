@@ -14,3 +14,9 @@ class BaseModule(ABC):
 
     def setup_lifecycle(self) -> None:
         pass
+
+    async def on_startup(self) -> None:
+        pass
+
+    async def on_shutdown(self) -> None:
+        pass

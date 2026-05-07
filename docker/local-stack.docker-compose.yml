@@ -11,6 +11,19 @@ services:
     command: redis-server --save 60 1 --loglevel warning
     restart: always
 
+  bullboard:
+    image: venatum/bull-board:latest
+    container_name: systemq-bullboard
+    ports:
+      - "3001:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BULL_PREFIX=bull # Default prefix for BullMQ
+    depends_on:
+      - redis
+    restart: always
+
 networks:
   default:
     name: systemq-network

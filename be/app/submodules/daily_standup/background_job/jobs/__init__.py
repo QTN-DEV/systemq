@@ -1,3 +1,3 @@
-from .sync_standup import SyncStandupsJob
+from .sync_daily_standup import SyncDailyStandupJob
 
-__all__ = ["SyncStandupsJob"]
+__all__ = ["SyncDailyStandupJob"]

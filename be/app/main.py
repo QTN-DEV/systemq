@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import os
 import time
 import logging
@@ -14,11 +15,13 @@ from fastapi import Request
 from scalar_doc import ScalarDoc
 
 from app.api.routes import router as api_router
-from app.db.beanie import lifespan_context
+from app.db import init_database, close_database, ensure_default_data
 from app.submodules.workspace_v2 import WorkspaceModule
 from app.submodules.ai import AIModule
 from app.submodules.chat import ChatModule
 from constants import APP_NAME
+from app.submodules.background_job import BaseQueue
+from app.submodules.daily_standup import DailyStandupModule
 # Configure application-wide logging before the FastAPI app is instantiated.
 default_log_level = os.getenv("APP_LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
@@ -63,6 +66,28 @@ TAGS_METADATA = [
         "description": "Search and browse daily standup entries ingested from Slack.",
     },
 ]
+
+@asynccontextmanager
+async def lifespan_context(app: FastAPI):
+    await init_database()
+    await ensure_default_data()
+    
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+
+    try:
+        BaseQueue.register(redis_url)
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to register Redis for background jobs: {e}")
+    
+    for module in modules:
+        if hasattr(module, 'on_startup'):
+            await module.on_startup()
+    
+    try:
+        yield
+    finally:
+        await close_database()
 
 app = FastAPI(
     title=APP_NAME,
@@ -110,6 +135,7 @@ modules = [
     WorkspaceModule(app, '/workspace_v2'),
     AIModule(app, '/ai'),
     ChatModule(app, '/chat'),
+    DailyStandupModule(app, '/daily-standup'),
 ]
 
 docs = ScalarDoc.from_spec(spec=app.openapi_url, mode="url")

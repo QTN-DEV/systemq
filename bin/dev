@@ -11,7 +11,7 @@ const paths = {
   fe: path.join(root, "fe"),
   dockerCompose: path.join(root, "docker/local-stack.docker-compose.yml"),
   beScript: path.join(root, "be/scripts/run_server.sh"),
-  workerScript: path.join(root, "be/scripts/run_workers.sh"),
+  workerScript: path.join(root, "be/scripts/run_dev_workers.sh"),
   beApp: path.join(root, "be/app")
 };
 

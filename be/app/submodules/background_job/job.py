@@ -1,4 +1,3 @@
-from typing import TypedDict, Any
-
-class BaseJob(TypedDict):
+from pydantic import BaseModel
+class BaseJob(BaseModel):
     name: str

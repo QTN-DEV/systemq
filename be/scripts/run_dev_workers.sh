@@ -6,4 +6,4 @@ source "${PROJECT_ROOT}/.venv/bin/activate"
 
 echo "Starting workers..."
 
-exec python -m app.workers
+exec watchfiles "python -m app.workers" "$PROJECT_ROOT/app"
