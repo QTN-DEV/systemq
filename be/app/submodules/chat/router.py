@@ -230,19 +230,12 @@ async def chat_stream(
     from app.services.ai.tools.dashboard import dashboard_tools_server
     from app.submodules.drive import drive_documents_mcp
 
-    try:
-        existing = await thread.get()
-        db_messages = existing.messages
-    except Exception:
-        db_messages = []
-
-    all_messages = db_messages + payload.messages
-    logger.info("Streaming chat thread %s with %d messages", thread.thread_id, len(all_messages))
+    logger.info("Streaming chat thread %s with %d messages", thread.thread_id, len(payload.messages))
 
     blueprint = PromptBlueprint(working_directory=".")
     blueprint.set_prompt_from_file(os.path.join(PROMPTS_DIR, "conversation.hbs"))
     blueprint.set_vars(
-        messages=[m.model_dump() for m in all_messages],
+        messages=[m.model_dump() for m in payload.messages],
         employee_id=context.user.employee_id
     )
     blueprint.set_system_prompt_from_file(os.path.join(PROMPTS_DIR, "system_prompt.hbs"))

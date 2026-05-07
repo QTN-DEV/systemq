@@ -338,20 +338,12 @@ async def workspace_chat_stream(
     workspace: UseWorkspace,
     payload: WorkspaceChatCreate,
 ) -> AsyncIterable[StreamChunkModel]:
-    try:
-        chat = await workspace.chats.get(chat_id)
-        db_messages = chat.messages
-    except Exception:
-        db_messages = []
-
-    all_messages = db_messages + payload.messages
-
     blueprint = PromptBlueprint(working_directory=str(workspace.root_path))
     blueprint.set_prompt_from_file(os.path.join(PROMPTS_DIR, "conversation.hbs"))
     blueprint.set_vars(
         root_path=str(workspace.root_path),
         workspace_id=str(workspace.id),
-        messages=[m.model_dump() for m in all_messages],
+        messages=[m.model_dump() for m in payload.messages],
         employee_id=context.user.employee_id,
     )
     blueprint.set_system_prompt_from_file(os.path.join(PROMPTS_DIR, "workspace_assistant.hbs"))
@@ -367,7 +359,7 @@ async def workspace_chat_stream(
 
 @router.post(
     "/{workspace_id}/chats/{chat_id}/messages",
-    response_model=ResponseEnvelope[WorkspaceChatResponse],
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Append a message to a workspace chat",
 )
 @allow(["write:all"])
@@ -376,21 +368,13 @@ async def append_workspace_chat_message(
     payload: WorkspaceChatMessage,
     workspace: UseWorkspace,
     context: UseAuthContext,
-) -> ResponseEnvelope[WorkspaceChatResponse]:
-    from beanie import PydanticObjectId
+) -> None:
     try:
-        cid = PydanticObjectId(chat_id)
-    except Exception as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid chat id") from exc
-        
-    chat = await workspace.chats.get(str(cid))
-    if chat is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Chat not found")
-        
-    updated_messages = chat.messages + [payload]
-    result = await workspace.chats.update(chat_id, messages=updated_messages)
-    
-    return ResponseEnvelope(success=True, result=result)
+        await workspace.chats.append_message(chat_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 @router.post(
     "/{workspace_id}/drive/file",

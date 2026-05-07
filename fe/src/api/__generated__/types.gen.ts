@@ -3675,7 +3675,7 @@ export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesP
     /**
      * Successful Response
      */
-    200: ResponseEnvelopeWorkspaceChatResponse;
+    204: void;
 };
 
 export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponse = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses];

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from beanie import PydanticObjectId
+from beanie.operators import Push
 from pydantic import BaseModel, Field
 
 from app.submodules.workspace_v2.documents import WorkspaceChat
@@ -101,6 +102,19 @@ class ChatsResource:
             messages=chat.messages,
             title=chat.title,
         )
+
+    async def append_message(self, chat_id: str, message: WorkspaceChatMessage) -> None:
+        """Push a single message onto the chat's messages array via $push (no full read/write)."""
+        try:
+            cid = PydanticObjectId(chat_id)
+        except Exception as exc:
+            raise ValueError("Invalid chat id") from exc
+        result = await WorkspaceChat.find_one(
+            WorkspaceChat.id == cid,
+            WorkspaceChat.workspace_id == self._workspace_oid(),
+        ).update(Push({WorkspaceChat.messages: message.model_dump()}))
+        if result is None or result.matched_count == 0:
+            raise FileNotFoundError("Chat not found")
 
     async def delete(self, chat_id: str) -> None:
         """Delete a chat by id; must belong to this workspace."""
