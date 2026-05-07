@@ -82,6 +82,10 @@ class SlackCrawler:
                 self.is_running = False
                 return
 
+            logger.info(f"Token: {self.client.token}")
+            logger.info(f"Channels: {channels}")
+            
+
             logger.info(
                 "Starting Slack history crawl from %s to %s across %s channel(s).",
                 start_date,

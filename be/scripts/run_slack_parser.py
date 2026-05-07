@@ -8,14 +8,17 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.db.beanie import close_database, init_database
+from app.models.slack_message import SlackMessage
 from app.services.slack_parser_service import parse_runner
-
+from constants import MONGODB_DATABASE, MONGODB_URI
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -32,9 +35,21 @@ def _parse_args() -> argparse.Namespace:
 
 
 async def _main() -> int:
+    from beanie import init_beanie
+    from motor.motor_asyncio import AsyncIOMotorClient
+
     args = _parse_args()
-    await init_database()
+    
+    client = AsyncIOMotorClient(MONGODB_URI)
+    await init_beanie(
+        database=client[MONGODB_DATABASE],
+        document_models=[
+            SlackMessage
+        ]
+    )
+    
     try:
+        logging.info(f"Starting Slack parser with {args.threads} thread(s)...")
         result = await parse_runner.run_until_empty(threads=args.threads)
         logging.info(
             "Slack parser finished. processed=%s errors=%s",
@@ -42,7 +57,7 @@ async def _main() -> int:
             result["error_count"],
         )
     finally:
-        await close_database()
+        client.close()
 
     return 0
 
@@ -55,7 +70,7 @@ if __name__ == "__main__":
         force=True,
     )
     try:
-        raise SystemExit(asyncio.run(_main()))
+        sys.exit(asyncio.run(_main()))
     except Exception as exc:
-        logging.error(str(exc))
-        raise SystemExit(1) from exc
+        logging.error(f"FATAL ERROR: {exc}")
+        sys.exit(1)
