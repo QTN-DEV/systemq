@@ -19,6 +19,8 @@ from .schemas import (
     ChatThreadRename,
     ChatThreadResponse,
     ChatThreadStreamRequest,
+    GenerateTitleRequest,
+    GenerateTitleResponse,
     PaginatedResponse,
 )
 from .constants import PROMPTS_DIR
@@ -143,6 +145,55 @@ async def rename_chat(
 
 
 @router.post(
+    "/{thread_id}/title",
+    response_model=GenerateTitleResponse,
+    summary="Generate a title for the chat thread based on messages",
+    operation_id="generateChatThreadTitle",
+)
+@allow(["write:all"])
+async def generate_chat_title(
+    payload: GenerateTitleRequest,
+    thread: UseThread,
+    context: UseAuthContext,
+) -> GenerateTitleResponse:
+    import anthropic
+    import json
+
+    if not payload.messages:
+        return GenerateTitleResponse(title="New Chat")
+
+    try:
+        from app.submodules.ai import PromptBlueprint
+
+        chat_history_str = json.dumps(payload.messages, indent=2)
+        blueprint = PromptBlueprint(template="{{chat_history_str}}", working_directory=".")
+        blueprint.set_vars(chat_history_str=chat_history_str)
+        blueprint.set_system_prompt(
+            "Act as a title generator. Summarize the user's intent in 2-5 words. "
+            "Use Title Case. Do not use punctuation or quotes. "
+            "Output ONLY the title."
+        )
+        pkg = blueprint.build()
+
+        anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        response = await anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=20,
+            system=pkg["system_prompt"],
+            messages=[{"role": "user", "content": pkg["prompt"]}],
+        )
+
+        title = ""
+        if hasattr(response, "content") and len(response.content) > 0:
+            title = response.content[0].text.strip(' \n\r\t"\'')
+
+        return GenerateTitleResponse(title=title or "New Chat")
+    except Exception as exc:
+        logger.error("Error generating chat title: %s", exc)
+        return GenerateTitleResponse(title="New Chat")
+
+
+@router.post(
     "/{thread_id}/messages",
     response_model=ResponseEnvelope[ChatThreadResponse],
     summary="Append a message to a chat thread",
@@ -169,7 +220,6 @@ async def append_chat_message(
     summary="SSE streaming AI chat thread",
     operation_id="streamChatThread",
 )
-@allow(["write:all"])
 async def chat_stream(
     thread: UseThread,
     payload: ChatThreadStreamRequest,

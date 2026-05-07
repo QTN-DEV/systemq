@@ -11,18 +11,20 @@ import {
   type RemoteThreadListAdapter,
   type ThreadHistoryAdapter,
 } from "@assistant-ui/react";
+import { createAssistantStream } from "assistant-stream";
 import { useMemo, type ReactElement } from "react";
 
-import { client } from "@/api/__generated__/client.gen";
 import {
   appendMessageToChatThread,
   createChatThread,
   deleteChatThread,
+  generateChatThreadTitle,
   getChatThread,
   listChatThreads,
   streamChatThread,
   updateChatThread,
 } from "@/api";
+import { client } from "@/api/__generated__/client.gen";
 import { mapAssistantStream } from "@/utils/map-assistant-stream";
 
 import { Thread } from "../assistant-ui/thread";
@@ -130,7 +132,32 @@ export function ChatAssistantThread({
       });
     },
 
-    async generateTitle(remoteId, unstable_messages) { },
+    async generateTitle(remoteId, unstable_messages) {
+      return createAssistantStream(async (controller) => {
+        try {
+          const { data } = await generateChatThreadTitle({
+            path: { thread_id: remoteId },
+            body: {
+              // @ts-ignore
+              messages: unstable_messages,
+            },
+          });
+          if (data?.title) {
+            for (const char of data.title) {
+              controller.appendText(char);
+              await new Promise((resolve) => setTimeout(resolve, 40));
+            }
+          }
+
+          await updateChatThread({
+            path: { thread_id: remoteId },
+            body: { title: data?.title || "New Chat" },
+          });
+        } catch (error) {
+          console.error("Failed to generate title:", error);
+        }
+      });
+    },
   };
 
   const adapter = useMemo<ChatModelAdapter>(

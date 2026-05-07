@@ -4627,6 +4627,36 @@ export type UpdateChatThreadResponses = {
 
 export type UpdateChatThreadResponse = UpdateChatThreadResponses[keyof UpdateChatThreadResponses];
 
+export type GenerateChatThreadTitleData = {
+    body: GenerateTitleRequest;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/chat/{thread_id}/title';
+};
+
+export type GenerateChatThreadTitleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GenerateChatThreadTitleError = GenerateChatThreadTitleErrors[keyof GenerateChatThreadTitleErrors];
+
+export type GenerateChatThreadTitleResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerateTitleResponse;
+};
+
+export type GenerateChatThreadTitleResponse = GenerateChatThreadTitleResponses[keyof GenerateChatThreadTitleResponses];
+
 export type AppendMessageToChatThreadData = {
     body: ChatThreadMessageSchema;
     path: {

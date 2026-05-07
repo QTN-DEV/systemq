@@ -62,3 +62,11 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page: int
     page_size: int
     has_next: bool
+
+
+class GenerateTitleRequest(BaseModel):
+    messages: list[Any] = Field(..., description="The chat messages to base the title on")
+
+
+class GenerateTitleResponse(BaseModel):
+    title: str = Field(..., description="The generated title")
