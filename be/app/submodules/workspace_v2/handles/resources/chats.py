@@ -3,12 +3,18 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from beanie import PydanticObjectId
+from pydantic import BaseModel, Field
 
 from app.submodules.workspace_v2.documents import WorkspaceChat
 from app.submodules.workspace_v2.schemas import WorkspaceChatListItem, WorkspaceChatResponse, WorkspaceChatMessage
 
 if TYPE_CHECKING:
     from ..workspace import WorkspaceHandle
+
+
+class _ChatTitleProjection(BaseModel):
+    id: PydanticObjectId = Field(alias="_id")
+    title: str
 
 
 class ChatsResource:
@@ -23,8 +29,11 @@ class ChatsResource:
     async def list(self, *, skip: int = 0, limit: int = 20) -> list[WorkspaceChatListItem]:
         """Chat ids for this workspace, newest first, with optional pagination."""
         wid = self._workspace_oid()
-        chats = (
-            await WorkspaceChat.find(WorkspaceChat.workspace_id == wid)
+        chats: list[_ChatTitleProjection] = (
+            await WorkspaceChat.find(
+                WorkspaceChat.workspace_id == wid,
+                projection_model=_ChatTitleProjection,
+            )
             .sort(-WorkspaceChat.id)
             .skip(skip)
             .limit(limit)
