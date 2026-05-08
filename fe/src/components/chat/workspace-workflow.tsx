@@ -54,7 +54,7 @@ export function WorkspaceWorkflowRun({
     <div className="flex h-full min-h-0 flex-col bg-background">
       <AssistantRuntimeProvider runtime={runtime}>
         <div className="flex flex-1 overflow-hidden">
-          <Thread className="w-full" />
+          <Thread className="w-full" onLoadMore={() => console.log("Load more")} />
         </div>
       </AssistantRuntimeProvider>
     </div>

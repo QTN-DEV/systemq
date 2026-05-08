@@ -23,8 +23,8 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import type { FC, ReactNode } from "react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo, type FC } from "react";
+import { useInView } from "react-intersection-observer";
 
 import {
   ComposerAddAttachment,
@@ -37,69 +37,101 @@ import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Image } from "../image";
+
 import { ModelSelector, type ModelOption } from "./model-selector";
 
 type ThreadModelsContextValue = ModelOption[];
 const ThreadModelsContext = createContext<ThreadModelsContextValue>([]);
 
+type ThreadContextValue = { onLoadMore?: () => void };
+const ThreadContext = createContext<ThreadContextValue>({});
+const useThreadContext = () => useContext(ThreadContext);
+
 export type ThreadProps = React.ComponentProps<typeof ThreadPrimitive.Root> & {
   models?: ModelOption[];
   defaultModel?: string;
+  onLoadMore?: () => void;
 };
 
-export const Thread: FC<ThreadProps> = ({ models = [], defaultModel, ...props }) => {
+export const Thread: FC<ThreadProps> = ({
+  models = [],
+  defaultModel,
+  onLoadMore,
+  ...props
+}) => {
+  const threadCtx = useMemo(() => ({ onLoadMore }), [onLoadMore]);
   return (
+    <ThreadContext.Provider value={threadCtx}>
     <ThreadModelsContext.Provider value={models}>
-    <ThreadPrimitive.Root
-      className={cn(
-        "aui-root aui-thread-root @container flex h-full flex-col bg-background",
-        props.className,
-      )}
-      style={{
-        ["--thread-max-width" as string]: "44rem",
-        ["--composer-radius" as string]: "24px",
-        ["--composer-padding" as string]: "10px",
-      }}
-    >
-      <ThreadPrimitive.Viewport
-        turnAnchor="top"
-        autoScroll
-        data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
+      <ThreadPrimitive.Root
+        className={cn(
+          "aui-root aui-thread-root @container flex h-full flex-col bg-background",
+          props.className,
+        )}
+        style={{
+          ["--thread-max-width" as string]: "44rem",
+          ["--composer-radius" as string]: "24px",
+          ["--composer-padding" as string]: "10px",
+        }}
       >
-        <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
-          <AuiIf condition={(s) => s.thread.isEmpty}>
-            <ThreadWelcome />
-          </AuiIf>
+        <ThreadPrimitive.Viewport
+          turnAnchor="top"
+          autoScroll
+          data-slot="aui_thread-viewport"
+          className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
+        >
+          <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
+            <AuiIf condition={(s) => s.thread.isEmpty}>
+              <ThreadWelcome />
+            </AuiIf>
 
-          <div
-            data-slot="aui_message-group"
-            className="mb-10 flex flex-col gap-y-8 empty:hidden"
-          >
-            <ThreadPrimitive.Messages>
-              {() => <ThreadMessage />}
-            </ThreadPrimitive.Messages>
+            <div
+              data-slot="aui_message-group"
+              className="mb-10 flex flex-col gap-y-8 empty:hidden"
+            >
+              <ThreadPrimitive.Messages>
+                {() => <ThreadMessage />}
+              </ThreadPrimitive.Messages>
+            </div>
+
+            <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-(--composer-radius) bg-background pb-4 md:pb-6">
+              <ThreadScrollToBottom />
+              <Composer defaultModel={defaultModel} />
+            </ThreadPrimitive.ViewportFooter>
           </div>
-
-          <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-(--composer-radius) bg-background pb-4 md:pb-6">
-            <ThreadScrollToBottom />
-            <Composer defaultModel={defaultModel} />
-          </ThreadPrimitive.ViewportFooter>
-        </div>
-      </ThreadPrimitive.Viewport>
-    </ThreadPrimitive.Root>
+        </ThreadPrimitive.Viewport>
+      </ThreadPrimitive.Root>
     </ThreadModelsContext.Provider>
+    </ThreadContext.Provider>
   );
 };
 
 const ThreadMessage: FC = () => {
   const role = useAuiState((s) => s.message.role);
+  const index = useAuiState((s) => s.message.index);
   const isEditing = useAuiState((s) => s.message.composer.isEditing);
 
-  if (isEditing) return <EditComposer />;
-  if (role === "user") return <UserMessage />;
-  return <AssistantMessage />;
+  const { onLoadMore } = useThreadContext();
+  const { ref } = useInView({
+    threshold: 0,
+    skip: index !== 0,
+    onChange: (inView) => {
+      if (inView && index === 0) onLoadMore?.();
+    },
+  });
+
+  const content = isEditing ? (
+    <EditComposer />
+  ) : role === "user" ? (
+    <UserMessage />
+  ) : (
+    <AssistantMessage />
+  );
+
+  if (index === 0) {
+    return <div ref={ref}>{content}</div>;
+  }
+  return content;
 };
 
 const ThreadScrollToBottom: FC = () => {

@@ -26,7 +26,7 @@ export function DynamicDashboardChat({
     >
       <AssistantRuntimeProvider runtime={runtime}>
         <div className="min-h-0 h-full">
-          <Thread />
+          <Thread onLoadMore={() => console.log("Load more")} />
         </div>
       </AssistantRuntimeProvider>
     </div>

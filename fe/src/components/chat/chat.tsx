@@ -319,7 +319,7 @@ export function ChatAssistantThread({
               <ThreadList />
             </div>
             <div className="flex flex-1 overflow-hidden">
-              <Thread className="w-full" />
+              <Thread className="w-full" onLoadMore={() => console.log("Load more")} />
             </div>
           </div>
         </AssistantRuntimeProvider>

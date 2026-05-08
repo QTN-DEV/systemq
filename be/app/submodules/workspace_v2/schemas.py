@@ -85,10 +85,14 @@ class SkillResponse(BaseModel):
 
 
 
+class WorkspaceChatStreamRequest(BaseModel):
+    model: Optional[str] = Field(None, description="Optional custom model to use for completion.")
+
+
 class WorkspaceChatCreate(BaseModel):
     messages: list[WorkspaceChatMessage] = Field(
-        ...,
-        description="Conversation history to send to the workspace chat.",
+        default_factory=list,
+        description="Unused — backend loads history from DB.",
     )
     model: Optional[str] = Field(None, description="Optional custom model to use for completion.")
 
@@ -111,9 +115,22 @@ class WorkspaceChatResponse(BaseModel):
     title: str = Field(default="New Chat", description="Display title for the thread.")
 
 
+class WorkspaceChatMessagesPage(BaseModel):
+    messages: list[WorkspaceChatMessage]
+    prev_cursor: Optional[str] = Field(
+        None,
+        description="Pass as `cursor` to load the next (older) page. Null when no older messages exist.",
+    )
+
+
 class WorkspaceChatListItem(BaseModel):
     id: str = Field(..., description="Chat document id.")
     title: str = Field(default="New Chat", description="Display title for the thread.")
+
+
+class WorkspaceChatListPage(BaseModel):
+    items: list[WorkspaceChatListItem]
+    next_cursor: Optional[str] = Field(None, description="Cursor for the next page; null when no more results.")
 
 
 class WorkspaceFileUploadResponse(BaseModel):

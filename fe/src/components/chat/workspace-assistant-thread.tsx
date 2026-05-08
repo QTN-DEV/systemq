@@ -1,8 +1,8 @@
 import { AssistantRuntimeProvider, RuntimeAdapterProvider, useAui, useLocalRuntime, useRemoteThreadListRuntime, type AttachmentAdapter, type ChatModelAdapter, type CompleteAttachment, type PendingAttachment, type RemoteThreadListAdapter, type ThreadHistoryAdapter } from "@assistant-ui/react";
-import { useMemo, type ReactElement } from "react";
+import { useMemo, useRef, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { deleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDelete as deleteWorkspaceChat, getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet, listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet, appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost, workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost, createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost, uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost } from '@/api'
+import { deleteWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdDelete as deleteWorkspaceChat, getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet, getWorkspaceChatMessages, listWorkspaceChatsWorkspaceV2WorkspaceIdChatsGet, appendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPost, workspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPost, createWorkspaceChatWorkspaceV2WorkspaceIdChatsPost, uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPost } from '@/api'
 import { client } from "@/api/__generated__/client.gen";
 import { generateWorkspaceChatTitle, renameWorkspaceChat, getAvailableAiModelsOptions } from '@/api';
 import { mapAssistantStream } from "@/utils/map-assistant-stream";
@@ -20,6 +20,35 @@ type WorkspaceAssistantThreadProps = {
 export function WorkspaceAssistantThread({
   workspaceId
 }: WorkspaceAssistantThreadProps): ReactElement {
+  const activeChatIdRef = useRef<string | null>(null);
+  const prevCursorRef = useRef<string | null>(null);
+  const loadingMoreRef = useRef(false);
+  const handleLoadMore = async () => {
+    if (!workspaceId || loadingMoreRef.current) return;
+    const chatId = activeChatIdRef.current;
+    const cursor = prevCursorRef.current;
+    if (!chatId || !cursor) return;
+
+    loadingMoreRef.current = true;
+    try {
+      const { data } = await getWorkspaceChatMessages({
+        path: {
+          chat_id: chatId,
+          workspace_id: workspaceId,
+        },
+        query: {
+          cursor,
+          limit: 30,
+        },
+      });
+      prevCursorRef.current = data?.result?.prev_cursor ?? null;
+      console.log("Load more", data?.result);
+    } catch (error) {
+      console.error("Failed to load older messages", error);
+    } finally {
+      loadingMoreRef.current = false;
+    }
+  };
 
   const { data: modelsData } = useQuery(getAvailableAiModelsOptions());
   const models = (modelsData?.result ?? []).map(m => ({ id: m.id, name: m.name ?? m.id }));
@@ -247,16 +276,28 @@ export function WorkspaceAssistantThread({
             async load() {
 
               const { remoteId } = aui.threadListItem().getState();
-              if (!remoteId) return { messages: [] };
-              const { data: chat } = await getWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGet({
+              if (!remoteId) {
+                activeChatIdRef.current = null;
+                prevCursorRef.current = null;
+                return { messages: [] };
+              }
+              activeChatIdRef.current = remoteId;
+              const { data: page } = await getWorkspaceChatMessages({
                 path: {
                   chat_id: remoteId,
                   workspace_id: workspaceId as string
-                }
-              })
+                },
+                query: {
+                  limit: 30,
+                },
+              });
+              prevCursorRef.current = page?.result?.prev_cursor ?? null;
+              const pageMessages = page?.result?.messages ?? [];
+              
+              console.log("pageMessages", pageMessages);
 
               return {
-                messages: chat?.result?.messages.map((m) => {
+                messages: pageMessages.map((m) => {
                   const common = {
                     id: m.id,
                     createdAt: new Date(),
@@ -351,7 +392,14 @@ export function WorkspaceAssistantThread({
               <ThreadList />
             </div>
             <div className="flex flex-1 overflow-hidden">
-              <Thread className="w-full" models={models} defaultModel={defaultModel} />
+              <Thread
+                className="w-full"
+                models={models}
+                defaultModel={defaultModel}
+                onLoadMore={() => {
+                  void handleLoadMore();
+                }}
+              />
             </div>
           </div>
         </AssistantRuntimeProvider>

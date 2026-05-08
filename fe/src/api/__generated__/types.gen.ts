@@ -2003,6 +2003,27 @@ export type ResponseEnvelopeWorkspaceChatListItem = {
 };
 
 /**
+ * ResponseEnvelope[WorkspaceChatMessagesPage]
+ */
+export type ResponseEnvelopeWorkspaceChatMessagesPage = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: WorkspaceChatMessagesPage | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ResponseEnvelope[WorkspaceChatResponse]
  */
 export type ResponseEnvelopeWorkspaceChatResponse = {
@@ -2917,6 +2938,22 @@ export type WorkspaceChatMessage = {
 };
 
 /**
+ * WorkspaceChatMessagesPage
+ */
+export type WorkspaceChatMessagesPage = {
+    /**
+     * Messages
+     */
+    messages: Array<WorkspaceChatMessage>;
+    /**
+     * Prev Cursor
+     *
+     * Pass as `cursor` to load the next (older) page. Null when no older messages exist.
+     */
+    prev_cursor?: string | null;
+};
+
+/**
  * WorkspaceChatRename
  */
 export type WorkspaceChatRename = {
@@ -3223,9 +3260,9 @@ export type AppSubmodulesWorkspaceV2SchemasWorkspaceChatCreate = {
     /**
      * Messages
      *
-     * Conversation history to send to the workspace chat.
+     * Unused — backend loads history from DB.
      */
-    messages: Array<WorkspaceChatMessage>;
+    messages?: Array<WorkspaceChatMessage>;
     /**
      * Model
      *
@@ -3546,6 +3583,85 @@ export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses = {
 
 export type GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponse = GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses[keyof GetWorkspaceChatWorkspaceV2WorkspaceIdChatsChatIdGetResponses];
 
+export type GetWorkspaceChatMessagesData = {
+    body?: never;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Cursor
+         *
+         * Start index from a previous page
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}/messages';
+};
+
+export type GetWorkspaceChatMessagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetWorkspaceChatMessagesError = GetWorkspaceChatMessagesErrors[keyof GetWorkspaceChatMessagesErrors];
+
+export type GetWorkspaceChatMessagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeWorkspaceChatMessagesPage;
+};
+
+export type GetWorkspaceChatMessagesResponse = GetWorkspaceChatMessagesResponses[keyof GetWorkspaceChatMessagesResponses];
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostData = {
+    body: WorkspaceChatMessage;
+    path: {
+        /**
+         * Chat Id
+         */
+        chat_id: string;
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/workspace_v2/{workspace_id}/chats/{chat_id}/messages';
+};
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostError = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors];
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponse = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses];
+
 export type RenameWorkspaceChatData = {
     body: WorkspaceChatRename;
     path: {
@@ -3645,40 +3761,6 @@ export type WorkspaceChatStreamWorkspaceV2WorkspaceIdChatsChatIdStreamPostRespon
      */
     200: unknown;
 };
-
-export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostData = {
-    body: WorkspaceChatMessage;
-    path: {
-        /**
-         * Chat Id
-         */
-        chat_id: string;
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/workspace_v2/{workspace_id}/chats/{chat_id}/messages';
-};
-
-export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostError = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostErrors];
-
-export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponse = AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses[keyof AppendWorkspaceChatMessageWorkspaceV2WorkspaceIdChatsChatIdMessagesPostResponses];
 
 export type CreateWorkspaceFileWorkspaceV2WorkspaceIdDriveFilePostData = {
     body: CreateFileInWorkspaceRequest;

@@ -35,8 +35,11 @@ from .schemas import (
     WorkspaceChatDocumentCreate,
     WorkspaceChatMessage,
     WorkspaceChatListItem,
+    WorkspaceChatListPage,
+    WorkspaceChatMessagesPage,
     WorkspaceChatRename,
     WorkspaceChatResponse,
+    WorkspaceChatStreamRequest,
     WorkspaceListItem,
     WorkspaceFileUploadResponse,
     WorkspaceAiContextCreate,
@@ -222,6 +225,29 @@ async def get_workspace_chat(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Chat not found")
         
     return ResponseEnvelope(success=True, result=chat)
+
+
+@router.get(
+    "/{workspace_id}/chats/{chat_id}/messages",
+    response_model=ResponseEnvelope[WorkspaceChatMessagesPage],
+    summary="Get paginated messages for a workspace chat (newest page first)",
+    operation_id="getWorkspaceChatMessages",
+)
+@allow(["read:all"])
+async def get_workspace_chat_messages(
+    chat_id: str,
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+    cursor: str | None = Query(default=None, description="Start index from a previous page"),
+    limit: int = Query(default=30, ge=1, le=100),
+) -> ResponseEnvelope[WorkspaceChatMessagesPage]:
+    try:
+        page = await workspace.chats.get_messages(chat_id, cursor=cursor, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return ResponseEnvelope(success=True, result=page)
 
 
 @router.delete(
