@@ -21,6 +21,9 @@ from .schemas import (
     CreateWorkspaceRequest,
     CreateWorkspaceResponse,
     FileNode,
+    MentionableItem,
+    MentionablesCategory,
+    MentionablesResponse,
     PaginatedResponse,
     SkillCreate,
     SkillResponse,
@@ -1083,4 +1086,64 @@ async def update_workspace_instruction(
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return ResponseEnvelope(success=True, result=WorkspaceInstructionResponse(content=payload.content))
+
+
+# ---------------------------------------------------------------------------
+# Mentionables
+# ---------------------------------------------------------------------------
+
+def _flatten_file_nodes(nodes: list, acc: list | None = None) -> list:
+    """Recursively collect all non-folder FileNode entries."""
+    if acc is None:
+        acc = []
+    for node in nodes:
+        if node.get("is_folder"):
+            _flatten_file_nodes(node.get("children", []), acc)
+        else:
+            acc.append(node)
+    return acc
+
+
+@router.get(
+    "/{workspace_id}/mentionables",
+    response_model=ResponseEnvelope[MentionablesResponse],
+    summary="Get mentionable items (filenames and skills) for the @ mention dropdown",
+    operation_id="getWorkspaceMentionables",
+)
+@allow(["read:all"])
+async def get_workspace_mentionables(
+    workspace: UseWorkspace,
+    context: UseAuthContext,
+) -> ResponseEnvelope[MentionablesResponse]:
+    # --- Filenames: all files in the workspace tree ---
+    try:
+        tree = await workspace.files.get_tree()
+        all_files = _flatten_file_nodes(tree)
+        file_items = [
+            MentionableItem(key=str(i), text=node["name"])
+            for i, node in enumerate(all_files)
+        ]
+    except Exception:
+        file_items = []
+
+    # --- Skills: folders under .claude/skills/ ---
+    try:
+        skill_nodes = await workspace.files.list(".claude/skills")
+        skill_items = [
+            MentionableItem(key=str(i), text=node["name"])
+            for i, node in enumerate(skill_nodes)
+            if node.get("is_folder")
+        ]
+    except (FileNotFoundError, NotADirectoryError, PermissionError):
+        skill_items = []
+
+    return ResponseEnvelope(
+        success=True,
+        result=MentionablesResponse(
+            categories={
+                "Filenames": MentionablesCategory(items=file_items),
+                "Skills": MentionablesCategory(items=skill_items),
+            }
+        ),
+    )
 
