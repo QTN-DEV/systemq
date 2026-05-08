@@ -5,12 +5,13 @@ from collections.abc import AsyncIterable
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.sse import EventSourceResponse
 from pydantic import BaseModel
 
 from app.api.routes.auth import get_current_user
 from app.schemas.auth import UserProfile
+from app.services.ai.tools.dashboard import dashboard_tools_server
 from app.submodules.ai import AnthropicRunner, PromptBlueprint, StreamChunkModel
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -58,10 +59,12 @@ async def dashboard_chat_stream(
 
     blueprint = PromptBlueprint(
         template=prompt,
+        working_directory=".",
     )
     blueprint.set_system_prompt(DASHBOARD_SYSTEM_PROMPT)
     blueprint.set_model("claude-haiku-4-5-20251001")
     blueprint.configure_tools(allowed=["update_dashboard"])
+    blueprint.add_mcp("dashboard-service", dashboard_tools_server)
 
     runner = AnthropicRunner(blueprint)
 
