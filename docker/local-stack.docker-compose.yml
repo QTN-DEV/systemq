@@ -7,7 +7,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ../.tmp/redis:/data
+      - ./.tmp/redis:/data
     command: redis-server --save 60 1 --loglevel warning
     restart: always
 
@@ -19,7 +19,18 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - BULL_PREFIX=bull # Default prefix for BullMQ
+      - BULL_PREFIX=bull
+    depends_on:
+      - redis
+    restart: always
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: systemq-redisinsight
+    ports:
+      - "5540:5540"
+    volumes:
+      - ./.tmp/redisinsight:/data
     depends_on:
       - redis
     restart: always

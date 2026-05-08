@@ -88,6 +88,7 @@ async def lifespan_context(app: FastAPI):
         yield
     finally:
         await close_database()
+        await BaseQueue.shutdown()
 
 app = FastAPI(
     title=APP_NAME,
