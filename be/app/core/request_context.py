@@ -5,6 +5,7 @@ from typing import Optional, TypedDict
 class RequestContextUser:
     id: str
     name: str
+    email: str
     permissions: list[str]
     employee_id: str | None = None
 

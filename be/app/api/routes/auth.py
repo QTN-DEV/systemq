@@ -30,6 +30,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     response_model=AuthSession,
     summary="Authenticate with email and password",
     response_description="Session token with the authenticated user's profile.",
+    operation_id="login"
 )
 async def login(payload: LoginRequest) -> AuthSession:
     """Validate credentials and issue a short-lived session token."""
@@ -113,6 +114,7 @@ async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     response_model=AuthSession,
     summary="Renew an existing session token",
     response_description="New session token and updated user payload.",
+    operation_id="renewSession"
 )
 async def renew_session(payload: RenewSessionRequest) -> AuthSession:
     """Exchange a valid session token for a fresh one."""
@@ -143,6 +145,7 @@ async def get_current_user(authorization: str = Header()) -> UserProfile:
     "/logout",
     summary="Logout and invalidate the current session token",
     response_description="No content; the token is invalidated.",
+    operation_id="logout"
 )
 async def logout(authorization: str = Header()) -> Response:
     """Invalidate the supplied bearer token so it can no longer be used."""

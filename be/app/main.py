@@ -18,6 +18,7 @@ from app.db.beanie import lifespan_context
 from app.submodules.workspace_v2 import WorkspaceModule
 from app.submodules.ai import AIModule
 from app.submodules.chat import ChatModule
+from app.submodules.auth import AuthModule
 from constants import APP_NAME
 # Configure application-wide logging before the FastAPI app is instantiated.
 default_log_level = os.getenv("APP_LOG_LEVEL", "INFO").upper()
@@ -110,6 +111,7 @@ modules = [
     WorkspaceModule(app, '/workspace_v2'),
     AIModule(app, '/ai'),
     ChatModule(app, '/chat'),
+    AuthModule(app, '/authv2'),
 ]
 
 docs = ScalarDoc.from_spec(spec=app.openapi_url, mode="url")

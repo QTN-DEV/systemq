@@ -21,14 +21,13 @@ async def get_auth_context(request: Request, auth_service: Annotated[AuthService
     
     permissions = []
 
-
     if user.position == "Internal Ops":
         permissions.append("read:all")
         permissions.append("write:all")
     
     return AuthContext(
         request_id=request.headers.get("X-Request-ID", str(uuid.uuid4())),
-        user=RequestContextUser(id=str(user.id), name=user.name, permissions=permissions, employee_id=user.employee_id)
+        user=RequestContextUser(id=str(user.id), name=user.name, email=user.email, permissions=permissions, employee_id=user.employee_id)
     )
 
 UseAuthService = Annotated[AuthService, Depends()]

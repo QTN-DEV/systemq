@@ -1,13 +1,15 @@
-import './api/configure-hey-api-client'
+import "./api/configure-hey-api-client";
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NuqsAdapter } from 'nuqs/adapters/react'
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NuqsAdapter } from "nuqs/adapters/react";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "sonner";
 
-import App from './App.tsx'
-import './index.css'
+import App from "./App.tsx";
+import "./index.css";
+import { AuthProvider } from "./features/auth/components/auth-provider.tsx";
 
 // Create a client
 export const queryClient = new QueryClient({
@@ -21,19 +23,22 @@ export const queryClient = new QueryClient({
       retry: 1,
     },
   },
-})
+});
 
-const rootElement = document.getElementById('root')
+const rootElement = document.getElementById("root");
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <NuqsAdapter>
           <BrowserRouter>
-            <App />
+            <AuthProvider>
+              <App />
+              <Toaster richColors position="top-center" />
+            </AuthProvider>
           </BrowserRouter>
         </NuqsAdapter>
       </QueryClientProvider>
     </StrictMode>,
-  )
+  );
 }

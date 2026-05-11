@@ -74,6 +74,32 @@ export type AuthSession = {
 };
 
 /**
+ * AuthUserProfile
+ */
+export type AuthUserProfile = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Permissions
+     */
+    permissions: Array<string>;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Employee Id
+     */
+    employee_id?: string | null;
+};
+
+/**
  * BlockCreate
  */
 export type BlockCreate = {
@@ -1679,6 +1705,27 @@ export type ResetPasswordRequest = {
      * New Password
      */
     new_password: string;
+};
+
+/**
+ * ResponseEnvelope[AuthUserProfile]
+ */
+export type ResponseEnvelopeAuthUserProfile = {
+    /**
+     * Success
+     */
+    success: boolean;
+    result?: AuthUserProfile | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
 };
 
 /**
@@ -4715,30 +4762,46 @@ export type StreamChatThreadResponses = {
     200: unknown;
 };
 
-export type LoginAuthLoginPostData = {
+export type GetMyProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/authv2/me';
+};
+
+export type GetMyProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseEnvelopeAuthUserProfile;
+};
+
+export type GetMyProfileResponse = GetMyProfileResponses[keyof GetMyProfileResponses];
+
+export type LoginData = {
     body: LoginRequest;
     path?: never;
     query?: never;
     url: '/auth/login';
 };
 
-export type LoginAuthLoginPostErrors = {
+export type LoginErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type LoginAuthLoginPostError = LoginAuthLoginPostErrors[keyof LoginAuthLoginPostErrors];
+export type LoginError = LoginErrors[keyof LoginErrors];
 
-export type LoginAuthLoginPostResponses = {
+export type LoginResponses = {
     /**
      * Session token with the authenticated user's profile.
      */
     200: AuthSession;
 };
 
-export type LoginAuthLoginPostResponse = LoginAuthLoginPostResponses[keyof LoginAuthLoginPostResponses];
+export type LoginResponse = LoginResponses[keyof LoginResponses];
 
 export type ForgotPasswordAuthForgotPasswordPostData = {
     body: ForgotPasswordRequest;
@@ -4815,32 +4878,32 @@ export type ChangePasswordAuthChangePasswordPostResponses = {
 
 export type ChangePasswordAuthChangePasswordPostResponse = ChangePasswordAuthChangePasswordPostResponses[keyof ChangePasswordAuthChangePasswordPostResponses];
 
-export type RenewSessionAuthRenewPostData = {
+export type RenewSessionData = {
     body: RenewSessionRequest;
     path?: never;
     query?: never;
     url: '/auth/renew';
 };
 
-export type RenewSessionAuthRenewPostErrors = {
+export type RenewSessionErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RenewSessionAuthRenewPostError = RenewSessionAuthRenewPostErrors[keyof RenewSessionAuthRenewPostErrors];
+export type RenewSessionError = RenewSessionErrors[keyof RenewSessionErrors];
 
-export type RenewSessionAuthRenewPostResponses = {
+export type RenewSessionResponses = {
     /**
      * New session token and updated user payload.
      */
     200: AuthSession;
 };
 
-export type RenewSessionAuthRenewPostResponse = RenewSessionAuthRenewPostResponses[keyof RenewSessionAuthRenewPostResponses];
+export type RenewSessionResponse = RenewSessionResponses[keyof RenewSessionResponses];
 
-export type LogoutAuthLogoutPostData = {
+export type LogoutData = {
     body?: never;
     headers: {
         /**
@@ -4853,16 +4916,16 @@ export type LogoutAuthLogoutPostData = {
     url: '/auth/logout';
 };
 
-export type LogoutAuthLogoutPostErrors = {
+export type LogoutErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type LogoutAuthLogoutPostError = LogoutAuthLogoutPostErrors[keyof LogoutAuthLogoutPostErrors];
+export type LogoutError = LogoutErrors[keyof LogoutErrors];
 
-export type LogoutAuthLogoutPostResponses = {
+export type LogoutResponses = {
     /**
      * No content; the token is invalidated.
      */
