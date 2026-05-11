@@ -19,11 +19,13 @@ async def get_auth_context(request: Request, auth_service: Annotated[AuthService
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    permissions = []
+    permissions: list[str] = []
 
     if user.position == "Internal Ops":
         permissions.append("read:all")
         permissions.append("write:all")
+        permissions.append("read:employees")
+        permissions.append("write:employees")
     
     return AuthContext(
         request_id=request.headers.get("X-Request-ID", str(uuid.uuid4())),

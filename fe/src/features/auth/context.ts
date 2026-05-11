@@ -8,6 +8,8 @@ export type AuthContext = {
   isValidating: boolean;
   isLoggingIn: boolean;
   login: (credentials: { email: string; password: string }) => void;
+  token: string | null;
+  isSessionValid: boolean;
 };
 
 export const AuthContext = createContext<AuthContext>({
@@ -16,4 +18,6 @@ export const AuthContext = createContext<AuthContext>({
   isValidating: false,
   isLoggingIn: false,
   login: () => {},
+  token: null,
+  isSessionValid: false,
 });

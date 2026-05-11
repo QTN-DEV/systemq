@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 
 from app.submodules.auth.dependencies import AuthContext
 
-PermissionLiteral = Literal["write:all", "read:all"]
+PermissionLiteral = Literal["write:all", "read:all", "read:employees", "write:employees"]
 
 def allow(required_permissions: list[PermissionLiteral]) -> Callable:
     def decorator(func: Callable) -> Callable:

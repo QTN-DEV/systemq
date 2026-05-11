@@ -85,11 +85,15 @@ export function AuthProvider(props: AuthProviderProps) {
       isValidating: isFetchingProfile,
       isLoggingIn,
       login: handleLogin,
+      token: session,
+      isSessionValid: Boolean(session),
     }),
-    [user, isFetchingProfile, isLoggingIn, handleLogin],
+    [user, isFetchingProfile, isLoggingIn, handleLogin, session],
   );
 
   return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>
+      {!contextValue.isValidating && children}
+    </AuthContext.Provider>
   );
 }
