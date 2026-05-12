@@ -134,6 +134,9 @@ export function AddFileInFolderDialog(props: AddFileInFolderDialogProps): ReactE
                   setFile(e.target.files?.[0] ?? null);
                 }}
               />
+              <p className="text-muted-foreground text-xs">
+                Zip files are extracted automatically. Duplicate names get a (2), (3)… suffix.
+              </p>
             </div>
           </TabsContent>
         </Tabs>

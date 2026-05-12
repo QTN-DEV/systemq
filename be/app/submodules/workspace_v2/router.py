@@ -1,6 +1,8 @@
 import json
 import os
+import zipfile
 from collections.abc import AsyncIterable
+from pathlib import PurePosixPath
 from typing import Optional
 
 from fastapi import APIRouter, Body, File, Form, HTTPException, Query, UploadFile, status
@@ -446,6 +448,35 @@ async def upload_file_to_workspace(
                             detail="path is required")
 
     data = await file.read()
+
+    # Zip files are extracted in-place rather than stored as a single archive.
+    if (file.filename or "").lower().endswith(".zip"):
+        parent = str(PurePosixPath(p).parent)
+        folder = "" if parent in (".", "") else parent
+        try:
+            await workspace.files.extract_zip(data, folder)
+        except zipfile.BadZipFile:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or corrupt zip file",
+            ) from None
+        except PermissionError:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="Path outside workspace boundaries",
+            ) from None
+        except OSError as e:
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e),
+            ) from None
+
+        display_path = f"/{folder}" if folder else "/"
+        return ResponseEnvelope(
+            success=True,
+            result=CreatedWorkspaceItemResponse(relative_path=display_path),
+        )
+
     try:
         written = await workspace.files.create(p, data)
     except PermissionError:

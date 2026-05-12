@@ -1,4 +1,6 @@
 import asyncio
+import io
+import zipfile
 from pathlib import Path
 from typing import Optional, TYPE_CHECKING, List
 
@@ -122,6 +124,68 @@ class FilesResource:
             return target
 
         return await asyncio.to_thread(_mkdir)
+
+    @staticmethod
+    def _unique_path(target: Path) -> Path:
+        """Return *target* unchanged if it does not exist.
+        Otherwise append ` (2)`, ` (3)`, … before the suffix until a free name is found."""
+        if not target.exists():
+            return target
+        stem = target.stem
+        suffix = target.suffix
+        parent = target.parent
+        n = 2
+        while True:
+            candidate = parent / f"{stem} ({n}){suffix}"
+            if not candidate.exists():
+                return candidate
+            n += 1
+
+    async def extract_zip(self, zip_content: bytes, target_folder: str) -> List[str]:
+        """Extract *zip_content* into *target_folder* (workspace-relative path, may be empty for root).
+
+        - Skips macOS metadata entries (``__MACOSX``, ``.DS_Store``).
+        - Strips traversal components so paths stay inside the workspace.
+        - When a destination path already exists, a ``(2)`` / ``(n)`` suffix is appended
+          before the file extension so the original is never overwritten.
+
+        Returns the list of created relative paths (tree-style, leading slash).
+        """
+        def _extract() -> List[str]:
+            root = self.workspace.options.root_path.resolve()
+            folder_abs = self.workspace.get_safe_target_path(target_folder)
+            folder_abs.mkdir(parents=True, exist_ok=True)
+
+            created: list[str] = []
+            with zipfile.ZipFile(io.BytesIO(zip_content)) as zf:
+                for member in zf.infolist():
+                    name = member.filename
+                    # Skip macOS junk and directory-only entries
+                    if name.startswith("__MACOSX") or name.endswith(".DS_Store"):
+                        continue
+                    if member.is_dir():
+                        continue
+
+                    # Sanitise path: drop empty / dot / traversal components
+                    parts = [p for p in Path(name).parts if p not in ("", ".", "..")]
+                    if not parts:
+                        continue
+
+                    # Resolve absolute target, enforcing workspace boundary
+                    target = (folder_abs / Path(*parts)).resolve()
+                    try:
+                        target.relative_to(root)
+                    except ValueError:
+                        continue  # outside workspace — skip silently
+
+                    target = self._unique_path(target)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(zf.read(member.filename))
+                    created.append(self.to_tree_relative_path(target))
+
+            return created
+
+        return await asyncio.to_thread(_extract)
 
     def to_tree_relative_path(self, path: Path) -> str:
         root = self.workspace.options.root_path.resolve()
