@@ -16,7 +16,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import {
@@ -45,7 +45,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,12 +62,12 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
+} from "@/components/ui/pagination";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -75,7 +75,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -92,15 +92,15 @@ import { cn } from "@/lib/utils";
 import { useStore } from "./hooks/use-store";
 
 const _tailwindSafelist = [
-  'grid-cols-1',
-  'grid-cols-2',
-  'grid-cols-3',
-  'grid-cols-4',
-  'grid-cols-5',
-  'grid-cols-6',
-  'col-span-1',
-  'col-span-2',
-  'col-span-3'
+  "grid-cols-1",
+  "grid-cols-2",
+  "grid-cols-3",
+  "grid-cols-4",
+  "grid-cols-5",
+  "grid-cols-6",
+  "col-span-1",
+  "col-span-2",
+  "col-span-3",
 ];
 
 export type DynamicDashboardCanvasProps = {
@@ -200,6 +200,8 @@ export function DynamicDashboardCanvas({
       </div>
     );
   }
+
+  console.log({ liveCode });
 
   return (
     <div {...props} className={cn("w-full h-full", props.className)}>

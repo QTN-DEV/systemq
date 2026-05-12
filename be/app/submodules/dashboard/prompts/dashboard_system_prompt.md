@@ -424,6 +424,8 @@ const response = (await apiClient.get) < T > "/dashboard/assets/123";
 7. You dont need to use React.createElement, just use the primitives directly like normal react, it uses react-live under the hood. Dont add empty spacing in child
 8. Create separate api calls for each tables or metrics, the loogic of each metrics should be isolated.
 9. `useChart` should be used inside <ChartContainer />
+10. You cant have empty value like `style= onClick={() => handleProjectClick(user.name project)}`
+11. Please generate valid react components that will be rendered by `react-live`
 
 ## Example skeletons
 
