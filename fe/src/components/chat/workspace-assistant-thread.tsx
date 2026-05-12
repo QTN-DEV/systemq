@@ -351,7 +351,7 @@ export function WorkspaceAssistantThread({
               <ThreadList />
             </div>
             <div className="flex flex-1 overflow-hidden">
-              <Thread className="w-full" models={models} defaultModel={defaultModel} />
+              <Thread className="w-full" models={models} defaultModel={defaultModel} workspaceId={workspaceId} />
             </div>
           </div>
         </AssistantRuntimeProvider>

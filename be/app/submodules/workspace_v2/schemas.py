@@ -231,3 +231,23 @@ class WorkflowResponse(BaseModel):
     model: Optional[str]
     mcp_servers: dict[str, Any]
     raw: dict[str, Any] = Field(..., description="Full raw YAML data as parsed dict.")
+
+
+# ---------------------------------------------------------------------------
+# Mentionables schemas
+# ---------------------------------------------------------------------------
+
+class MentionableItem(BaseModel):
+    key: str = Field(..., description="Unique key within the category (index-based).")
+    text: str = Field(..., description="Display text for the mentionable item.")
+
+
+class MentionablesCategory(BaseModel):
+    items: list[MentionableItem]
+
+
+class MentionablesResponse(BaseModel):
+    categories: dict[str, MentionablesCategory] = Field(
+        ...,
+        description="Map of category name to its mentionable items (e.g. 'Filenames', 'Skills').",
+    )
