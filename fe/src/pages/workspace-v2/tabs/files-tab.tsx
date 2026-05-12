@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FilePlus, FolderPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,16 +12,16 @@ import {
   getWorkspaceTreeWorkspaceV2WorkspaceIdTreeGetQueryKey,
   uploadFileToWorkspaceWorkspaceV2WorkspaceIdDriveUploadPostMutation,
 } from "@/api";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { DEFAULT_MARKDOWN } from "@/lib/workspace-v2-defaults";
-
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AddFileInFolderDialog,
   CreateFolderInFolderDialog,
   DeletePathDialog,
   V2FileTree,
 } from "@/components/workspace-v2";
+import { cn } from "@/lib/utils";
+import { DEFAULT_MARKDOWN } from "@/lib/workspace-v2-defaults";
 
 function joinFolderAndName(folderRelativePath: string, name: string): string {
   const seg = name.replace(/^\/+/, "").replace(/\/+$/, "");
@@ -82,6 +83,9 @@ export function WorkspaceV2FilesTab(props: WorkspaceV2FilesTabProps) {
   useEffect(() => {
     window.addEventListener("focus", invalidateTree);
     return () => window.removeEventListener("focus", invalidateTree);
+    // invalidateTree is intentionally excluded — it is recreated each render
+    // but its identity doesn't affect the focus listener registration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, queryClient]);
 
   const createFolderMutation = useMutation({
@@ -174,6 +178,44 @@ export function WorkspaceV2FilesTab(props: WorkspaceV2FilesTabProps) {
         onFocus={() => invalidateTree()}
         tabIndex={-1}
       >
+        <div className="mb-3 flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                aria-label="New file in root"
+                onClick={() => setAddFileInFolder({ folderRelativePath: "" })}
+              >
+                <FilePlus className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>New file</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                aria-label="New folder in root"
+                onClick={() => setAddFolderIn({ folderRelativePath: "" })}
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>New folder</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         {isLoading ? (
           <p className="text-muted-foreground text-sm">Loading file tree…</p>
         ) : (
