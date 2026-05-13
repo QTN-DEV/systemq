@@ -221,7 +221,7 @@ const InlineComboboxInput = ({
   className,
   ref: propRef,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
+}: React.HTMLAttributes<HTMLInputElement> & {
   ref?: React.RefObject<HTMLInputElement | null>;
 }) => {
   const {

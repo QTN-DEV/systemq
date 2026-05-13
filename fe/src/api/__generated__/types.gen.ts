@@ -1420,48 +1420,6 @@ export type LoginRequest = {
 };
 
 /**
- * MentionableItem
- */
-export type MentionableItem = {
-    /**
-     * Key
-     *
-     * Unique key within the category (index-based).
-     */
-    key: string;
-    /**
-     * Text
-     *
-     * Display text for the mentionable item.
-     */
-    text: string;
-};
-
-/**
- * MentionablesCategory
- */
-export type MentionablesCategory = {
-    /**
-     * Items
-     */
-    items: Array<MentionableItem>;
-};
-
-/**
- * MentionablesResponse
- */
-export type MentionablesResponse = {
-    /**
-     * Categories
-     *
-     * Map of category name to its mentionable items (e.g. 'Filenames', 'Skills').
-     */
-    categories: {
-        [key: string]: MentionablesCategory;
-    };
-};
-
-/**
  * MessageResponse
  */
 export type MessageResponse = {
@@ -1861,27 +1819,6 @@ export type ResponseEnvelopeListAiModelListItem = {
      * Result
      */
     result?: Array<AiModelListItem> | null;
-    /**
-     * Message
-     */
-    message?: string | null;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-};
-
-/**
- * ResponseEnvelope[MentionablesResponse]
- */
-export type ResponseEnvelopeMentionablesResponse = {
-    /**
-     * Success
-     */
-    success: boolean;
-    result?: MentionablesResponse | null;
     /**
      * Message
      */
@@ -4524,36 +4461,6 @@ export type UpdateWorkspaceInstructionResponses = {
 };
 
 export type UpdateWorkspaceInstructionResponse = UpdateWorkspaceInstructionResponses[keyof UpdateWorkspaceInstructionResponses];
-
-export type GetWorkspaceMentionablesData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/workspace_v2/{workspace_id}/mentionables';
-};
-
-export type GetWorkspaceMentionablesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetWorkspaceMentionablesError = GetWorkspaceMentionablesErrors[keyof GetWorkspaceMentionablesErrors];
-
-export type GetWorkspaceMentionablesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseEnvelopeMentionablesResponse;
-};
-
-export type GetWorkspaceMentionablesResponse = GetWorkspaceMentionablesResponses[keyof GetWorkspaceMentionablesResponses];
 
 export type GetAvailableAiModelsData = {
     body?: never;

@@ -25,9 +25,6 @@ import {
 } from "lucide-react";
 import type { FC, ReactNode } from "react";
 import { createContext, useContext } from "react";
-import { createEditor, Descendant, Editor, Node, Transforms } from "slate";
-import { withHistory } from "slate-history";
-import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 
 import {
   ComposerAddAttachment,
@@ -40,11 +37,8 @@ import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
 import { Image } from "../image";
-
 import { ModelSelector, type ModelOption } from "./model-selector";
-import { ComposerRichInput } from "./composer-rich-input";
 
 type ThreadModelsContextValue = ModelOption[];
 const ThreadModelsContext = createContext<ThreadModelsContextValue>([]);
@@ -52,55 +46,49 @@ const ThreadModelsContext = createContext<ThreadModelsContextValue>([]);
 export type ThreadProps = React.ComponentProps<typeof ThreadPrimitive.Root> & {
   models?: ModelOption[];
   defaultModel?: string;
-  workspaceId?: string;
 };
 
-export const Thread: FC<ThreadProps> = ({
-  models = [],
-  defaultModel,
-  workspaceId,
-  ...props
-}) => {
+export const Thread: FC<ThreadProps> = ({ models = [], defaultModel, ...props }) => {
   return (
     <ThreadModelsContext.Provider value={models}>
-      <ThreadPrimitive.Root
-        className={cn(
-          "aui-root aui-thread-root @container flex h-full flex-col bg-background",
-          props.className,
-        )}
-        style={{
-          ["--thread-max-width" as string]: "44rem",
-          ["--composer-radius" as string]: "24px",
-          ["--composer-padding" as string]: "10px",
-        }}
+    <ThreadPrimitive.Root
+      className={cn(
+        "aui-root aui-thread-root @container flex h-full flex-col bg-background",
+        props.className,
+      )}
+      style={{
+        ["--thread-max-width" as string]: "44rem",
+        ["--composer-radius" as string]: "24px",
+        ["--composer-padding" as string]: "10px",
+      }}
+    >
+      <ThreadPrimitive.Viewport
+        turnAnchor="top"
+        autoScroll
+        data-slot="aui_thread-viewport"
+        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
       >
-        <ThreadPrimitive.Viewport
-          turnAnchor="top"
-          autoScroll
-          data-slot="aui_thread-viewport"
-          className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
-        >
-          <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
-            <AuiIf condition={(s) => s.thread.isEmpty}>
-              <ThreadWelcome />
-            </AuiIf>
+        <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
+          <AuiIf condition={(s) => s.thread.isEmpty}>
+            <ThreadWelcome />
+          </AuiIf>
 
-            <div
-              data-slot="aui_message-group"
-              className="mb-10 flex flex-col gap-y-8 empty:hidden"
-            >
-              <ThreadPrimitive.Messages>
-                {() => <ThreadMessage />}
-              </ThreadPrimitive.Messages>
-            </div>
-
-            <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-(--composer-radius) bg-background pb-4 md:pb-6">
-              <ThreadScrollToBottom />
-              <Composer defaultModel={defaultModel} workspaceId={workspaceId} />
-            </ThreadPrimitive.ViewportFooter>
+          <div
+            data-slot="aui_message-group"
+            className="mb-10 flex flex-col gap-y-8 empty:hidden"
+          >
+            <ThreadPrimitive.Messages>
+              {() => <ThreadMessage />}
+            </ThreadPrimitive.Messages>
           </div>
-        </ThreadPrimitive.Viewport>
-      </ThreadPrimitive.Root>
+
+          <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-(--composer-radius) bg-background pb-4 md:pb-6">
+            <ThreadScrollToBottom />
+            <Composer defaultModel={defaultModel} />
+          </ThreadPrimitive.ViewportFooter>
+        </div>
+      </ThreadPrimitive.Viewport>
+    </ThreadPrimitive.Root>
     </ThreadModelsContext.Provider>
   );
 };
@@ -172,8 +160,7 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
-
-const Composer: FC<{ defaultModel?: string; workspaceId?: string }> = ({ defaultModel, workspaceId }) => {
+const Composer: FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone asChild>
@@ -182,15 +169,13 @@ const Composer: FC<{ defaultModel?: string; workspaceId?: string }> = ({ default
           className="flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-background p-(--composer-padding) transition-shadow focus-within:border-ring/75 focus-within:ring-2 focus-within:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50"
         >
           <ComposerAttachments />
-          <ComposerRichInput workspaceId={workspaceId} />
-          {/* <ComposerPrimitive.Input
+          <ComposerPrimitive.Input
             placeholder="Send a message..."
             className="aui-composer-input max-h-32 min-h-10 w-full resize-none bg-transparent px-1.75 py-1 text-sm outline-none placeholder:text-muted-foreground/80"
             rows={1}
             autoFocus
             aria-label="Message input"
-          /> */}
-
+          />
           <ComposerAction defaultModel={defaultModel} />
         </div>
       </ComposerPrimitive.AttachmentDropzone>
