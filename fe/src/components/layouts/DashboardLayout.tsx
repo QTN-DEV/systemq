@@ -1,6 +1,10 @@
 import { type ReactElement, type ReactNode } from "react";
 
-import Sidebar from "@/components/Sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+import { DashboardSidebar } from "@/features/dashboard/components/dashboard-sidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -8,12 +12,10 @@ interface DashboardLayoutProps {
 
 function DashboardLayout({ children }: DashboardLayoutProps): ReactElement {
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <DashboardSidebar />
+      <SidebarInset className="overflow-auto">{children}</SidebarInset>
+    </SidebarProvider>
   );
 }
 
