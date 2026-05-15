@@ -4715,132 +4715,132 @@ export type StreamChatThreadResponses = {
     200: unknown;
 };
 
-export type LoginAuthLoginPostData = {
+export type LoginData = {
     body: LoginRequest;
     path?: never;
     query?: never;
     url: '/auth/login';
 };
 
-export type LoginAuthLoginPostErrors = {
+export type LoginErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type LoginAuthLoginPostError = LoginAuthLoginPostErrors[keyof LoginAuthLoginPostErrors];
+export type LoginError = LoginErrors[keyof LoginErrors];
 
-export type LoginAuthLoginPostResponses = {
+export type LoginResponses = {
     /**
      * Session token with the authenticated user's profile.
      */
     200: AuthSession;
 };
 
-export type LoginAuthLoginPostResponse = LoginAuthLoginPostResponses[keyof LoginAuthLoginPostResponses];
+export type LoginResponse = LoginResponses[keyof LoginResponses];
 
-export type ForgotPasswordAuthForgotPasswordPostData = {
+export type ForgotPasswordData = {
     body: ForgotPasswordRequest;
     path?: never;
     query?: never;
     url: '/auth/forgot-password';
 };
 
-export type ForgotPasswordAuthForgotPasswordPostErrors = {
+export type ForgotPasswordErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ForgotPasswordAuthForgotPasswordPostError = ForgotPasswordAuthForgotPasswordPostErrors[keyof ForgotPasswordAuthForgotPasswordPostErrors];
+export type ForgotPasswordError = ForgotPasswordErrors[keyof ForgotPasswordErrors];
 
-export type ForgotPasswordAuthForgotPasswordPostResponses = {
+export type ForgotPasswordResponses = {
     /**
      * Acknowledgement that a reset email was dispatched.
      */
     202: MessageResponse;
 };
 
-export type ForgotPasswordAuthForgotPasswordPostResponse = ForgotPasswordAuthForgotPasswordPostResponses[keyof ForgotPasswordAuthForgotPasswordPostResponses];
+export type ForgotPasswordResponse = ForgotPasswordResponses[keyof ForgotPasswordResponses];
 
-export type ResetPasswordAuthResetPasswordPostData = {
+export type ResetPasswordData = {
     body: ResetPasswordRequest;
     path?: never;
     query?: never;
     url: '/auth/reset-password';
 };
 
-export type ResetPasswordAuthResetPasswordPostErrors = {
+export type ResetPasswordErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ResetPasswordAuthResetPasswordPostError = ResetPasswordAuthResetPasswordPostErrors[keyof ResetPasswordAuthResetPasswordPostErrors];
+export type ResetPasswordError = ResetPasswordErrors[keyof ResetPasswordErrors];
 
-export type ResetPasswordAuthResetPasswordPostResponses = {
+export type ResetPasswordResponses = {
     /**
      * Confirmation that the password reset succeeded.
      */
     200: MessageResponse;
 };
 
-export type ResetPasswordAuthResetPasswordPostResponse = ResetPasswordAuthResetPasswordPostResponses[keyof ResetPasswordAuthResetPasswordPostResponses];
+export type ResetPasswordResponse = ResetPasswordResponses[keyof ResetPasswordResponses];
 
-export type ChangePasswordAuthChangePasswordPostData = {
+export type ChangePasswordData = {
     body: ChangePasswordRequest;
     path?: never;
     query?: never;
     url: '/auth/change-password';
 };
 
-export type ChangePasswordAuthChangePasswordPostErrors = {
+export type ChangePasswordErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ChangePasswordAuthChangePasswordPostError = ChangePasswordAuthChangePasswordPostErrors[keyof ChangePasswordAuthChangePasswordPostErrors];
+export type ChangePasswordError = ChangePasswordErrors[keyof ChangePasswordErrors];
 
-export type ChangePasswordAuthChangePasswordPostResponses = {
+export type ChangePasswordResponses = {
     /**
      * Confirmation that the password was changed.
      */
     200: MessageResponse;
 };
 
-export type ChangePasswordAuthChangePasswordPostResponse = ChangePasswordAuthChangePasswordPostResponses[keyof ChangePasswordAuthChangePasswordPostResponses];
+export type ChangePasswordResponse = ChangePasswordResponses[keyof ChangePasswordResponses];
 
-export type RenewSessionAuthRenewPostData = {
+export type RenewSessionData = {
     body: RenewSessionRequest;
     path?: never;
     query?: never;
     url: '/auth/renew';
 };
 
-export type RenewSessionAuthRenewPostErrors = {
+export type RenewSessionErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RenewSessionAuthRenewPostError = RenewSessionAuthRenewPostErrors[keyof RenewSessionAuthRenewPostErrors];
+export type RenewSessionError = RenewSessionErrors[keyof RenewSessionErrors];
 
-export type RenewSessionAuthRenewPostResponses = {
+export type RenewSessionResponses = {
     /**
      * New session token and updated user payload.
      */
     200: AuthSession;
 };
 
-export type RenewSessionAuthRenewPostResponse = RenewSessionAuthRenewPostResponses[keyof RenewSessionAuthRenewPostResponses];
+export type RenewSessionResponse = RenewSessionResponses[keyof RenewSessionResponses];
 
-export type LogoutAuthLogoutPostData = {
+export type LogoutData = {
     body?: never;
     headers: {
         /**
@@ -4853,16 +4853,16 @@ export type LogoutAuthLogoutPostData = {
     url: '/auth/logout';
 };
 
-export type LogoutAuthLogoutPostErrors = {
+export type LogoutErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type LogoutAuthLogoutPostError = LogoutAuthLogoutPostErrors[keyof LogoutAuthLogoutPostErrors];
+export type LogoutError = LogoutErrors[keyof LogoutErrors];
 
-export type LogoutAuthLogoutPostResponses = {
+export type LogoutResponses = {
     /**
      * No content; the token is invalidated.
      */

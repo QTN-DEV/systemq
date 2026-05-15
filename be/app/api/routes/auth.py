@@ -30,6 +30,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     response_model=AuthSession,
     summary="Authenticate with email and password",
     response_description="Session token with the authenticated user's profile.",
+    operation_id="login",
 )
 async def login(payload: LoginRequest) -> AuthSession:
     """Validate credentials and issue a short-lived session token."""
@@ -52,6 +53,7 @@ async def login(payload: LoginRequest) -> AuthSession:
     status_code=status.HTTP_202_ACCEPTED,
     summary="Send password reset instructions",
     response_description="Acknowledgement that a reset email was dispatched.",
+    operation_id="forgotPassword",
 )
 async def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     """Queue a password reset token and dispatch the notification email."""
@@ -70,6 +72,7 @@ async def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
     response_model=MessageResponse,
     summary="Reset a password using a token",
     response_description="Confirmation that the password reset succeeded.",
+    operation_id="resetPassword",
 )
 async def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
     """Validate the reset token and set a new password for the account."""
@@ -91,6 +94,7 @@ async def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
     response_model=MessageResponse,
     summary="Change password",
     response_description="Confirmation that the password was changed.",
+    operation_id="changePassword",
 )
 async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     """Update a user's password after verifying the supplied current password."""
@@ -113,6 +117,7 @@ async def change_password(payload: ChangePasswordRequest) -> MessageResponse:
     response_model=AuthSession,
     summary="Renew an existing session token",
     response_description="New session token and updated user payload.",
+    operation_id="renewSession",
 )
 async def renew_session(payload: RenewSessionRequest) -> AuthSession:
     """Exchange a valid session token for a fresh one."""
@@ -143,6 +148,7 @@ async def get_current_user(authorization: str = Header()) -> UserProfile:
     "/logout",
     summary="Logout and invalidate the current session token",
     response_description="No content; the token is invalidated.",
+    operation_id="logout",
 )
 async def logout(authorization: str = Header()) -> Response:
     """Invalidate the supplied bearer token so it can no longer be used."""
